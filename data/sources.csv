@@ -1,0 +1,15 @@
+filename;source;description
+info.csv;;Allgemeine Vereinsdaten (Kontakt Impressum Footer)
+news.csv;;Aktuelle Nachrichten und Mitteilungen
+events.csv;;Termine und Veranstaltungen
+media.csv;;Mediathek Fotos und Videos
+members.csv;;Vorstand und Ansprechpartner
+players.csv;;Spieleruebersicht und DWZ/ELO
+teams.csv;;Mannschaften im Spielbetrieb
+tournaments.csv;;Turniere (Open Rheinfelden Open Ascona etc.)
+quotes.csv;;Schach-Zitate fuer Banner/Teaser
+pages.csv;;Seiteninhalte (Freitext-Seiten)
+bsv_spiele.csv;;BSV Ligaspiele (Deutschland)
+bsv_brett_details.csv;;BSV Einzelergebnisse / Brett-Details
+ssb_spiele.csv;;SSB Ligaspiele (Schweiz)
+ssb_brett_details.csv;;SSB Einzelergebnisse / Brett-Details

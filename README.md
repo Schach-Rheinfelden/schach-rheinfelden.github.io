@@ -26,13 +26,21 @@ Dieses Handbuch erklärt ausführlich die Architektur der Website sowie alle For
 
 ---
 
-## 2. Texte & Neuigkeiten schreiben (Ohne HTML-Tags)
-Du musst **keine HTML-Tags** kennen oder schreiben! Die Website formatiert deine Texte automatisch:
+## 2. Texte & Neuigkeiten schreiben (Text oder HTML / WYSIWYG-Editoren)
+Du hast zwei Möglichkeiten, Texte (für Neuigkeiten in `news.csv` oder Beschreibungen in `events.csv`) zu verfassen:
 
-* **Absätze:** Drücke einfach **zweimal Enter** (zwei Zeilenumbrüche im Textfeld/in der CSV), um einen neuen Absatz zu beginnen. Die Website macht daraus automatisch saubere Absätze mit Abstand (`<p>`).
-* **Einfache Zeilenumbrüche:** Ein einzelner Zeilenumbruch (einmal Enter) wird automatisch als Zeilenumbruch (`<br>`) angezeigt.
-* **Links (URLs):** Wenn du eine Internetadresse wie `https://www.schachbund.de` oder `www.lichess.org` in den Text schreibst, verwandelt die Website diese automatisch in einen klickbaren Link!
-* *(Optional)* **HTML-Tags:** Wer möchte, *kann* trotzdem HTML-Tags wie `<b>fett</b>` oder `<i>kursiv</i>` verwenden – die Website erkennt und unterstützt auch das problemlos.
+### Möglichkeit A: Einfacher Text (Ohne HTML-Kenntnisse)
+Die Website formatiert deinen normalen Text automatisch:
+* **Absätze:** Drücke einfach **zweimal Enter** (zwei Zeilenumbrüche), um einen neuen Absatz zu beginnen (`<p>`).
+* **Einfache Zeilenumbrüche:** Ein einzelner Zeilenumbruch wird automatisch als Zeilenumbruch (`<br>`) dargestellt.
+* **Links (URLs):** Internetadressen wie `https://www.schachbund.de` oder `www.lichess.org` im Text werden automatisch in klickbare Links umgewandelt!
+
+### Möglichkeit B: WYSIWYG HTML-Editoren nutzen
+Wenn du Texte aufwendig formatieren möchtest (z. B. fette Zwischenüberschriften, Listen, Tabellen oder farbige Markierungen), kannst du jeden beliebigen **WYSIWYG HTML-Editor** (z. B. Online HTML-Editoren, Word-to-HTML, TinyMCE) verwenden.
+* Kopiere einfach den dort generierten HTML-Code und füge ihn direkt in die Spalte `content` ein.
+* Die Website erkennt HTML-Code automatisch und stellt deine Formatierung exakt dar!
+* *Hinweis bei CSV:* Wenn dein HTML-Code Semikolons (`;`) oder Anführungszeichen enthält, umschließe den gesamten HTML-Text in der CSV mit doppelten Anführungszeichen (`"..."`).
+
 
 ---
 
@@ -61,7 +69,7 @@ Der eingetragene Typ bestimmt automatisch das Icon und was beim Klick passiert:
 ## 4. Hero-Banner & Hintergrund-Slideshow (`data/info.csv`)
 Das Feld `heroMedia` in `info.csv` steuert den großen Hintergrund ganz oben auf der Startseite:
 
-* **Option A – Video:** Link zu `.mp4`, YouTube oder Vimeo.
+* **Option A – Video:** Link zu Videodateien (`.mp4`, `.webm`, `.mov`, `.m4v`, `.ogg`) oder zu YouTube & Vimeo (automatische Vollbildabdeckung ohne schwarze Ränder auch auf dem Smartphone).
 * **Option B – Einzelbild:** Link zu einer Bilddatei (z. B. `img/hero.jpg`).
 * **Option C – Automatische Slideshow (Mehrere Bilder):**
   Trage einfach mehrere Bild-URLs getrennt durch ein Komma (`,`) ein:
@@ -91,29 +99,48 @@ Die Datei `info.csv` hat die Spalten `keyPath;value`.
 Wichtige Schlüssel:
 * `clubName` – Name des Vereins (`Schach Rheinfelden`)
 * `slogan` – Untertitel
-* `announcement` – Banner oben auf der Seite
+* `announcement` – Banner oben auf der Seite (*Intelligentes Verhalten:* Wenn ein Besucher das Banner über das `×`-Symbol schließt, bleibt es dauerhaft ausgeblendet. Erst wenn du in `info.csv` einen neuen Text für das Announcement veröffentlichst, erscheint das Banner automatisch wieder!)
 * `footer.copyright` – Überschreibt den Copyright-Text im Footer (z. B. `© 2027 Schach Rheinfelden. Alle Rechte vorbehalten.`)
 
 ---
 
 ## 7. Neuigkeiten & Berichte (`data/news.csv`)
-Spalten:
+Spaltenstruktur (exakt passend zu `data/news.csv`):
 ```csv
-id;title;date;category;teaser;content;author;image;gallery
+id;date;category;title;author;color;image;content;gallery
 ```
-* `teaser`: Kurzer Text für die Übersichtskarten.
-* `content`: Vollständiger Artikel. Du kannst einfach normalen Text schreiben – Absätze durch doppelte Zeilenumbrüche werden automatisch formatiert!
+* `id`: Eindeutige Nummer des Artikels (z. B. `1`, `2`).
+* `date`: Datum des Artikels (z. B. `11.07.2026`).
+* `category`: Kategorie-Badge (z. B. `Verein`, `Turnier`, `SMM`).
+* `title`: Titel der Nachricht.
+* `author`: Autor (z. B. `Vorstand`).
+* `color`: Optionale Akzentfarbe für die Karte (z. B. `#d4af37` oder leer lassen für Standardgold).
+* `image`: URL oder Pfad zum Hauptbild/Teaser-Bild.
+* `content`: Vollständiger Text oder HTML-Code des Artikels (kann mit einem WYSIWYG HTML-Editor formatiert werden!).
+* `gallery`: Optionale Bildergalerie (mit `||` getrennt).
 
 ---
 
 ## 8. Termine & Kalender (`data/events.csv`)
-Spalten:
+Spaltenstruktur (exakt passend zu `data/events.csv`):
 ```csv
-id;title;date;time;location;category;description;report;resultsUrl;gallery
+id;date;time;endTime;category;color;title;author;location;locationUrl;image;gallery;content
 ```
-* Termine in der Zukunft erscheinen automatisch unter **Kommende Termine**, vergangene Termine unter **Vergangene Termine**.
-* `report`: Nachbericht zum Turnier.
-* `resultsUrl`: Link zu offiziellen Ergebnissen (z. B. Chess-Results).
+* `id`: Eindeutige Nummer des Termins.
+* `date`: Datum – unterstützt Standarddaten (`22.08.2026`) sowie flexible Angaben (z. B. `Mai 2026` oder `2026`).
+* `time`: Startuhrzeit (z. B. `13:45`).
+* `endTime`: Enduhrzeit (z. B. `20:00`).
+* `category`: Kategorien kommagetrennt (z. B. `SMM, Rhy 1`).
+* `color`: Optionale Akzentfarbe für die Terminkachel.
+* `title`: Titel des Termins (z. B. `SMM 2026 - Runde 6`).
+* `author`: Optionale Angabe zur Turnierleitung / Ansprechpartner.
+* `location`: Ort des Termins (z. B. `Bioland, Tannwaldstrasse 44, 4600 Olten`).
+* `locationUrl`: Link zu Google Maps / OpenStreetMap.
+* `image`: Optionales Bild für den Termin.
+* `gallery`: Optionale Fotogalerie zum Termin.
+* `content`: Ausführliche Beschreibung, Ausschreibungsdetails, Zeitplan oder Links (kann als Text oder HTML eingetragen werden).
+* *Hinweis:* Termine ab dem heutigen Tag erscheinen automatisch unter **Anstehende Termine**, vergangene Termine lassen sich unter **Vergangene Termine** ein- und ausblenden.
+
 
 ---
 

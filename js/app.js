@@ -1018,18 +1018,147 @@ async function renderTeams() {
                 const teamId = target.dataset.team;
                 const isConnected = target.classList.contains('btn-primary');
                 window.teamConnected[teamId] = isConnected;
+                if (window.updateTeamsListView) window.updateTeamsListView();
             });
             // Init default state
             window.teamConnected[btn.dataset.team] = btn.classList.contains('btn-primary');
         });
 
-        // Collect all players with unique IDs
-        let allPlayers = [];
+        // Collect unique players across teams for floating view (keine Doppelungen in der Raumansicht)
+        const uniquePlayersMap = new Map();
         teams.forEach(team => {
             team.players.forEach(p => {
-                allPlayers.push({ ...p, teamId: team.id, id: 'player_' + Math.random().toString(36).substr(2, 9) });
+                const key = (p.name || '').trim().toLowerCase();
+                if (!key) return;
+                if (!uniquePlayersMap.has(key)) {
+                    uniquePlayersMap.set(key, {
+                        ...p,
+                        id: p.id || ('player_' + Math.random().toString(36).substr(2, 9)),
+                        teamId: team.id,
+                        teamIds: [team.id]
+                    });
+                } else {
+                    const existing = uniquePlayersMap.get(key);
+                    if (!existing.teamIds.includes(team.id)) {
+                        existing.teamIds.push(team.id);
+                    }
+                }
             });
         });
+        let allPlayers = Array.from(uniquePlayersMap.values());
+
+        window.allTeamsData = teams;
+        window.allPlayersData = allPlayers;
+        window.teamsSearchQuery = '';
+        window.teamsViewMode = 'floating';
+
+        const searchInput = document.getElementById('teams-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                window.teamsSearchQuery = e.target.value.trim().toLowerCase();
+                if (window.updateTeamsListView) window.updateTeamsListView();
+            });
+        }
+
+        const floatBtn = document.getElementById('view-floating-btn');
+        const listBtn = document.getElementById('view-list-btn');
+        const floatingContainer = document.getElementById('floating-field');
+        const listContainer = document.getElementById('teams-list-view');
+
+        const switchView = (mode) => {
+            window.teamsViewMode = mode;
+            if (mode === 'floating') {
+                floatBtn?.classList.replace('btn-secondary', 'btn-primary');
+                listBtn?.classList.replace('btn-primary', 'btn-secondary');
+                if (floatingContainer) floatingContainer.style.display = 'block';
+                if (listContainer) listContainer.style.display = 'none';
+            } else {
+                listBtn?.classList.replace('btn-secondary', 'btn-primary');
+                floatBtn?.classList.replace('btn-primary', 'btn-secondary');
+                if (floatingContainer) floatingContainer.style.display = 'none';
+                if (listContainer) listContainer.style.display = 'block';
+                if (window.updateTeamsListView) window.updateTeamsListView();
+            }
+        };
+
+        floatBtn?.addEventListener('click', () => switchView('floating'));
+        listBtn?.addEventListener('click', () => switchView('list'));
+
+        window.updateTeamsListView = function() {
+            const container = document.getElementById('teams-list-view');
+            if (!container) return;
+
+            const anyConnected = Object.values(window.teamConnected).some(v => v);
+            const query = (window.teamsSearchQuery || '').trim().toLowerCase();
+
+            const svgStr = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#e2e8f0" /><circle cx="50" cy="38" r="18" fill="#94a3b8" /><path d="M -20 120 C -20 60, 120 60, 120 120 Z" fill="#94a3b8" /></svg>';
+            const mysteryAvatar = `data:image/svg+xml;utf8,${encodeURIComponent(svgStr)}`;
+
+            let html = '';
+
+            window.allTeamsData.forEach(team => {
+                if (anyConnected && !window.teamConnected[team.id]) return;
+
+                const matchingPlayers = (team.players || []).filter(p => {
+                    if (!query) return true;
+                    const nameMatch = p.name && p.name.toLowerCase().includes(query);
+                    const teamMatch = (p.Team || p.team || '').toLowerCase().includes(query);
+                    return nameMatch || teamMatch;
+                });
+
+                if (matchingPlayers.length === 0) return;
+
+                // Alphabetisch nach Name sortieren
+                matchingPlayers.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de'));
+
+                html += `
+                    <div class="team-list-section" style="margin-bottom: 2.5rem; text-align: left;">
+                        <h3 style="font-size: 1.45rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1.25rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.6rem; display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="width: 4px; height: 22px; background: var(--accent-color); border-radius: 2px; display: inline-block;"></span>
+                            <span style="color: var(--accent-color);">${team.name}</span>
+                            <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 400; margin-left: 0.2rem;">(${matchingPlayers.length} ${matchingPlayers.length === 1 ? 'Spieler' : 'Spieler'})</span>
+                        </h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
+                            ${matchingPlayers.map(player => {
+                                const avatarUrl = player.avatar || mysteryAvatar;
+                                const settings = player._globalSettings || {};
+                                const useFullName = settings.name !== false;
+                                const displayName = useFullName ? player.name : window.getInitials(player.name);
+                                const eloStr = player.ELO || player.elo ? `ELO ${player.ELO || player.elo}` : '';
+                                const dwzStr = player.DWZ || player.dwz ? `DWZ ${player.DWZ || player.dwz}` : '';
+
+                                return `
+                                    <div class="glass-card player-list-card" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; cursor: pointer; transition: transform 0.2s, border-color 0.2s; border-radius: 12px; background: rgba(255,255,255,0.03);" onclick="openPlayerModalFromList('${player.id}')" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='var(--accent-color)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--glass-border)';">
+                                        <img src="${avatarUrl}" alt="${displayName}" style="width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover; flex-shrink: 0; box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.15rem;">${displayName}</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem;">${player.title || 'Spieler'}</div>
+                                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                                ${eloStr ? `<span style="font-size: 0.75rem; background: rgba(212, 175, 55, 0.18); color: var(--accent-color); padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 600;">${eloStr}</span>` : ''}
+                                                ${dwzStr ? `<span style="font-size: 0.75rem; background: rgba(255, 255, 255, 0.1); color: var(--text-primary); padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 600;">${dwzStr}</span>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (!html) {
+                html = '<div class="glass-card" style="padding: 3rem; text-align: center; color: var(--text-secondary);">Keine Spieler für diese Suche oder Filterung gefunden.</div>';
+            }
+
+            container.innerHTML = html;
+        };
+
+        window.openPlayerModalFromList = function(playerId) {
+            const player = (window.allPlayersData || []).find(p => p.id === playerId);
+            if (player && window.showPlayerModal) {
+                window.showPlayerModal(player);
+            }
+        };
 
         const canvas = document.getElementById('tether-canvas');
         if (canvas) {
@@ -1338,7 +1467,7 @@ function initPhysicsEngine(cardsData, container, canvas) {
         ctx.beginPath();
         
         // Render Team Tethers as a SINGLE CHAIN across all activated teams
-        const activePlayers = cardsData.filter(c => window.teamConnected[c.teamId]);
+        const activePlayers = cardsData.filter(c => (c.playerData.teamIds && c.playerData.teamIds.some(tId => window.teamConnected[tId])) || window.teamConnected[c.teamId]);
         
         for (let i = 0; i < activePlayers.length - 1; i++) {
             const card = activePlayers[i];
@@ -1425,16 +1554,24 @@ function initPhysicsEngine(cardsData, container, canvas) {
         }
 
         const anyConnected = Object.values(window.teamConnected).some(v => v);
+        const query = (window.teamsSearchQuery || '').trim().toLowerCase();
 
         cardsData.forEach(card => {
             card.el.style.transform = `translate(${card.x}px, ${card.y}px)`;
             
-            if (anyConnected && !window.teamConnected[card.teamId]) {
-                card.el.style.opacity = '0.3';
+            const matchesTeam = !anyConnected || (card.playerData.teamIds && card.playerData.teamIds.some(tId => window.teamConnected[tId])) || window.teamConnected[card.teamId];
+            const matchesSearch = !query || 
+                (card.playerData.name && card.playerData.name.toLowerCase().includes(query)) ||
+                (card.playerData.Team && card.playerData.Team.toLowerCase().includes(query));
+            
+            if (!matchesTeam || !matchesSearch) {
+                card.el.style.opacity = '0.2';
                 card.el.style.filter = 'grayscale(100%)';
+                card.el.style.pointerEvents = 'none';
             } else {
                 card.el.style.opacity = '1';
                 card.el.style.filter = 'none';
+                card.el.style.pointerEvents = 'auto';
             }
         });
 

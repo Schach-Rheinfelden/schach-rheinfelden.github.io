@@ -1208,31 +1208,48 @@ function initPhysicsEngine(cardsData, container, canvas) {
                     const useFullName = settings.name !== false;
                     const displayName = useFullName ? p.name : window.getInitials(p.name);
 
-                    modalBody.innerHTML = `
-                        <img src="${avatarUrl}" alt="${displayName}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent-color); object-fit: cover; margin-bottom: 1rem; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);">
-                        <h3 style="font-size: 2rem; color: var(--accent-color); margin-bottom: 0.5rem;">${displayName}</h3>
-                        <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 1.5rem;">${p.title || 'Spieler'}</p>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; text-align: left; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--glass-border);">
-                            ${Object.entries(p).filter(([key, value]) => {
-                                const lowerKey = key.toLowerCase();
-                                // Interne Keys ausblenden
-                                if (['id', 'teamid', 'name', 'avatar', 'title', '_globalsettings'].includes(lowerKey)) return false;
-                                
-                                // Globale Einstellungen checken (wenn 'nein', dann ausblenden)
-                                if (settings[lowerKey] === false) return false;
+                    const teamStr = p.Team || p.team || '';
+                    const teamsList = teamStr.split(',').map(t => t.trim()).filter(Boolean);
+                    const teamPinsHTML = teamsList.length > 0 ? `
+                        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin: -0.5rem 0 1.5rem 0;">
+                            ${teamsList.map(t => `
+                                <span style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 1rem; border-radius: 999px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.08)); border: 1px solid var(--accent-color); color: var(--accent-color); font-weight: 700; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25); letter-spacing: 0.5px;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z"/></svg>
+                                    ${t}
+                                </span>
+                            `).join('')}
+                        </div>
+                    ` : '';
 
-                                // Wert checken: Wenn wirklich LEER, dann ausblenden. '-' wird angezeigt!
-                                if (value === null || value === undefined || value.toString().trim() === '') return false;
-                                
-                                return true;
-                            }).map(([key, value]) => `
+                    const seenKeys = new Set();
+                    const gridItems = Object.entries(p).filter(([key, value]) => {
+                        const lowerKey = key.toLowerCase();
+                        // Interne Keys und Team ausblenden (Team wird oben als Pins angezeigt)
+                        if (['id', 'teamid', 'name', 'avatar', 'title', '_globalsettings', 'team'].includes(lowerKey)) return false;
+                        if (settings[lowerKey] === false) return false;
+                        if (value === null || value === undefined || value.toString().trim() === '') return false;
+                        if (seenKeys.has(lowerKey)) return false;
+                        seenKeys.add(lowerKey);
+                        return true;
+                    });
+
+                    const gridHTML = gridItems.length > 0 ? `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; text-align: left; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            ${gridItems.map(([key, value]) => `
                             <div>
                                 <span style="display: block; font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">${key}</span>
                                 <strong style="font-size: 1.2rem; color: var(--text-primary);">${value}</strong>
                             </div>
                             `).join('')}
                         </div>
+                    ` : '';
+
+                    modalBody.innerHTML = `
+                        <img src="${avatarUrl}" alt="${displayName}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent-color); object-fit: cover; margin-bottom: 1rem; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);">
+                        <h3 style="font-size: 2rem; color: var(--accent-color); margin-bottom: 0.5rem;">${displayName}</h3>
+                        <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 1.5rem;">${p.title || 'Spieler'}</p>
+                        ${teamPinsHTML}
+                        ${gridHTML}
                     `;
                     modal.classList.remove('hidden');
                     // Add global close fn if not exists

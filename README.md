@@ -22,7 +22,7 @@ Dieses Handbuch erklärt ausführlich die Architektur der Website sowie alle For
 * **Trennzeichen:** Das Semikolon (`;`) trennt die Spalten.
 * **Leere Felder:** Wenn ein Feld leer bleiben soll, einfach nichts zwischen die Semikolons schreiben (`;;`).
 * **Mehrzeilige Texte & Semikolons im Text:** Wenn ein Text Semikolons oder Zeilenumbrüche enthält, muss der gesamte Text in doppelte Anführungszeichen gesetzt werden (`"..."`).
-* **Datumsangaben:** Am besten im Format `TT.MM.JJJJ` eingeben (z. B. `15.04.2026`).
+* **Datumsangaben:** Du bist komplett flexibel – unterstützt werden `TT.MM.JJJJ` (`15.04.2026`), `TT.MM.JJ` (`15.04.26`), kompakte Zahlenreihen (`20260415` oder `260415`), ISO-Formate (`2026-04-15`) sowie ausgeschriebene Monats- und Jahresangaben (`April 2026` oder `2026`).
 
 ---
 
@@ -124,12 +124,13 @@ id;date;category;title;author;color;image;content;gallery
 ## 8. Termine & Kalender (`data/events.csv`)
 Spaltenstruktur (exakt passend zu `data/events.csv`):
 ```csv
-id;date;time;endTime;category;color;title;author;location;locationUrl;image;gallery;content
+id;date;endDate;time;endTime;category;color;title;author;location;locationUrl;image;gallery;content
 ```
 * `id`: Eindeutige Nummer des Termins.
-* `date`: Datum – unterstützt Standarddaten (`22.08.2026`) sowie flexible Angaben (z. B. `Mai 2026` oder `2026`).
-* `time`: Startuhrzeit (z. B. `13:45`).
-* `endTime`: Enduhrzeit (z. B. `20:00`).
+* `date`: Startdatum oder Zeitraum – unterstützt alle gängigen Formate: `DD.MM.YYYY` (`11.09.2026`), `DD.MM.YY` (`11.09.26`), kompaktes `YYYYMMDD` (`20260911`), kompaktes `YYMMDD` (`260911`), ISO `YYYY-MM-DD`, ausgeschriebene Monate (`Juni 2026`, `06.2026`), reine Jahre (`2026`) oder auch `?` / `TBD`.
+* `endDate`: Optionales Enddatum (gleiche Datumsformate wie `date` unterstützt), ideal für mehrtägige Turniere wie das Rheinfelden Open (`13.09.2026`). Erscheint automatisch kompakt in der Datumsbox (z. B. `11.–13. SEP`).
+* `time`: Startuhrzeit (z. B. `13:45`). Kann auch leer gelassen werden oder Texte wie `Ganztägig` enthalten.
+* `endTime`: Optionale Enduhrzeit (z. B. `20:00`). Wenn du nicht weißt, wie lange ein Event dauert, lass diese Spalte einfach leer – es wird dann sauber nur die Startzeit angezeigt (`13:45 Uhr`).
 * `category`: Kategorien kommagetrennt (z. B. `SMM, Rhy 1`).
 * `color`: Optionale Akzentfarbe für die Terminkachel.
 * `title`: Titel des Termins (z. B. `SMM 2026 - Runde 6`).

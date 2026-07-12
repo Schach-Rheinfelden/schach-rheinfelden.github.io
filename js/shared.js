@@ -147,6 +147,11 @@ window.parseFlexDate = function(dateStr) {
 };
 
 // Format a date for display based on its flex type
+function getShortMonthDe(date) {
+    const months = ['JAN', 'FEB', 'MÄR', 'APR', 'MAI', 'JUN', 'JUL', 'AUG', 'SEP', 'OKT', 'NOV', 'DEZ'];
+    return months[date.getMonth()] || '';
+}
+
 window.formatFlexDate = function(dateStr) {
     const parsed = window.parseFlexDate(dateStr);
     if (parsed.type === 'tbd') return { weekday: '', day: '?', month: 'TBD', full: 'Datum noch offen', type: 'tbd' };
@@ -156,16 +161,16 @@ window.formatFlexDate = function(dateStr) {
     }
     if (parsed.type === 'month') {
         const monthLong = parsed.date.toLocaleDateString('de-DE', { month: 'long' });
-        const monthShort = parsed.date.toLocaleDateString('de-DE', { month: 'short' });
+        const monthShort = getShortMonthDe(parsed.date);
         const year = parsed.date.getFullYear();
         return { weekday: '', day: monthShort, month: year, full: `${monthLong} ${year}`, type: 'month' };
     }
     // full date
     const d = parsed.date;
     return {
-        weekday: d.toLocaleDateString('de-DE', { weekday: 'short' }),
+        weekday: d.toLocaleDateString('de-DE', { weekday: 'short' }).replace(/\.$/, '').toUpperCase(),
         day: d.getDate(),
-        month: d.toLocaleDateString('de-DE', { month: 'short' }),
+        month: getShortMonthDe(d),
         full: d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }),
         type: 'full'
     };
@@ -243,12 +248,14 @@ window.formatEventDateBox = function(event) {
             if (d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear()) {
                 const day1 = d1.getDate();
                 const day2 = d2.getDate();
-                const monthShort = d1.toLocaleDateString('de-DE', { month: 'short' });
-                return `<span class="event-day" style="font-size: 1.1rem; letter-spacing: -0.5px; white-space: nowrap;">${day1}.–${day2}.</span><span class="event-month">${monthShort}</span>`;
+                const monthShort = getShortMonthDe(d1);
+                return `<span class="event-day" style="font-size: 1.15rem; letter-spacing: -0.5px; white-space: nowrap;">${day1}.–${day2}.</span><span class="event-month">${monthShort}</span>`;
             } else {
-                const day1Str = d1.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '.';
-                const day2Str = d2.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '.';
-                return `<span class="event-day" style="font-size: 0.9rem; line-height: 1.15;">${day1Str}</span><span class="event-weekday" style="font-size: 0.65rem; opacity: 0.75; margin: 2px 0;">BIS</span><span class="event-day" style="font-size: 0.9rem; line-height: 1.15;">${day2Str}</span>`;
+                const d1Day = d1.getDate();
+                const d1Month = getShortMonthDe(d1);
+                const d2Day = d2.getDate();
+                const d2Month = getShortMonthDe(d2);
+                return `<span class="event-day" style="font-size: 0.88rem; line-height: 1.25; white-space: nowrap;">${d1Day}. ${d1Month}</span><span class="event-weekday" style="font-size: 0.65rem; opacity: 0.75; margin: 2px 0;">BIS</span><span class="event-day" style="font-size: 0.88rem; line-height: 1.25; white-space: nowrap;">${d2Day}. ${d2Month}</span>`;
             }
         } else {
             return `<span class="event-day" style="font-size: 0.8rem; line-height: 1.25;">${startStr}</span><span class="event-weekday" style="font-size: 0.65rem; opacity: 0.75; margin: 2px 0;">BIS</span><span class="event-day" style="font-size: 0.8rem; line-height: 1.25;">${endStr}</span>`;

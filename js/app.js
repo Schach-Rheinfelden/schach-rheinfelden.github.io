@@ -668,13 +668,13 @@ function renderEvents() {
             return tags.includes(currentEventCategory);
         });
 
-    filteredEvents.sort((a, b) => window.parseDate(a.date) - window.parseDate(b.date));
+    filteredEvents.sort((a, b) => (window.parseDateSortable ? window.parseDateSortable(a.date) : window.parseDate(a.date)) - (window.parseDateSortable ? window.parseDateSortable(b.date) : window.parseDate(b.date)));
 
     const today = new Date();
     today.setHours(0,0,0,0);
 
-    const upcomingEvents = filteredEvents.filter(e => window.parseDate(e.date) >= today);
-    const pastEvents = filteredEvents.filter(e => window.parseDate(e.date) < today);
+    const upcomingEvents = filteredEvents.filter(e => (window.getEventEndDate ? window.getEventEndDate(e) : window.parseDate(e.date)) >= today);
+    const pastEvents = filteredEvents.filter(e => (window.getEventEndDate ? window.getEventEndDate(e) : window.parseDate(e.date)) < today);
 
     let html = upcomingEvents.slice(0, currentEventsLimit).map(event => createEventHTML(event, false)).join('');
 
@@ -709,10 +709,9 @@ function renderEvents() {
 }
 
 function createEventHTML(event, isPast) {
-    const fmt = window.formatFlexDate(event.date);
     const pastClass = isPast ? 'event-past' : '';
 
-    const timeDisplay = event.endTime ? `${event.time} - ${event.endTime} Uhr` : `${event.time} Uhr`;
+    const timeDisplay = window.formatEventTimeDisplay ? window.formatEventTimeDisplay(event) : (event.time ? `🕒 ${event.time} Uhr` : '');
     const authorHTML = event.author ? `<span style="margin-left: 1rem;">👤 ${event.author}</span>` : '';
 
     let imageHTML = '';
@@ -726,17 +725,9 @@ function createEventHTML(event, isPast) {
 
     const colorStyles = window.getEventCardColorStyles ? window.getEventCardColorStyles(event.color || event.akzentfarbe || event.accentColor) : { cardStyle: '', dateBoxStyle: '' };
 
-    // Date box adapts to flex date type
-    let dateBoxContent = '';
-    if (fmt.type === 'tbd') {
-        dateBoxContent = `<span class="event-day" style="font-size: 1.8rem;">?</span><span class="event-month">TBD</span>`;
-    } else if (fmt.type === 'year') {
-        dateBoxContent = `<span class="event-day" style="font-size: 1.2rem;">${fmt.day}</span>`;
-    } else if (fmt.type === 'month') {
-        dateBoxContent = `<span class="event-day" style="font-size: 1.1rem;">${fmt.day}</span><span class="event-month">${fmt.month}</span>`;
-    } else {
-        dateBoxContent = `<span class="event-weekday">${fmt.weekday}</span><span class="event-day">${fmt.day}</span><span class="event-month">${fmt.month}</span>`;
-    }
+    const dateBoxContent = window.formatEventDateBox ? window.formatEventDateBox(event) : '';
+
+    const timeRowHTML = (timeDisplay || authorHTML) ? `<div>${timeDisplay}${authorHTML}</div>` : '';
 
     return `
     <li class="event-item fade-in-up ${pastClass}" style="cursor: pointer; display: flex; flex-direction: column; align-items: stretch; ${colorStyles.cardStyle}" onclick="openEventModal(${event.id})">
@@ -753,7 +744,7 @@ function createEventHTML(event, isPast) {
             <div style="flex: 1; min-width: 0;">
                 <h3 style="font-size: 1.2rem; margin-bottom: 0.3rem; color: var(--accent-color);">${event.title}</h3>
                 <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
-                    <div>🕒 ${timeDisplay}${authorHTML}</div>
+                    ${timeRowHTML}
                     <div style="margin-top: 0.25rem;">📍 ${locationDisplay}</div>
                 </div>
                 <div style="margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
@@ -804,17 +795,21 @@ function downloadAllEvents() {
 
 function formatICSDatePart(dateStr) {
     if (!dateStr) return "20260101";
-    if (dateStr.includes('.')) {
-        const parts = dateStr.split('.');
+    let s = String(dateStr).trim();
+    if (s.includes(' - ') || s.includes('–') || s.includes(' bis ')) {
+        s = s.split(/\s+[-–]\s+|\s+bis\s+/i)[0].trim();
+    }
+    if (s.includes('.')) {
+        const parts = s.split('.');
         const day = parts[0].padStart(2, '0');
         const month = parts[1].padStart(2, '0');
         const year = parts[2];
         return `${year}${month}${day}`;
-    } else if (dateStr.includes('-')) {
-        const parts = dateStr.split('-');
+    } else if (s.includes('-')) {
+        const parts = s.split('-');
         return `${parts[0]}${parts[1].padStart(2, '0')}${parts[2].padStart(2, '0')}`;
     }
-    return dateStr.replace(/[^0-9]/g, '');
+    return s.replace(/[^0-9]/g, '');
 }
 
 function cleanICSDescription(content) {
@@ -841,20 +836,29 @@ function cleanICSDescription(content) {
 function generateICS(events, filename) {
     let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Schach Rheinfelden//NONSGML v1.0//EN\n";
     events.forEach(event => {
-        const datePart = formatICSDatePart(event.date);
-        const [hour, minute] = (event.time || "19:00").split(':');
+        const startDatePart = formatICSDatePart(event.date);
+        let endDatePart = startDatePart;
+        const endD = window.getEventEndDate ? window.getEventEndDate(event) : null;
+        if (endD && !isNaN(endD.getTime())) {
+            const y = endD.getFullYear();
+            const m = String(endD.getMonth() + 1).padStart(2, '0');
+            const d = String(endD.getDate()).padStart(2, '0');
+            endDatePart = `${y}${m}${d}`;
+        }
+
+        const [hour, minute] = (event.time || "10:00").split(':');
         
-        const startDate = `${datePart}T${hour.padStart(2, '0')}${minute.padStart(2, '0')}00`;
+        const startDate = `${startDatePart}T${(hour || "10").padStart(2, '0')}${(minute || "00").padStart(2, '0')}00`;
         let endHour, endMinute;
         if (event.endTime) {
             const [eHour, eMinute] = event.endTime.split(':');
             endHour = eHour.padStart(2, '0');
             endMinute = eMinute.padStart(2, '0');
         } else {
-            endHour = String(parseInt(hour) + 2).padStart(2, '0');
-            endMinute = minute.padStart(2, '0');
+            endHour = String(parseInt(hour || 10) + 2).padStart(2, '0');
+            endMinute = (minute || "00").padStart(2, '0');
         }
-        const endDate = `${datePart}T${endHour}${endMinute}00`;
+        const endDate = `${endDatePart}T${endHour}${endMinute}00`;
         const description = cleanICSDescription(event.content);
 
         icsContent += "BEGIN:VEVENT\n";

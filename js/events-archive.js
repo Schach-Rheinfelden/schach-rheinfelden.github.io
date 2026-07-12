@@ -271,11 +271,10 @@ window.openEventModal = function(id) {
     if (!event) return;
 
     const modalBody = document.getElementById('event-modal-body');
-    const dateObj = window.parseDate(event.date);
-    const dateString = dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    const timeDisplay = event.endTime ? `${event.time} - ${event.endTime} Uhr` : `${event.time} Uhr`;
+    const dateString = window.formatEventModalDateHeader ? window.formatEventModalDateHeader(event) : event.date;
+    const timeDisplay = window.formatEventTimeDisplay ? window.formatEventTimeDisplay(event) : (event.time ? `${event.time} Uhr` : '');
     const authorHTML = event.author ? ` | 👤 ${event.author}` : '';
-
+    const metaLine = [dateString, timeDisplay].filter(Boolean).join(' | ') + authorHTML;
 
     const locationDisplay = event.locationUrl 
         ? `<a href="${event.locationUrl}" target="_blank" style="color: inherit; text-decoration: underline;">${event.location}</a>` 
@@ -300,7 +299,7 @@ window.openEventModal = function(id) {
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
                 <div style="font-size: 0.9rem; color: ${accentCol}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
-                    ${dateString} | ${timeDisplay}${authorHTML}
+                    ${metaLine}
                 </div>
                 <h2 style="margin-bottom: 0.5rem; font-size: 2rem;">${event.title}</h2>
             </div>
@@ -481,12 +480,14 @@ function renderEvents() {
     const upcoming = filteredEvents.filter(e => {
         const parsed = window.parseFlexDate(e.date);
         if (parsed.type === 'tbd') return true; // TBD counts as upcoming
-        return parsed.date >= today;
+        const endD = window.getEventEndDate ? window.getEventEndDate(e) : parsed.date;
+        return endD >= today;
     });
     const past = filteredEvents.filter(e => {
         const parsed = window.parseFlexDate(e.date);
         if (parsed.type === 'tbd') return false;
-        return parsed.date < today;
+        const endD = window.getEventEndDate ? window.getEventEndDate(e) : parsed.date;
+        return endD < today;
     });
 
     // Upcoming: ascending (nearest first), TBD at end
@@ -495,10 +496,9 @@ function renderEvents() {
     past.sort((a, b) => window.parseDateSortable(b.date) - window.parseDateSortable(a.date));
 
     function renderEventCard(event, isPast) {
-        const fmt = window.formatFlexDate(event.date);
         const pastClass = isPast ? 'event-past' : '';
 
-        const timeDisplay = event.endTime ? `${event.time} - ${event.endTime} Uhr` : `${event.time} Uhr`;
+        const timeDisplay = window.formatEventTimeDisplay ? window.formatEventTimeDisplay(event) : (event.time ? `🕒 ${event.time} Uhr` : '');
         const authorHTML = event.author ? `<span style="margin-left: 1rem;">👤 ${event.author}</span>` : '';
 
         let imageHTML = '';
@@ -508,17 +508,9 @@ function renderEvents() {
 
         const colorStyles = window.getEventCardColorStyles ? window.getEventCardColorStyles(event.color || event.akzentfarbe || event.accentColor) : { cardStyle: '', dateBoxStyle: '' };
 
-        // Date box adapts to flex date type
-        let dateBoxContent = '';
-        if (fmt.type === 'tbd') {
-            dateBoxContent = `<span class="event-day" style="font-size: 1.8rem;">?</span><span class="event-month">TBD</span>`;
-        } else if (fmt.type === 'year') {
-            dateBoxContent = `<span class="event-day" style="font-size: 1.2rem;">${fmt.day}</span>`;
-        } else if (fmt.type === 'month') {
-            dateBoxContent = `<span class="event-day" style="font-size: 1.1rem;">${fmt.day}</span><span class="event-month">${fmt.month}</span>`;
-        } else {
-            dateBoxContent = `<span class="event-weekday">${fmt.weekday}</span><span class="event-day">${fmt.day}</span><span class="event-month">${fmt.month}</span>`;
-        }
+        const dateBoxContent = window.formatEventDateBox ? window.formatEventDateBox(event) : '';
+
+        const timeRowHTML = (timeDisplay || authorHTML) ? `<div>${timeDisplay}${authorHTML}</div>` : '';
 
         return `
         <div class="event-card ${pastClass}" style="cursor: pointer; display: flex; flex-direction: column; align-items: stretch; ${colorStyles.cardStyle}" onclick="openEventModal(${event.id})">
@@ -535,7 +527,7 @@ function renderEvents() {
                 <div style="flex: 1; min-width: 0;">
                     <h3 style="font-size: 1.2rem; margin-bottom: 0.3rem; color: var(--accent-color);">${event.title}</h3>
                     <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
-                        <div>🕒 ${timeDisplay}${authorHTML}</div>
+                        ${timeRowHTML}
                         <div style="margin-top: 0.25rem;">📍 ${event.location}</div>
                     </div>
                     <div style="margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">

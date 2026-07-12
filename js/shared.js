@@ -45,39 +45,99 @@ window.cleanMojibake = function(text) {
 };
 
 // --- Flexible Date Parsing ---
-// Supports: DD.MM.YYYY, MM.YYYY, YYYY, YYYY-MM-DD, YYYYMMDD, ?, TBD, empty
+// Supports: DD.MM.YYYY, DD.MM.YY, MM.YYYY, MM.YY, YYYY, YYYY-MM-DD, YY-MM-DD, YYYYMMDD, YYMMDD, German month texts, ?, TBD, empty
 window.parseFlexDate = function(dateStr) {
     if (!dateStr || typeof dateStr !== 'string') return { date: null, type: 'tbd' };
     const s = dateStr.trim();
-    if (s === '?' || s.toLowerCase() === 'tbd' || s.toLowerCase() === 'tba') {
+    if (s === '?' || s.toLowerCase() === 'tbd' || s.toLowerCase() === 'tba' || s.toLowerCase() === 'offen') {
         return { date: null, type: 'tbd' };
     }
-    // DD.MM.YYYY (German format)
-    if (s.includes('.')) {
-        const parts = s.split('.');
-        if (parts.length === 3 && parts[0].length <= 2 && parts[1].length <= 2 && parts[2].length === 4) {
-            return { date: new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}T00:00:00`), type: 'full' };
-        }
-        if (parts.length === 2 && parts[0].length <= 2 && parts[1].length === 4) {
-            return { date: new Date(`${parts[1]}-${parts[0].padStart(2,'0')}-01T00:00:00`), type: 'month' };
+
+    const toFullYear = (yStr) => {
+        const y = parseInt(yStr, 10);
+        return y < 100 ? (y < 50 ? 2000 + y : 1900 + y) : y;
+    };
+
+    const germanMonths = {
+        'januar': 0, 'jan': 0,
+        'februar': 1, 'feb': 1,
+        'märz': 2, 'maerz': 2, 'mrz': 2, 'mar': 2,
+        'april': 3, 'apr': 3,
+        'mai': 4,
+        'juni': 5, 'jun': 5,
+        'juli': 6, 'jul': 6,
+        'august': 7, 'aug': 7,
+        'september': 8, 'sep': 8, 'sept': 8,
+        'oktober': 9, 'okt': 9,
+        'november': 10, 'nov': 10,
+        'dezember': 11, 'dez': 11
+    };
+
+    // 1. Text match: e.g. "11. September 2026"
+    const textFullMatch = s.match(/^(\d{1,2})\.\s*([a-zA-ZäöüÄÖÜ]+)\s+(\d{2,4})$/);
+    if (textFullMatch) {
+        const day = parseInt(textFullMatch[1], 10);
+        const mKey = textFullMatch[2].toLowerCase();
+        const year = toFullYear(textFullMatch[3]);
+        if (germanMonths[mKey] !== undefined) {
+            return { date: new Date(year, germanMonths[mKey], day, 0, 0, 0), type: 'full' };
         }
     }
-    // YYYYMMDD (compact)
+    // Text match: e.g. "Juni 2026" or "Sep 26"
+    const textMonthMatch = s.match(/^([a-zA-ZäöüÄÖÜ]+)\s+(\d{2,4})$/);
+    if (textMonthMatch) {
+        const mKey = textMonthMatch[1].toLowerCase();
+        const year = toFullYear(textMonthMatch[2]);
+        if (germanMonths[mKey] !== undefined) {
+            return { date: new Date(year, germanMonths[mKey], 1, 0, 0, 0), type: 'month' };
+        }
+    }
+
+    // 2. DD.MM.YYYY or DD.MM.YY (German dot format)
+    if (s.includes('.')) {
+        const parts = s.split('.');
+        if (parts.length === 3 && parts[0].length <= 2 && parts[1].length <= 2 && (parts[2].length === 4 || parts[2].length === 2)) {
+            const y = toFullYear(parts[2]);
+            return { date: new Date(`${y}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}T00:00:00`), type: 'full' };
+        }
+        if (parts.length === 2 && parts[0].length <= 2 && (parts[1].length === 4 || parts[1].length === 2)) {
+            const y = toFullYear(parts[1]);
+            return { date: new Date(`${y}-${parts[0].padStart(2,'0')}-01T00:00:00`), type: 'month' };
+        }
+    }
+
+    // 3. YYYYMMDD (compact 8 digits) -> e.g. 20260911
     if (/^\d{8}$/.test(s)) {
         return { date: new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T00:00:00`), type: 'full' };
     }
-    // YYYY-MM-DD (ISO)
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        return { date: new Date(s + 'T00:00:00'), type: 'full' };
+
+    // 4. YYMMDD (compact 6 digits) -> e.g. 260911
+    if (/^\d{6}$/.test(s)) {
+        const yy = toFullYear(s.slice(0, 2));
+        const mm = s.slice(2, 4);
+        const dd = s.slice(4, 6);
+        return { date: new Date(`${yy}-${mm}-${dd}T00:00:00`), type: 'full' };
     }
-    // YYYY-MM (ISO month)
-    if (/^\d{4}-\d{2}$/.test(s)) {
-        return { date: new Date(s + '-01T00:00:00'), type: 'month' };
+
+    // 5. YYYY-MM-DD or YY-MM-DD (ISO)
+    if (/^\d{2,4}-\d{2}-\d{2}$/.test(s)) {
+        const parts = s.split('-');
+        const y = toFullYear(parts[0]);
+        return { date: new Date(`${y}-${parts[1]}-${parts[2]}T00:00:00`), type: 'full' };
     }
-    // YYYY (year only)
+
+    // 6. YYYY-MM or YY-MM (ISO month)
+    if (/^\d{2,4}-\d{2}$/.test(s)) {
+        const parts = s.split('-');
+        const y = toFullYear(parts[0]);
+        return { date: new Date(`${y}-${parts[1]}-01T00:00:00`), type: 'month' };
+    }
+
+    // 7. YYYY (year only)
     if (/^\d{4}$/.test(s)) {
         return { date: new Date(`${s}-01-01T00:00:00`), type: 'year' };
     }
+
     // Fallback: try native parsing
     const d = new Date(s);
     if (!isNaN(d.getTime())) {
@@ -111,11 +171,147 @@ window.formatFlexDate = function(dateStr) {
     };
 };
 
-// Get a sortable date (for comparisons), with TBD sorted to far future
+// Get a sortable date (for comparisons), with range start or TBD sorted properly
 window.parseDateSortable = function(dateStr) {
-    const parsed = window.parseFlexDate(dateStr);
+    if (!dateStr) return new Date('2099-12-31T00:00:00');
+    let s = String(dateStr).trim();
+    if (s.includes(' - ') || s.includes('–') || s.includes(' bis ')) {
+        s = s.split(/\s+[-–]\s+|\s+bis\s+/i)[0].trim();
+    }
+    const parsed = window.parseFlexDate(s);
     if (!parsed.date) return new Date('2099-12-31T00:00:00');
     return parsed.date;
+};
+
+// Helper to get exact end of a period (day, month, year, or TBD future)
+function _resolveDateEnd(dateStr) {
+    if (!dateStr) return new Date('2099-12-31T23:59:59');
+    const parsed = window.parseFlexDate(dateStr);
+    if (!parsed.date || parsed.type === 'tbd') {
+        return new Date('2099-12-31T23:59:59');
+    }
+    const d = parsed.date;
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    if (parsed.type === 'year') {
+        return new Date(year, 11, 31, 23, 59, 59);
+    }
+    if (parsed.type === 'month') {
+        return new Date(year, month + 1, 0, 23, 59, 59);
+    }
+    return new Date(year, month, d.getDate(), 23, 59, 59);
+}
+
+// Get end date of range for past/upcoming check
+window.getEventEndDate = function(event) {
+    if (!event) return new Date('2099-12-31T23:59:59');
+    const endRaw = (event.endDate || '').trim();
+    const startRaw = (event.date || '').trim();
+    let endStr = endRaw;
+    if (!endStr && (startRaw.includes(' - ') || startRaw.includes('–') || startRaw.includes(' bis '))) {
+        const parts = startRaw.split(/\s+[-–]\s+|\s+bis\s+/i);
+        if (parts.length === 2) endStr = parts[1].trim();
+    }
+    if (endStr) {
+        return _resolveDateEnd(endStr);
+    }
+    return _resolveDateEnd(startRaw);
+};
+
+window.formatEventDateBox = function(event) {
+    if (!event) return '';
+    const startRaw = (event.date || '').trim();
+    const endRaw = (event.endDate || '').trim();
+
+    let startStr = startRaw;
+    let endStr = endRaw;
+    if (!endStr && (startRaw.includes(' - ') || startRaw.includes('–') || startRaw.includes(' bis '))) {
+        const parts = startRaw.split(/\s+[-–]\s+|\s+bis\s+/i);
+        if (parts.length === 2) {
+            startStr = parts[0].trim();
+            endStr = parts[1].trim();
+        }
+    }
+
+    if (endStr) {
+        const parsedStart = window.parseFlexDate(startStr);
+        const parsedEnd = window.parseFlexDate(endStr);
+
+        if (parsedStart.date && parsedEnd.date) {
+            const d1 = parsedStart.date;
+            const d2 = parsedEnd.date;
+            if (d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear()) {
+                const day1 = d1.getDate();
+                const day2 = d2.getDate();
+                const monthShort = d1.toLocaleDateString('de-DE', { month: 'short' });
+                return `<span class="event-day" style="font-size: 1.1rem; letter-spacing: -0.5px; white-space: nowrap;">${day1}.–${day2}.</span><span class="event-month">${monthShort}</span>`;
+            } else {
+                const day1Str = d1.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '.';
+                const day2Str = d2.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '.';
+                return `<span class="event-day" style="font-size: 0.9rem; line-height: 1.15;">${day1Str}</span><span class="event-weekday" style="font-size: 0.65rem; opacity: 0.75; margin: 2px 0;">BIS</span><span class="event-day" style="font-size: 0.9rem; line-height: 1.15;">${day2Str}</span>`;
+            }
+        } else {
+            return `<span class="event-day" style="font-size: 0.8rem; line-height: 1.25;">${startStr}</span><span class="event-weekday" style="font-size: 0.65rem; opacity: 0.75; margin: 2px 0;">BIS</span><span class="event-day" style="font-size: 0.8rem; line-height: 1.25;">${endStr}</span>`;
+        }
+    }
+
+    const fmt = window.formatFlexDate(startStr);
+    if (fmt.type === 'tbd') {
+        return `<span class="event-day" style="font-size: 1.8rem;">?</span><span class="event-month">TBD</span>`;
+    } else if (fmt.type === 'year') {
+        return `<span class="event-day" style="font-size: 1.2rem;">${fmt.day}</span>`;
+    } else if (fmt.type === 'month') {
+        return `<span class="event-day" style="font-size: 1.1rem;">${fmt.day}</span><span class="event-month">${fmt.month}</span>`;
+    } else {
+        return `<span class="event-weekday">${fmt.weekday}</span><span class="event-day">${fmt.day}</span><span class="event-month">${fmt.month}</span>`;
+    }
+};
+
+window.formatEventTimeDisplay = function(event) {
+    if (!event) return '';
+    const t = (event.time || '').trim();
+    const et = (event.endTime || '').trim();
+    if (!t && !et) return '';
+    if (t && et) {
+        const suffix = (t.toLowerCase().includes('uhr') || et.toLowerCase().includes('uhr')) ? '' : ' Uhr';
+        return `🕒 ${t} - ${et}${suffix}`;
+    }
+    if (t) {
+        const suffix = (t.toLowerCase().includes('uhr') || /^[a-zA-Z]/.test(t)) ? '' : ' Uhr';
+        return `🕒 ${t}${suffix}`;
+    }
+    const suffix = (et.toLowerCase().includes('uhr') || /^[a-zA-Z]/.test(et)) ? '' : ' Uhr';
+    return `🕒 bis ${et}${suffix}`;
+};
+
+window.formatEventModalDateHeader = function(event) {
+    if (!event) return '';
+    const startRaw = (event.date || '').trim();
+    const endRaw = (event.endDate || '').trim();
+
+    let startStr = startRaw;
+    let endStr = endRaw;
+    if (!endStr && (startRaw.includes(' - ') || startRaw.includes('–') || startRaw.includes(' bis '))) {
+        const parts = startRaw.split(/\s+[-–]\s+|\s+bis\s+/i);
+        if (parts.length === 2) {
+            startStr = parts[0].trim();
+            endStr = parts[1].trim();
+        }
+    }
+
+    if (endStr) {
+        const parsedStart = window.parseFlexDate(startStr);
+        const parsedEnd = window.parseFlexDate(endStr);
+        if (parsedStart.date && parsedEnd.date) {
+            const s1 = parsedStart.date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+            const s2 = parsedEnd.date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+            return `${s1} – ${s2}`;
+        }
+        return `${startStr} – ${endStr}`;
+    }
+
+    const parsed = window.formatFlexDate(startStr);
+    return parsed.full;
 };
 
 // Backward-compatible parseDate (used everywhere)

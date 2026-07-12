@@ -971,7 +971,7 @@ window.generateICSFromEvents = function(events, filename) {
 
     events.forEach(event => {
         let startRaw = (event.date || '').trim();
-        let endRaw = (event.endDate || '').trim();
+        let endRaw = (event.endDate || event.enddate || '').trim();
         if (!endRaw && (startRaw.includes(' - ') || startRaw.includes('–') || startRaw.includes(' bis '))) {
             const parts = startRaw.split(/\s+[-–]\s+|\s+bis\s+/i);
             if (parts.length === 2) {
@@ -1023,11 +1023,12 @@ window.generateICSFromEvents = function(events, filename) {
                 const startYMD = formatYMD(parsedStart.date);
                 const endYMD = (parsedEnd && parsedEnd.date) ? formatYMD(parsedEnd.date) : startYMD;
                 const startTime = formatHHMMSS(event.time.trim());
+                const endTimeRaw = (event.endTime || event.endtime || '').trim();
 
                 dtStartLine = `DTSTART;TZID=Europe/Berlin:${startYMD}T${startTime}`;
 
-                if (event.endTime && event.endTime.trim()) {
-                    dtEndLine = `DTEND;TZID=Europe/Berlin:${endYMD}T${formatHHMMSS(event.endTime.trim())}`;
+                if (endTimeRaw) {
+                    dtEndLine = `DTEND;TZID=Europe/Berlin:${endYMD}T${formatHHMMSS(endTimeRaw)}`;
                 } else {
                     // Regel 1: wenn nur Startzeit angegeben, dann bis Mitternacht (235900) am Enddatum/Startdatum
                     dtEndLine = `DTEND;TZID=Europe/Berlin:${endYMD}T235900`;
@@ -1054,6 +1055,8 @@ window.generateICSFromEvents = function(events, filename) {
     link.href = URL.createObjectURL(blob);
     link.download = filename;
     document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -347,42 +347,7 @@ window.downloadAllEvents = function() {
 function downloadSingleEvent(eventId) {
     const event = globalEventsData.find(e => e.id === eventId);
     if (!event) return;
-
-    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Schach Rheinfelden//NONSGML v1.0//EN\n";
-    const datePart = formatICSDatePart(event.date);
-    const [hour, minute] = (event.time || "19:00").split(':');
-    
-    const startDate = `${datePart}T${hour.padStart(2, '0')}${minute.padStart(2, '0')}00`;
-    let endHour, endMinute;
-    if (event.endTime) {
-        const [eHour, eMinute] = event.endTime.split(':');
-        endHour = eHour.padStart(2, '0');
-        endMinute = eMinute.padStart(2, '0');
-    } else {
-        endHour = String(parseInt(hour) + 2).padStart(2, '0');
-        endMinute = minute.padStart(2, '0');
-    }
-    const endDate = `${datePart}T${endHour}${endMinute}00`;
-    const description = cleanICSDescription(event.content);
-
-    icsContent += "BEGIN:VEVENT\n";
-    icsContent += `DTSTART;TZID=Europe/Berlin:${startDate}\n`;
-    icsContent += `DTEND;TZID=Europe/Berlin:${endDate}\n`;
-    icsContent += `SUMMARY:${event.title}\n`;
-    icsContent += `LOCATION:${event.location || ''}\n`;
-    if (description) {
-        icsContent += `DESCRIPTION:${description}\n`;
-    }
-    icsContent += "END:VEVENT\n";
-    icsContent += "END:VCALENDAR";
-
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    generateICS([event], event.title.replace(/\s+/g, '_') + '.ics');
 }
 
 window.downloadSingleEvent = downloadSingleEvent;

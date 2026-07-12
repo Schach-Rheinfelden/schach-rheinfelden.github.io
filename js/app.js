@@ -330,11 +330,18 @@ async function fetchCSV(url) {
         if (values.length === 0 || (values.length === 1 && !values[0])) continue;
         const obj = {};
         headers.forEach((header, index) => {
-            let key = header.toLowerCase();
-            if(header === 'Team') key = 'Team';
-            if(header === 'ELO') key = 'elo';
-            if(header === 'DWZ') key = 'dwz';
-            obj[key] = values[index] !== undefined ? values[index] : '';
+            let val = values[index] !== undefined ? values[index] : '';
+            if (header === 'id' && !isNaN(parseInt(val)) && String(parseInt(val)) === val) {
+                val = parseInt(val);
+            }
+            obj[header] = val;
+            obj[header.toLowerCase()] = val;
+            if (header.toLowerCase() === 'enddate') obj.endDate = val;
+            if (header.toLowerCase() === 'endtime') obj.endTime = val;
+            if (header.toLowerCase() === 'locationurl') obj.locationUrl = val;
+            if (header === 'Team') obj.Team = val;
+            if (header === 'ELO') obj.elo = val;
+            if (header === 'DWZ') obj.dwz = val;
         });
         data.push(obj);
     }

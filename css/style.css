@@ -1326,6 +1326,29 @@ body.light-theme .past-toggle-btn:hover {
 .navbar.has-banner {
     top: 36px;
 }
+/* Global Search Bar */
+.search-bar {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.3s ease;
+    font-family: var(--font-main);
+}
+.search-bar:focus {
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.15);
+}
+body.light-theme .search-bar {
+    background: rgba(0, 0, 0, 0.05);
+}
+body.light-theme .search-bar:focus {
+    background: rgba(0, 0, 0, 0.08);
+}
 
 /* News Filter */
 .filter-bar {

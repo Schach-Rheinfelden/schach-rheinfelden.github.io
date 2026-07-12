@@ -930,6 +930,132 @@ window.getEventCardColorStyles = function(colorRaw) {
 };
 window.getCardColorStyles = window.getEventCardColorStyles;
 
+window.generateICSFromEvents = function(events, filename) {
+    function formatYMD(d) {
+        if (!d || isNaN(d.getTime())) return "20991231";
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}${m}${day}`;
+    }
+
+    function formatHHMMSS(timeStr) {
+        if (!timeStr) return "000000";
+        const parts = timeStr.split(':');
+        const h = (parts[0] || "00").padStart(2, '0');
+        const m = (parts[1] || "00").padStart(2, '0');
+        return `${h}${m}00`;
+    }
+
+    function cleanICSDesc(content) {
+        if (!content) return "";
+        let text = content
+            .replace(/<br\s*[\/]?>/gi, '\n')
+            .replace(/<\/p>/gi, '\n\n')
+            .replace(/<\/li>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'");
+        text = text.trim();
+        return text
+            .replace(/\\/g, '\\\\')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,')
+            .replace(/\r?\n/g, '\\n');
+    }
+
+    let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Schach Rheinfelden//NONSGML v1.0//EN\r\n";
+
+    events.forEach(event => {
+        let startRaw = (event.date || '').trim();
+        let endRaw = (event.endDate || '').trim();
+        if (!endRaw && (startRaw.includes(' - ') || startRaw.includes('–') || startRaw.includes(' bis '))) {
+            const parts = startRaw.split(/\s+[-–]\s+|\s+bis\s+/i);
+            if (parts.length === 2) {
+                startRaw = parts[0].trim();
+                endRaw = parts[1].trim();
+            }
+        }
+
+        const parsedStart = window.parseFlexDate(startRaw);
+        const parsedEnd = endRaw ? window.parseFlexDate(endRaw) : parsedStart;
+
+        let dtStartLine = '';
+        let dtEndLine = '';
+
+        // Case 4: TBD (?) -> Ganztägig am 31.12. des aktuellen Jahres
+        if (parsedStart.type === 'tbd' || !parsedStart.date) {
+            const y = new Date().getFullYear();
+            dtStartLine = `DTSTART;VALUE=DATE:${y}1231`;
+            dtEndLine = `DTEND;VALUE=DATE:${y + 1}0101`;
+        }
+        // Case 3: Jahr -> Ganztägiger Balken fürs gesamte Jahr
+        else if (parsedStart.type === 'year') {
+            const y = parsedStart.date.getFullYear();
+            dtStartLine = `DTSTART;VALUE=DATE:${y}0101`;
+            dtEndLine = `DTEND;VALUE=DATE:${y + 1}0101`;
+        }
+        // Case 3: Monat -> Ganztägiger Balken fürs gesamte Monat
+        else if (parsedStart.type === 'month') {
+            const y = parsedStart.date.getFullYear();
+            const m = parsedStart.date.getMonth();
+            const d1 = new Date(y, m, 1);
+            const d2 = new Date(y, m + 1, 1);
+            dtStartLine = `DTSTART;VALUE=DATE:${formatYMD(d1)}`;
+            dtEndLine = `DTEND;VALUE=DATE:${formatYMD(d2)}`;
+        }
+        // Case 1 & 2: Konkrete Tage (Ein oder mehrere Tage)
+        else {
+            const hasTime = !!(event.time && event.time.trim());
+            // Wenn KEINE Uhrzeit vorhanden ist -> Ganztägig (VALUE=DATE)
+            if (!hasTime) {
+                const d1 = parsedStart.date;
+                const d2Base = (parsedEnd && parsedEnd.date) ? parsedEnd.date : d1;
+                const d2 = new Date(d2Base.getTime() + 86400000); // +1 Tag exklusiv nach RFC 5545
+                dtStartLine = `DTSTART;VALUE=DATE:${formatYMD(d1)}`;
+                dtEndLine = `DTEND;VALUE=DATE:${formatYMD(d2)}`;
+            }
+            // Wenn Uhrzeit vorhanden ist -> Mit Uhrzeit (TZID=Europe/Berlin)
+            else {
+                const startYMD = formatYMD(parsedStart.date);
+                const endYMD = (parsedEnd && parsedEnd.date) ? formatYMD(parsedEnd.date) : startYMD;
+                const startTime = formatHHMMSS(event.time.trim());
+
+                dtStartLine = `DTSTART;TZID=Europe/Berlin:${startYMD}T${startTime}`;
+
+                if (event.endTime && event.endTime.trim()) {
+                    dtEndLine = `DTEND;TZID=Europe/Berlin:${endYMD}T${formatHHMMSS(event.endTime.trim())}`;
+                } else {
+                    // Regel 1: wenn nur Startzeit angegeben, dann bis Mitternacht (235900) am Enddatum/Startdatum
+                    dtEndLine = `DTEND;TZID=Europe/Berlin:${endYMD}T235900`;
+                }
+            }
+        }
+
+        const description = cleanICSDesc(event.content);
+
+        icsContent += "BEGIN:VEVENT\r\n";
+        icsContent += `${dtStartLine}\r\n`;
+        icsContent += `${dtEndLine}\r\n`;
+        icsContent += `SUMMARY:${event.title}\r\n`;
+        icsContent += `LOCATION:${event.location || ''}\r\n`;
+        if (description) {
+            icsContent += `DESCRIPTION:${description}\r\n`;
+        }
+        icsContent += "END:VEVENT\r\n";
+    });
+    icsContent += "END:VCALENDAR";
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const heroTitle = document.getElementById('hero-title');
     if (heroTitle) {

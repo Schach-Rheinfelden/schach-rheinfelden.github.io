@@ -237,10 +237,9 @@ window.openEventModal = function(id) {
     if (!event) return;
 
     const modalBody = document.getElementById('event-modal-body');
-    const dateString = window.formatEventModalDateHeader ? window.formatEventModalDateHeader(event) : event.date;
-    const timeDisplay = window.formatEventTimeDisplay ? window.formatEventTimeDisplay(event) : (event.time ? `${event.time} Uhr` : '');
+    const metaStr = window.formatEventMetaHeader ? window.formatEventMetaHeader(event) : event.date;
     const authorHTML = event.author ? ` | 👤 ${event.author}` : '';
-    const metaLine = [dateString, timeDisplay].filter(Boolean).join(' | ') + authorHTML;
+    const metaLine = metaStr + authorHTML;
 
     const locationDisplay = event.locationUrl 
         ? `<a href="${event.locationUrl}" target="_blank" style="color: inherit; text-decoration: underline;">${event.location}</a>` 

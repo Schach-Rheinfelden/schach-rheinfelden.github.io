@@ -573,6 +573,10 @@ function renderNews() {
 
         const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '' };
 
+        const tagsHTML = item.category 
+            ? `<div style="margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge">🏷️ ${tag.trim()}</span>`).join('')}</div>` 
+            : '';
+
         return `
         <article class="glass-card news-card fade-in-up" onclick="openNewsModal(${item.id})" style="cursor: pointer; ${colorStyles.cardStyle}">
             ${imgHTML}
@@ -580,6 +584,7 @@ function renderNews() {
                 <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : ''}>${dateString}${authorHTML}</span>
                 <h3 class="news-title">${item.title}</h3>
                 <div class="news-text text-truncate">${textContent}</div>
+                ${tagsHTML}
             </div>
         </article>
         `;
@@ -1699,9 +1704,8 @@ window.openEventModal = function(id) {
     if (!event) return;
 
     const modalBody = document.getElementById('event-modal-body');
-    const dateObj = window.parseDate(event.date);
-    const dateString = dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    const timeDisplay = event.endTime ? `${event.time} - ${event.endTime} Uhr` : `${event.time} Uhr`;
+    const dateString = window.formatEventModalDateHeader ? window.formatEventModalDateHeader(event) : event.date;
+    const timeDisplay = window.formatEventTimeDisplay ? window.formatEventTimeDisplay(event) : (event.time ? `${event.time} Uhr` : '');
     const authorHTML = event.author ? ` | 👤 ${event.author}` : '';
 
 
@@ -1725,11 +1729,15 @@ window.openEventModal = function(id) {
         modalContentEl.style.borderTop = parsedColor ? `4px solid ${parsedColor}` : '';
     }
 
+    const metaStr = window.formatEventMetaHeader ? window.formatEventMetaHeader(event) : event.date;
+    const authorHTML = event.author ? ` | 👤 ${event.author}` : '';
+    const metaLine = metaStr + authorHTML;
+
     modalBody.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
                 <div style="font-size: 0.9rem; color: ${accentCol}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
-                    ${dateString} | ${timeDisplay}${authorHTML}
+                    ${metaLine}
                 </div>
                 <h2 style="margin-bottom: 0.5rem; font-size: 2rem;">${event.title}</h2>
             </div>

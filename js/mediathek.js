@@ -357,6 +357,10 @@ function renderMedia() {
 
         const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '', badgeStyle: '', color: null };
 
+        const tagsHTML = item.category 
+            ? `<div style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge">🏷️ ${tag.trim()}</span>`).join('')}</div>` 
+            : '';
+
         return `
         <div class="glass-card media-card fade-in-up" onclick="openMedia(${item.id})" style="cursor: pointer; ${colorStyles.cardStyle}">
             ${thumbHTML}
@@ -367,8 +371,8 @@ function renderMedia() {
                 </div>
                 <h3 style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.25rem; word-break: break-word;">${item.title}</h3>
                 ${authorHTML}
-                <div style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem; flex-grow: 1;">${window.formatTextContent(item.description)}</div>
-                
+                <div style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem; flex-grow: 1;">${window.formatTextContent(item.description)}</div>
+                ${tagsHTML}
                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: auto;">
                     <span style="font-size: 0.9rem; font-weight: 600; ${colorStyles.color ? `color: ${colorStyles.color};` : 'color: var(--accent-color);'} display: flex; align-items: center; gap: 0.4rem;">
                         ${platformLabel}

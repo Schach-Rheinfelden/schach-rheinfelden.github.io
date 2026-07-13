@@ -270,6 +270,10 @@ function renderNews() {
 
         const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '' };
 
+        const tagsHTML = item.category 
+            ? `<div style="margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge">🏷️ ${tag.trim()}</span>`).join('')}</div>` 
+            : '';
+
         return `
         <article class="glass-card news-card fade-in-up" onclick="openNewsModal(${item.id})" style="cursor: pointer; opacity: 1; transform: none; ${colorStyles.cardStyle}">
             ${imgHTML}
@@ -277,6 +281,7 @@ function renderNews() {
                 <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : ''}>${dateString}${authorHTML}</span>
                 <h3 class="news-title">${item.title}</h3>
                 <div class="news-text text-truncate">${textContent}</div>
+                ${tagsHTML}
             </div>
         </article>
         `;

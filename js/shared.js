@@ -146,9 +146,13 @@ window.parseFlexDate = function(dateStr) {
     return { date: null, type: 'tbd' };
 };
 
-// Format a date for display based on its flex type
 function getShortMonthDe(date) {
     const months = ['JAN', 'FEB', 'MÄR', 'APR', 'MAI', 'JUN', 'JUL', 'AUG', 'SEP', 'OKT', 'NOV', 'DEZ'];
+    return months[date.getMonth()] || '';
+}
+
+function getShortMonthTextDe(date) {
+    const months = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
     return months[date.getMonth()] || '';
 }
 
@@ -250,6 +254,14 @@ window.formatEventDateBox = function(event) {
                 const day2 = d2.getDate();
                 const monthShort = getShortMonthDe(d1);
                 return `<span class="event-day" style="font-size: 1.15rem; letter-spacing: -0.5px; white-space: nowrap;">${day1}.–${day2}.</span><span class="event-month">${monthShort}</span>`;
+            } else if (d1.getFullYear() !== d2.getFullYear()) {
+                const d1Day = d1.getDate();
+                const d1Month = getShortMonthDe(d1);
+                const y1 = String(d1.getFullYear()).slice(-2);
+                const d2Day = d2.getDate();
+                const d2Month = getShortMonthDe(d2);
+                const y2 = String(d2.getFullYear()).slice(-2);
+                return `<span class="event-day" style="font-size: 0.82rem; line-height: 1.2; white-space: nowrap;">${d1Day}. ${d1Month} '${y1}</span><span class="event-weekday" style="font-size: 0.65rem; opacity: 0.75; margin: 2px 0;">BIS</span><span class="event-day" style="font-size: 0.82rem; line-height: 1.2; white-space: nowrap;">${d2Day}. ${d2Month} '${y2}</span>`;
             } else {
                 const d1Day = d1.getDate();
                 const d1Month = getShortMonthDe(d1);
@@ -279,9 +291,44 @@ window.formatEventTimeDisplay = function(event) {
     const t = (event.time || '').trim();
     const et = (event.endTime || '').trim();
     if (!t && !et) return '';
+
+    const startRaw = (event.date || '').trim();
+    const endRaw = (event.endDate || event.end_date || event.enddate || event.bis || '').trim();
+    const isMultiDay = endRaw && endRaw !== startRaw;
+
+    const cleanTime = (str) => str.replace(/\s*[Uu]hr\s*$/i, '').trim();
+
+    if (isMultiDay) {
+        const parsedStart = window.parseFlexDate(startRaw);
+        const parsedEnd = window.parseFlexDate(endRaw);
+        const crossesYear = parsedStart.date && parsedEnd.date && parsedStart.date.getFullYear() !== parsedEnd.date.getFullYear();
+
+        const formatShortTag = (p, fallback) => {
+            if (p && p.date) {
+                const day = p.date.getDate().toString().padStart(2, '0');
+                const monthShort = getShortMonthTextDe(p.date);
+                const yearStr = crossesYear ? ` '${String(p.date.getFullYear()).slice(-2)}` : '';
+                return `${day}. ${monthShort}${yearStr}`;
+            }
+            return fallback;
+        };
+        const sTag = formatShortTag(parsedStart, startRaw);
+        const eTag = formatShortTag(parsedEnd, endRaw);
+
+        if (t && et) {
+            return `🕒 ${sTag} ab ${cleanTime(t)} Uhr – ${eTag} bis ${cleanTime(et)} Uhr`;
+        }
+        if (t) {
+            return `🕒 ${sTag} ab ${cleanTime(t)} Uhr`;
+        }
+        if (et) {
+            return `🕒 ${eTag} bis ${cleanTime(et)} Uhr`;
+        }
+    }
+
     if (t && et) {
         const suffix = (t.toLowerCase().includes('uhr') || et.toLowerCase().includes('uhr')) ? '' : ' Uhr';
-        return `🕒 ${t} - ${et}${suffix}`;
+        return `🕒 ${cleanTime(t)} - ${cleanTime(et)} Uhr`;
     }
     if (t) {
         const suffix = (t.toLowerCase().includes('uhr') || /^[a-zA-Z]/.test(t)) ? '' : ' Uhr';
@@ -294,7 +341,7 @@ window.formatEventTimeDisplay = function(event) {
 window.formatEventModalDateHeader = function(event) {
     if (!event) return '';
     const startRaw = (event.date || '').trim();
-    const endRaw = (event.endDate || '').trim();
+    const endRaw = (event.endDate || event.end_date || event.enddate || event.bis || '').trim();
 
     let startStr = startRaw;
     let endStr = endRaw;
@@ -304,21 +351,81 @@ window.formatEventModalDateHeader = function(event) {
             startStr = parts[0].trim();
             endStr = parts[1].trim();
         }
+    } else if (!endStr && /^\d{1,2}\.?(\d{1,2}\.?)?\s*[-–]\s*\d{1,2}\.?/.test(startRaw)) {
+        const parts = startRaw.split(/\s*[-–]\s*/);
+        if (parts.length === 2) {
+            startStr = parts[0].trim();
+            endStr = parts[1].trim();
+        }
     }
 
     if (endStr) {
         const parsedStart = window.parseFlexDate(startStr);
-        const parsedEnd = window.parseFlexDate(endStr);
+        const parsedEnd = window.parseFlexDate(endRaw);
         if (parsedStart.date && parsedEnd.date) {
-            const s1 = parsedStart.date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-            const s2 = parsedEnd.date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-            return `${s1} – ${s2}`;
+            const d1 = parsedStart.date;
+            const d2 = parsedEnd.date;
+            const m1 = getShortMonthDe(d1);
+            const m2 = getShortMonthDe(d2);
+            if (d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth()) {
+                return `${d1.getDate()}. – ${d2.getDate()}. ${m2} ${d2.getFullYear()}`;
+            } else if (d1.getFullYear() === d2.getFullYear()) {
+                return `${d1.getDate()}. ${m1} – ${d2.getDate()}. ${m2} ${d2.getFullYear()}`;
+            } else {
+                return `${d1.getDate()}. ${m1} ${d1.getFullYear()} – ${d2.getDate()}. ${m2} ${d2.getFullYear()}`;
+            }
         }
         return `${startStr} – ${endStr}`;
     }
 
-    const parsed = window.formatFlexDate(startStr);
-    return parsed.full;
+    const parsed = window.parseFlexDate(startStr);
+    if (parsed.date) {
+        const d = parsed.date;
+        return `${d.getDate()}. ${getShortMonthDe(d)} ${d.getFullYear()}`;
+    }
+    return startRaw;
+};
+
+window.formatEventMetaHeader = function(event) {
+    if (!event) return '';
+    const startRaw = (event.date || '').trim();
+    const endRaw = (event.endDate || event.end_date || event.enddate || event.bis || '').trim();
+    const isMultiDay = endRaw && endRaw !== startRaw;
+    const t = (event.time || '').trim();
+    const et = (event.endTime || '').trim();
+
+    const cleanTime = (str) => str.replace(/\s*[Uu]hr\s*$/i, '').trim();
+
+    if (isMultiDay && (t || et)) {
+        const parsedStart = window.parseFlexDate(startRaw);
+        const parsedEnd = window.parseFlexDate(endRaw);
+        const crossesYear = parsedStart.date && parsedEnd.date && parsedStart.date.getFullYear() !== parsedEnd.date.getFullYear();
+        const formatShortTag = (p, fallback, incYear) => {
+            if (p && p.date) {
+                const day = p.date.getDate().toString().padStart(2, '0');
+                const monthShort = getShortMonthDe(p.date);
+                const yearStr = (incYear || crossesYear) ? ` ${p.date.getFullYear()}` : '';
+                return `${day}. ${monthShort}${yearStr}`;
+            }
+            return fallback;
+        };
+        const sTag = formatShortTag(parsedStart, startRaw, false);
+        const eTag = formatShortTag(parsedEnd, endRaw, true);
+
+        if (t && et) {
+            return `🕒 ${sTag} ab ${cleanTime(t)} Uhr – ${eTag} bis ${cleanTime(et)} Uhr`;
+        }
+        if (t) {
+            return `🕒 ${sTag} ab ${cleanTime(t)} Uhr – ${eTag}`;
+        }
+        if (et) {
+            return `🕒 ${sTag} – ${eTag} bis ${cleanTime(et)} Uhr`;
+        }
+    }
+
+    const dateStr = window.formatEventModalDateHeader ? window.formatEventModalDateHeader(event) : startRaw;
+    const timeStr = window.formatEventTimeDisplay ? window.formatEventTimeDisplay(event) : '';
+    return [dateStr, timeStr].filter(Boolean).join(' | ');
 };
 
 // Backward-compatible parseDate (used everywhere)

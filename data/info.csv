@@ -3,7 +3,7 @@ clubName;Schach Rheinfelden
 slogan;Schachsport und Freizeit am Hochrhein
 announcement;"🚀 Finde deinen Weg zu uns und starte deine neue sportliche Erfolgsgeschichte im <a href='index.html#events' style='color: #ffd700; text-decoration: underline; font-weight: bold;'>Probetraining</a>."
 training.1.group;Freizeitschach (Dienstag)
-training.1.time;Dienstags, 17:00 - 19:00 Uhr<br><small>📍 Cafeteria Reha, Salinenstrasse 98, 4310 Rheinfelden, Schweiz</small>
+training.1.time;"Dienstags, 17:00 - 19:00 Uhr<br><small>📍 <a href='https://www.google.com/maps/search/?api=1&query=Salinenstrasse+98,+4310+Rheinfelden,+Schweiz' target='_blank' rel='noopener noreferrer' style='color: var(--accent-color); text-decoration: underline;' title='In Google Maps öffnen'>Cafeteria Reha, Salinenstrasse 98, 4310 Rheinfelden, Schweiz</a></small>"
 training.2.group;Freizeitschach (Donnerstag)
 training.2.time;Donnerstags, 18:00 - 20:00 Uhr
 training.3.group;Freizeitschach (Sonntag)

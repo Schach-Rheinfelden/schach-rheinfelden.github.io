@@ -29,8 +29,20 @@ function getUrlParameter(name) {
 }
 
 function getRowVal(row, ...cols) {
+    if (!row) return "";
     for (let c of cols) {
         if (row[c] !== undefined && row[c] !== null && row[c].toString().trim() !== '') return row[c];
+    }
+    const rowKeys = Object.keys(row);
+    for (let c of cols) {
+        const targetClean = String(c).toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
+        for (let key of rowKeys) {
+            const keyClean = String(key).toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
+            if (keyClean === targetClean) {
+                const val = row[key];
+                if (val !== undefined && val !== null && val.toString().trim() !== '') return val;
+            }
+        }
     }
     return "";
 }
@@ -108,10 +120,10 @@ async function ladeDaten() {
             await new Promise((resolve) => {
                 Papa.parse(csvText, {
                     header: true,
-                    delimiter: ";",
+                    delimiter: "",
                     skipEmptyLines: true,
                     complete: function(results) {
-                        const validRows = results.data.filter(r => getRowVal(r, 'Heimteam') !== '' || getRowVal(r, 'Gastteam') !== '');
+                        const validRows = results.data.filter(r => getRowVal(r, 'Heimteam', 'Heim', 'Team_Heim') !== '' || getRowVal(r, 'Gastteam', 'Gast', 'Team_Gast') !== '');
                         rawSpieleRows = rawSpieleRows.concat(validRows);
                         resolve();
                     }
@@ -124,7 +136,7 @@ async function ladeDaten() {
             await new Promise((resolve) => {
                 Papa.parse(csvText, {
                     header: true,
-                    delimiter: ";",
+                    delimiter: "",
                     skipEmptyLines: true,
                     complete: function(results) {
                         const validRows = results.data.filter(r => getRowVal(r, 'Weiß', 'Weiss', 'Schwarz') !== '' || getRowVal(r, 'Team_Weiss', 'Team Weiß', 'Team_Weiß', 'Team Weiss', 'Heimteam', 'Team_Schwarz', 'Team Schwarz', 'Gastteam') !== '');

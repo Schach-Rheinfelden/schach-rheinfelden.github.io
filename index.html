@@ -21,7 +21,7 @@
     <meta property="og:site_name" content="Schach-Rheinfelden" />
 
     <!-- App Styles -->
-    <link rel="stylesheet" href="css/style.css?v=13">
+    <link rel="stylesheet" href="css/style.css?v=21">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -281,8 +281,30 @@
         </div>
     </div>
 
+    <!-- Google Maps Modal -->
+    <div id="maps-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeMapsModal()"></div>
+        <div class="modal-content glass-card maps-modal-content">
+            <button class="close-btn" onclick="closeMapsModal()">&times;</button>
+            <div style="margin-bottom: 1rem;">
+                <h2 id="maps-modal-title" style="margin: 0 0 0.4rem 0; color: var(--accent-color); font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    📍 Spielort auf Google Maps
+                </h2>
+                <div id="maps-modal-subtitle" style="font-size: 0.95rem; color: var(--text-secondary);"></div>
+            </div>
+            <div id="maps-modal-body" class="maps-modal-body"></div>
+            <div class="maps-modal-footer">
+                <a id="maps-external-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <span>In Google Maps öffnen / Routenplaner</span>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+                <button class="btn btn-secondary" onclick="closeMapsModal()">Schließen</button>
+            </div>
+        </div>
+    </div>
+
     <!-- App Logic -->
     <script src="js/shared.js?v=20"></script>
-    <script src="js/app.js?v=37"></script>
+    <script src="js/app.js?v=40"></script>
 </body>
 </html>

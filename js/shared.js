@@ -1166,6 +1166,21 @@ window.generateICSFromEvents = function(events, filename) {
     document.body.removeChild(link);
 };
 
+window.renderModalHeaderImage = function(item, title) {
+    if (!item || !item.image || String(item.image).trim() === '') return '';
+    const val = String(item.bildImModal || item.showImageInModal || item.showModalImage || item.imageInModal || item.modalImage || '').trim().toLowerCase();
+    if (val === 'ja' || val === 'true' || val === '1' || val === 'yes') {
+        const imgUrl = String(item.image).trim();
+        const altText = (title || item.title || 'Vorschaubild').replace(/"/g, '&quot;');
+        return `
+            <div class="modal-hero-header" onclick="window.open('${imgUrl}', '_blank')" title="Bild vergrößern">
+                <img src="${imgUrl}" alt="${altText}">
+            </div>
+        `;
+    }
+    return '';
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const heroTitle = document.getElementById('hero-title');
     if (heroTitle) {

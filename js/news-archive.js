@@ -304,7 +304,10 @@ window.openNewsModal = function(id) {
         tagsHTML = `<div style="margin-top: 1rem; margin-bottom: 1.5rem;">${tags.map(tag => `<span class="tag-badge">🏷️ ${tag}</span>`).join('')}</div>`;
     }
     
+    const headerImgHTML = window.renderModalHeaderImage ? window.renderModalHeaderImage(article) : '';
+
     modalBody.innerHTML = `
+        ${headerImgHTML}
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
                 <span class="news-date">${dateString}${authorHTML}</span>

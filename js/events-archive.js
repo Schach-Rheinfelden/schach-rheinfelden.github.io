@@ -260,7 +260,10 @@ window.openEventModal = function(id) {
         modalContentEl.style.borderTop = parsedColor ? `4px solid ${parsedColor}` : '';
     }
 
+    const headerImgHTML = window.renderModalHeaderImage ? window.renderModalHeaderImage(event) : '';
+
     modalBody.innerHTML = `
+        ${headerImgHTML}
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
                 <div style="font-size: 0.9rem; color: ${accentCol}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
@@ -277,7 +280,6 @@ window.openEventModal = function(id) {
         <div style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
             📍 ${locationDisplay}
         </div>
-
         ${event.content ? `<div class="news-text" style="font-size: 1.1rem; line-height: 1.6;">${window.formatTextContent(event.content)}</div>` : ''}
         ${galleryHTML}
         

@@ -1959,3 +1959,44 @@ body.light-theme .tournament-hero-banner h2 {
     }
 }
 
+/* --- Select Option Readability across Themes --- */
+select.search-bar option {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+body.light-theme select.search-bar option {
+    background-color: #ffffff;
+    color: #1a1a1a;
+}
+
+/* --- Dual Range Slider (2 Punkte auf einer Linie) --- */
+#slider-thumb-min::-webkit-slider-thumb,
+#slider-thumb-max::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-color, #d4af37);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    position: relative;
+    z-index: 5;
+}
+#slider-thumb-min::-moz-range-thumb,
+#slider-thumb-max::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-color, #d4af37);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    position: relative;
+    z-index: 5;
+}
+
+

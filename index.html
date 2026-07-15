@@ -105,9 +105,16 @@
         <section id="teams" class="section glass-section">
             <div class="container">
                 <h2 class="section-title">Unsere <span class="accent">Mannschaften</span></h2>
-                <div class="teams-toolbar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-                    <div style="flex: 1; min-width: 280px;">
-                        <input type="text" id="teams-search-input" class="search-bar" placeholder="Suchen nach Name oder Team..." style="margin-bottom: 0;">
+                <div class="teams-toolbar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="flex: 1; min-width: 280px; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                        <input type="text" id="teams-search-input" class="search-bar" placeholder="Suchen nach Name oder Team..." style="margin-bottom: 0; flex: 1; min-width: 220px;">
+                        <div id="teams-sort-container" style="display: none; align-items: center; gap: 0.6rem;">
+                            <label for="teams-list-sort" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Sortieren:</label>
+                            <select id="teams-list-sort" class="search-bar" style="margin-bottom: 0; width: auto; padding: 0.6rem 2.4rem 0.6rem 0.9rem; font-size: 0.9rem; cursor: pointer;">
+                                <option value="name_asc">Alphabetisch (A - Z)</option>
+                                <option value="name_desc">Alphabetisch (Z - A)</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="teams-view-toggle" style="display: flex; gap: 0.6rem;">
                         <button id="view-floating-btn" class="btn btn-primary" title="Schwebende Ansicht" style="padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: center;">
@@ -118,6 +125,7 @@
                         </button>
                     </div>
                 </div>
+                <div id="teams-rating-filters" style="margin-bottom: 1.75rem;"></div>
                 <div id="teams-legend" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
                     <!-- Legend toggles injected via JS -->
                 </div>

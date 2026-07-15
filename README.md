@@ -146,8 +146,34 @@ id;date;endDate;time;endTime;category;color;title;author;location;locationUrl;im
 ---
 
 ## 9. Mannschaften & Spieler (`data/teams.csv` & `players.csv`)
-* Die `teamId` in `players.csv` verknüpft den Spieler mit der passenden Mannschaft in `teams.csv`.
-* ELO, DWZ und Titel (`GM`, `IM`, `FM`) werden auf den Mannschaftsseiten elegant dargestellt.
+Die Spieler- und Mannschaftsverwaltung bietet leistungsstarke, vollständig dynamische Funktionen, die komplett ohne Datenbank auskommen:
+
+### Spalten & Zuordnung in `players.csv`
+* **Mannschaftszuordnung (`Team`):** Trage in der Spalte `Team` den exakten Namen der Mannschaft (wie in `teams.csv` definiert) ein, z. B. `Rhy 1`. Wenn ein Spieler für mehrere Mannschaften gemeldet ist, trage die Namen einfach kommagetrennt ein (z. B. `Rhy 1, Rhy 2`).
+* **Datenschutz & Sichtbarkeit über die 2. Zeile (`ja` / `nein`):**
+  Direkt unter der Kopfzeile (Spaltennamen) befindet sich in der 2. Zeile eine Konfigurationszeile (`_globalSettings`):
+  * Steht unter einer Spalte **`ja`** (oder bleibt das Feld leer), wird diese Spalte öffentlich angezeigt, in die Filter und in die Durchschnittsberechnungen einbezogen.
+  * Steht unter einer Spalte **`nein`**, wird sie für die Website **vollständig ausgeblendet** und ignoriert (z. B. interne Notizen, Telefonnummern).
+  * Steht in der 2. Zeile unter der Spalte `name` ein **`nein`**, greift der **automatische Datenschutz-Modus**: Der vollständige Name wird auf der Website zu Initialen abkürzt (z. B. *Max Mustermann* → *M. M.*).
+
+### Dynamische Wertungszahlen (ELO, DWZ & mehr)
+* **Automatische Erkennung:** Spaltennamen wie `ELO`, `DWZ`, `FIDE`, `SSB`, `Rating`, `Blitz`, `Rapid`, `Classic`, `Zahl`, `NWZ` oder `Punkte` werden von der Website automatisch als Wertungszahlen erkannt (sofern in der 2. Zeile nicht auf `nein` gesetzt).
+* **Keine Verwechslung mit Metadaten:** Spalten wie *Geburtsjahr*, *Jahrgang*, *Alter*, *PLZ*, *Telefon* oder *Nummer* werden strikt gefiltert und **niemals** als Wertungszahlen oder für Durchschnitte berechnet.
+* **Mannschaftsdurchschnitte:** Für jede erkannte Wertungszahl berechnet die Website automatisch den jeweiligen Mannschaftsdurchschnitt (`Ø ELO`, `Ø DWZ`) und zeigt diesen in der Listenansicht bei der Mannschaftsüberschrift an.
+
+### Ansichten, Reihenfolge & Sortierung
+* **Schwebende Kartenansicht (Raumansicht):** Interaktive Spieler-Kacheln, die per Maus/Touch bewegt werden können. Über die Legenden-Buttons oben lässt sich die Anzeige nach einzelnen Mannschaften filtern.
+* **Übersichtliche Listenansicht:** Zeigt alle Spieler unterteilt in ihre jeweiligen Mannschaftssektionen an.
+  * **Dynamische Reihenfolge der Mannschaften:** Die Reihenfolge der Sektionen (z. B. *1. Rhy 1 → 2. Rhy 2 → 3. Rhf 1 → 4. Rhf 2*) orientiert sich **immer exakt und zu 100 % an der Zeilenabfolge in `data/teams.csv`**. Wenn du in der `teams.csv` eine neue Mannschaft (z. B. `Rhy 3`) hinzufügst oder Zeilen verschiebst, passt sich die Anzeige automatisch an!
+  * **Sortier-Dropdown:** Über das Dropdown (*Alphabetisch*, *Nach ELO*, *Nach DWZ* etc.) lässt sich die Reihenfolge der Spieler innerhalb jeder Mannschaftssektion gezielt sortieren – die Abfolge der Mannschaften selbst bleibt dabei stets übersichtlich und unverändert erhalten.
+
+### Filterung mit Schieberegler (2 Punkte auf einer Linie)
+* Mit dem Auswahl-Dropdown (`Wertung filtern:`) wählst du dynamisch aus, welche Zahl du steuern möchtest (z. B. *ELO filtern*, *DWZ filtern* oder *Kein Filter*).
+* Der Schieberegler besitzt **zwei verschiebbare Punkte auf einer Linie**, mit denen du einen exakten Bereich (von Min bis Max) festlegen kannst. Der Bereich wird farblich hervorgehoben.
+* **Dynamische Skala:** Das Maximum des Reglers passt sich automatisch an den jeweils höchsten Wert in deiner `players.csv` an (aufgerundet auf den nächsten 100er, mindestens bis 2000).
+
+### Spieler-Detailansicht (Modal)
+* Egal ob du in der schwebenden Kartenansicht oder in der Listenansicht auf die Karte eines Spielers klickst: Es öffnet sich sofort ein elegantes **Spieler-Modal** mit Avatar, Titel, farbigen Mannschafts-Badges und allen für diesen Spieler freigegebenen Daten (wie ELO, DWZ, FIDE, Titel usw.).
 
 ---
 

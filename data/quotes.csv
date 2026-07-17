@@ -1,43 +1,41 @@
-author;role;text
-Anonym;Schach-Aphorismus;Schach ist das schnellste Spiel der Welt, weil man in jeder Sekunde Tausende von Gedanken ordnen muss.
-Aron Nimzowitsch;Grossmeister & Schach-Theoretiker;Die Drohung ist stärker als die Ausführung.
-Indisches Sprichwort;Traditionelle Weisheit;Schach ist ein See, in dem eine Mücke baden und ein Elefant ertrinken kann.
-Savielly Tartakower;Grossmeister & Schachautor;Auf dem Schachbrett der Meister überwiegen die Ausnahmen die Regeln.
-Savielly Tartakower;Grossmeister & Schachautor;Taktik ist zu wissen, was zu tun ist, wenn es etwas zu tun gibt. Strategie ist zu wissen, was zu tun ist, wenn es nichts zu tun gibt.
-Savielly Tartakower;Grossmeister & Schachautor;Niemand hat je eine Partie durch Aufgeben gewonnen.
-Michail Tal;8. Schachweltmeister;Man muss den Gegner in einen dunklen Wald führen, wo 2+2=5 ist und der Weg hinaus nur breit genug für einen ist.
-Garry Kasparov;13. Schachweltmeister;Im Schach wie im Leben ist der wichtigste Zug immer der nächste.
-José Raúl Capablanca;3. Schachweltmeister;Um im Schach erfolgreich zu sein, muss man zuerst das Endspiel studieren.
-Emanuel Lasker;2. Schachweltmeister (1894–1921);Wenn du einen guten Zug siehst, suche nach einem besseren.
-Siegbert Tarrasch;Grossmeister & Praeceptor Germaniae;Das Schach hat wie die Liebe, wie die Musik die Fähigkeit, den Menschen glücklich zu machen.
-Alexander Aljechin;4. Schachweltmeister;Ich spiele nicht Schach – ich kämpfe im Schach.
-Bobby Fischer;11. Schachweltmeister;Schach ist das Leben.
-Anatoli Karpow;12. Schachweltmeister;Schach ist alles: Kunst, Wissenschaft und Sport.
-Magnus Carlsen;16. Schachweltmeister;Man muss den Mut haben, auch in ausgeglichenen Stellungen auf Gewinn zu spielen.
-Judit Polgár;Stärkste Schachspielerin der Geschichte;Schach bringt dir bei, objektiv zu sein und aus eigenen Fehlern zu lernen.
-Paul Morphy;Inoffizieller Schachweltmeister;Hilf deinen Figuren, damit sie dir helfen können.
-Wilhelm Steinitz;1. Schachweltmeister;Der König ist eine Kampffigur – nutze ihn!
-Richard Réti;Grossmeister & Eröffnungstheoretiker;Im Schach gewinnt nicht derjenige, der mehr weiß, sondern derjenige, der besser denkt.
-David Bronstein;Grossmeister & WM-Herausforderer;Die schönste Kombination ist die, die zum Matt führt.
-Boris Spasski;10. Schachweltmeister;Schach ist wie das Leben, nur mit klaren Regeln.
-Watu Kobese;Internationaler Meister (IM);Schach verbindet Menschen über alle kulturellen und sprachlichen Grenzen hinweg.
-Max Euwe;5. Schachweltmeister & FIDE-Präsident;Strategie erfordert Geduld, Taktik erfordert Mut.
-Wassili Smyslow;7. Schachweltmeister;Im Schach suche ich vor allem die Harmonie der Figuren.
-Tigran Petrosjan;9. Schachweltmeister;Schach ist ein Spiel der Geduld und der eisernen Logik.
-Wladimir Kramnik;14. Schachweltmeister;Schach ist für mich wie eine unendliche Symphonie aus Möglichkeiten und Schönheit.
-Viswanathan Anand;15. Schachweltmeister;Im Schach gewinnt nicht der, der nie Fehler macht, sondern der, der aus seinen Fehlern die richtigen Schlüsse zieht.
-Ding Liren;17. Schachweltmeister;Am Brett gibt es nur die Figuren, die Wahrheit und die Suche nach der besten Fortsetzung.
-Gukesh D;18. Schachweltmeister;Jede Partie ist eine neue Herausforderung, die deinen Charakter und deine Disziplin auf die Probe stellt.
-Viktor Kortschnoi;Legendärer WM-Herausforderer;Kein Meister fällt vom Himmel – man muss jede einzelne Niederlage als Baustein zum Sieg betrachten.
-Susan Polgar;Schach-Olympiasiegerin & Grossmeisterin;Schach lehrt uns Konzentration, Selbstvertrauen und strategische Weitsicht fürs ganze Leben.
-Vera Menchik;1. Schachweltmeisterin der Geschichte;Auf dem Schachbrett sind alle gleich – es zählt einzig die Kraft der Ideen.
-Hou Yifan;Viermalige Schachweltmeisterin;Schach ist ein wunderbares Training für den Geist, um Ruhe in komplexen Situationen zu bewahren.
-Johann Wolfgang von Goethe;Dichter & Denker;Das Schachspiel ist der Probierstein des Gehirns.
-Benjamin Franklin;Staatsmann & Erfinder;Das Schachspiel lehrt uns Voraussicht, Umsicht und Vorsicht – Tugenden, die wir im menschlichen Leben unaufhörlich brauchen.
-Stefan Zweig;Schriftsteller (Schachnovelle);Schach ist ein Spiel, das die Konzentration schärft und die Fantasie beflügelt wie kein anderes.
-Paul Keres;Legendärer Grossmeister;Je schwieriger die Stellung am Brett, desto süsser ist die Freude über die gefundene Lösung.
-Akiba Rubinstein;Endspiel-Genie & Grossmeister;Die Figuren auf dem Brett gehorchen den Gesetzen der Geometrie und der Harmonie.
-Mikhail Botwinnik;6. Schachweltmeister & Patriarch;Schach ist die Kunst der logischen Analyse im Angesicht der Zeit.
-Nigel Short;Grossmeister & WM-Herausforderer;Schach ist ein gnadenloser Spiegel des eigenen Denkens.
-Bent Larsen;Dänische Schachlegende;Um grossartiges Schach zu spielen, muss man bereit sein, kalkulierte Risiken einzugehen.
-Frank Marshall;US-Schachmeister & Taktiker;Der beste Zug ist oft derjenige, den der Gegner am wenigsten erwartet.
+Autor;Rolle;Text;Status
+Anonym;Schach-Aphorismus;Schach ist das schnellste Spiel der Welt, weil man in jeder Sekunde Tausende von Gedanken ordnen muss.;❓ nicht verifizierbar
+Aron Nimzowitsch;Großmeister & Schach-Theoretiker;Die Drohung ist stärker als die Ausführung.;✅ belegt (Mein System)
+"""Indisches Sprichwort"" (Herkunft umstritten)";Traditionelle Weisheit;Schach ist ein See, in dem eine Mücke baden und ein Elefant ertrinken kann.;"❓ Ursprung ungeklärt (frühester Nachweis 1949, teils auch als ""russisches Sprichwort"" zitiert)"
+Savielly Tartakower;Großmeister & Schachautor;Auf dem Schachbrett der Meister überwiegen die Ausnahmen die Regeln.;❓ nicht verifizierbar
+Savielly Tartakower;Großmeister & Schachautor;Taktik ist zu wissen, was zu tun ist, wenn es etwas zu tun gibt. Strategie ist zu wissen, was zu tun ist, wenn es nichts zu tun gibt.;✅ belegt
+Savielly Tartakower;Großmeister & Schachautor;Niemand hat je eine Partie durch Aufgeben gewonnen.;✅ belegt
+Michail Tal;8. Schachweltmeister;Man muss den Gegner in einen dunklen Wald führen, wo 2+2=5 ist und der Weg hinaus nur breit genug für einen ist.;✅ belegt
+Garry Kasparov;13. Schachweltmeister;Im Schach wie im Leben ist der wichtigste Zug immer der nächste.;❓ kein Beleg als wörtliches Zitat gefunden
+José Raúl Capablanca;3. Schachweltmeister;Um im Schach erfolgreich zu sein, muss man zuerst das Endspiel studieren.;✅ belegt
+Emanuel Lasker;2. Schachweltmeister (1894–1921);Wenn du einen guten Zug siehst, suche nach einem besseren.;✅ belegt
+Siegbert Tarrasch;Großmeister & Praeceptor Germaniae;Das Schach hat wie die Liebe, wie die Musik die Fähigkeit, den Menschen glücklich zu machen.;✅ belegt
+Alexander Aljechin;4. Schachweltmeister;Ich spiele nicht Schach – ich kämpfe im Schach.;✅ belegt (Oxford Companion to Chess)
+Bobby Fischer;11. Schachweltmeister;Schach ist das Leben.;✅ belegt
+Anatoli Karpow;12. Schachweltmeister;Schach ist alles: Kunst, Wissenschaft und Sport.;✅ belegt
+Magnus Carlsen;16. Schachweltmeister;Man muss den Mut haben, auch in ausgeglichenen Stellungen auf Gewinn zu spielen.;❓ nicht verifizierbar
+Judit Polgár;Stärkste Schachspielerin der Geschichte;Schach bringt dir bei, objektiv zu sein und aus eigenen Fehlern zu lernen.;❓ nicht verifizierbar
+Paul Morphy;Inoffizieller Schachweltmeister;Hilf deinen Figuren, damit sie dir helfen können.;✅ belegt
+Wilhelm Steinitz;1. Schachweltmeister;Der König ist eine Kampffigur – nutze ihn!;✅ belegt
+Richard Réti;Großmeister & Eröffnungstheoretiker;Im Schach gewinnt nicht derjenige, der mehr weiß, sondern derjenige, der besser denkt.;❓ nicht verifizierbar
+David Bronstein;Großmeister & WM-Herausforderer;Die schönste Kombination ist die, die zum Matt führt.;❓ nicht verifizierbar
+Boris Spasski;10. Schachweltmeister;Schach ist wie das Leben.;"✏️ korrigiert (Original hatte fälschlich ""…nur mit klaren Regeln"")"
+Watu Kobese;Internationaler Meister (IM);Schach verbindet Menschen über alle kulturellen und sprachlichen Grenzen hinweg.;❓ nicht verifizierbar
+Max Euwe;5. Schachweltmeister & FIDE-Präsident;Strategie erfordert Denken, Taktik erfordert Beobachtung.;"✏️ korrigiert (Original: ""Geduld""/""Mut"" – falsch)"
+Wassili Smyslow;7. Schachweltmeister;Im Schach suche ich vor allem die Harmonie der Figuren.;❓ nicht verifizierbar
+Wladimir Kramnik;14. Schachweltmeister;Schach ist ein unendlich komplexes Spiel, das man auf unendlich viele verschiedene Arten spielen kann.;"✏️ korrigiert (belegte Originalformulierung, ersetzt unbelegtes ""Symphonie""-Zitat)"
+Viswanathan Anand;15. Schachweltmeister;Im Schach gewinnt nicht der, der nie Fehler macht, sondern der, der aus seinen Fehlern die richtigen Schlüsse zieht.;❓ nicht verifizierbar
+Ding Liren;17. Schachweltmeister;Es gibt für mich keine bessere Alternative [als Schach].;✏️ korrigiert (belegtes Zitat, ersetzt unbelegten Satz)
+Viktor Kortschnoi;Legendärer WM-Herausforderer;Kein Meister fällt vom Himmel – man muss jede einzelne Niederlage als Baustein zum Sieg betrachten.;❓ nicht verifizierbar
+Susan Polgar;Schach-Olympiasiegerin & Großmeisterin;Schach lehrt uns Konzentration, Selbstvertrauen und strategische Weitsicht fürs ganze Leben.;❓ nicht verifizierbar
+Vera Menchik;1. Schachweltmeisterin der Geschichte;Auf dem Schachbrett sind alle gleich – es zählt einzig die Kraft der Ideen.;❓ nicht verifizierbar
+Hou Yifan;Viermalige Schachweltmeisterin;Schach ist ein wunderbares Training für den Geist, um Ruhe in komplexen Situationen zu bewahren.;❓ nicht verifizierbar
+Johann Wolfgang von Goethe;Dichter & Denker (Götz von Berlichingen, 1773);Dies Spiel ist ein Probierstein des Gehirns.;✅ belegt
+Benjamin Franklin;Staatsmann & Erfinder;Das Schachspiel lehrt uns Voraussicht, Umsicht und Vorsicht – Tugenden, die wir im menschlichen Leben unaufhörlich brauchen.;✅ belegt (The Morals of Chess)
+Stefan Zweig;Schriftsteller (Schachnovelle);Schach ist ein Spiel, das die Konzentration schärft und die Fantasie beflügelt wie kein anderes.;❓ eher Beschreibung des Werks als Zitat
+Paul Keres;Legendärer Großmeister;Je schwieriger die Stellung am Brett, desto süßer ist die Freude über die gefundene Lösung.;❓ nicht verifizierbar
+Akiba Rubinstein;Endspiel-Genie & Großmeister;Die Figuren auf dem Brett gehorchen den Gesetzen der Geometrie und der Harmonie.;❓ nicht verifizierbar
+Mikhail Botwinnik;6. Schachweltmeister & Patriarch;Schach ist die Kunst der Analyse.;"✏️ korrigiert (Zusatz ""im Angesicht der Zeit"" gestrichen)"
+Nigel Short;Großmeister & WM-Herausforderer;Schach ist ein gnadenloser Spiegel des eigenen Denkens.;❓ nicht verifizierbar
+Bent Larsen;Dänische Schachlegende;Um großartiges Schach zu spielen, muss man bereit sein, kalkulierte Risiken einzugehen.;❓ nicht verifizierbar
+Frank Marshall;US-Schachmeister & Taktiker;Der beste Zug ist oft derjenige, den der Gegner am wenigsten erwartet.;❓ nicht verifizierbar

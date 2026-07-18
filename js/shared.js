@@ -872,9 +872,205 @@ window.loadGlobalInfoAndFooter = async function() {
         }
         window.globalInfoData = info;
         window.renderGlobalFooter(info);
+        window.initTodayStatusBadge(info);
     } catch(e) {
         console.warn('Could not load global info for footer:', e);
     }
+};
+
+window.formatCompactTodayTime = function(text) {
+    if (!text) return '';
+    let t = String(text).trim();
+
+    // 1. Zeiträume mit - oder – oder bis formatieren und ungerade/gerade Minuten beachten
+    // Nur "Uhr" anhängen, wenn vorher in dem Match auch tatsächlich "Uhr" stand!
+    t = t.replace(/(\b\d{1,2}(?::\d{2})?\b)\s*[-–bis]+\s*(\b\d{1,2}(?::\d{2})?\b)(?:\s*Uhr)?/gi, (full, start, end) => {
+        const s = start.replace(/:00$/, '');
+        const e = end.replace(/:00$/, '');
+        const hasUhr = /uhr/i.test(full);
+        return `${s}-${e}${hasUhr ? ' Uhr' : ''}`;
+    });
+
+    // 2. Einzelzeiten wie "ab 18:00 Uhr" oder "18:00 Uhr" kappen falls :00
+    t = t.replace(/\b(\d{1,2}):00\b(?:\s*Uhr)?/gi, (full, hour) => {
+        if (/uhr/i.test(full)) return `${hour} Uhr`;
+        return `${hour}`;
+    });
+
+    // 3. Doppelte "Uhr & ... Uhr" zusammenfassen zu "17-19 & 20-22 Uhr"
+    t = t.replace(/(Uhr\s*&\s*\d{1,2}(?::\d{2})?[-–]\d{1,2}(?::\d{2})?)\s*Uhr/gi, '$1 Uhr');
+
+    return t.trim();
+};
+
+window.isYes = function(val) {
+    if (val === undefined || val === null || val === '') return true;
+    const str = String(val).trim().toLowerCase();
+    return str === 'ja' || str === 'true' || str === '1' || str === 'yes';
+};
+
+window.resolveStatusOrColor = function(statusRaw, textRaw) {
+    const s = String(statusRaw || '').trim();
+    const sLower = s.toLowerCase();
+    const tLower = String(textRaw || '').trim().toLowerCase();
+
+    if (sLower === 'rot' || sLower === 'red' || sLower === 'closed' || sLower === 'nein' || sLower === 'geschlossen' || sLower === 'ausfall') {
+        return { isClosed: true, customColor: null };
+    }
+    if (sLower === 'grün' || sLower === 'green' || sLower === 'open' || sLower === 'ja' || sLower === 'geöffnet') {
+        return { isClosed: false, customColor: null };
+    }
+
+    if (s !== '') {
+        const parsedColor = window.parseEventColor ? window.parseEventColor(s) : s;
+        if (parsedColor) {
+            const isRedColor = /^(#f00|#ff0000|#ef4444|#dc2626|#b91c1c|#f43f5e|#e11d48|#e11|#c00|#900|crimson|darkred|firebrick|tomato|rgb\(\s*25[0-5]\s*,\s*\d+\s*,\s*\d+\s*\))$/i.test(parsedColor) ||
+                               (sLower.includes('red') && !sLower.includes('green'));
+            
+            const isGreenColor = /^(#0f0|#00ff00|#10b981|#059669|#22c55e|#16a34a|#15803d|rgb\(\s*\d+\s*,\s*(?:1[0-9]{2}|2[0-5][0-9]|[5-9][0-9])\s*,\s*\d+\s*\)|lime|forestgreen)$/i.test(parsedColor) ||
+                                 (sLower.includes('green') && !sLower.includes('red'));
+
+            let isClosed = isRedColor;
+            if (!isRedColor && !isGreenColor) {
+                isClosed = /geschlossen|fällt aus|kein schach|sommerpause|ferien|abgesagt/i.test(tLower);
+            }
+
+            return {
+                isClosed: isClosed,
+                customColor: parsedColor
+            };
+        }
+    }
+
+    const isClosedText = /geschlossen|fällt aus|kein schach|sommerpause|ferien|abgesagt/i.test(tLower);
+    return { isClosed: isClosedText, customColor: null };
+};
+
+window.initTodayStatusBadge = function(info) {
+    const badge = document.getElementById('nav-today-badge');
+    if (!badge || !info) return;
+
+    const showFlag = info.showTodayStatus !== undefined ? info.showTodayStatus : (info.showtodaystatus !== undefined ? info.showtodaystatus : (info.show_today_status !== undefined ? info.show_today_status : 'ja'));
+    if (!window.isYes(showFlag)) {
+        badge.classList.add('hidden');
+        return;
+    }
+
+    const overrideRaw = (
+        info.todayOverrideText !== undefined ? info.todayOverrideText :
+        (info.todayoverridetext !== undefined ? info.todayoverridetext :
+        (info.todayOverride !== undefined ? info.todayOverride :
+        (info.todayoverride !== undefined ? info.todayoverride :
+        (info.today_override !== undefined ? info.today_override : ''))))
+    ).trim();
+
+    if (overrideRaw !== '') {
+        let overrideText = window.formatTextContent ? window.stripHtml(window.formatTextContent(overrideRaw)) : overrideRaw;
+        const statusRaw = (
+            info.todayOverrideStatus !== undefined ? info.todayOverrideStatus :
+            (info.todayoverridestatus !== undefined ? info.todayoverridestatus :
+            (info.todayOverrideColor !== undefined ? info.todayOverrideColor : ''))
+        ).trim();
+
+        const statusRes = window.resolveStatusOrColor(statusRaw, overrideText);
+        const isClosed = statusRes.isClosed;
+        const colorStyle = statusRes.customColor ? ` style="color: ${statusRes.customColor} !important;"` : '';
+
+        badge.className = `nav-today-badge ${isClosed ? 'closed' : 'open'}`;
+        if (overrideText.toLowerCase().startsWith('heute:')) {
+            overrideText = overrideText.substring(6).trim();
+        }
+        const compactStatus = window.formatCompactTodayTime(overrideText);
+        badge.innerHTML = `<span class="today-label">Heute:</span> <span class="today-time ${isClosed ? 'closed' : 'open'}"${colorStyle}>${compactStatus}</span>`;
+        badge.classList.remove('hidden');
+        return;
+    }
+
+    const trainings = [];
+    if (info.training) {
+        if (Array.isArray(info.training)) {
+            trainings.push(...info.training);
+        } else if (typeof info.training === 'object') {
+            Object.values(info.training).forEach(t => {
+                if (t && typeof t === 'object') trainings.push(t);
+            });
+        }
+    }
+
+    const daysMap = {
+        0: /sonntag|sonntags|so\b/i,
+        1: /montag|montags|mo\b/i,
+        2: /dienstag|dienstags|di\b/i,
+        3: /mittwoch|mittwochs|mi\b/i,
+        4: /donnerstag|donnerstags|do\b/i,
+        5: /freitag|freitags|fr\b/i,
+        6: /samstag|samstags|sa\b/i
+    };
+    const todayDayNum = new Date().getDay();
+    const todayRegex = daysMap[todayDayNum];
+
+    const matchedTimes = [];
+    let hasOverrideForToday = false;
+    let isClosedOverride = false;
+    let overrideCustomColor = null;
+
+    trainings.forEach(t => {
+        const str = `${t.group || ''} ${t.time || ''}`;
+        if (todayRegex && todayRegex.test(str)) {
+            const tOverride = (
+                t.overridetext !== undefined ? t.overridetext :
+                (t.overrideText !== undefined ? t.overrideText :
+                (t.override !== undefined ? t.override : ''))
+            ).trim();
+
+            if (tOverride !== '') {
+                hasOverrideForToday = true;
+                const tStatusRaw = (
+                    t.overridestatus !== undefined ? t.overridestatus :
+                    (t.overrideStatus !== undefined ? t.overrideStatus :
+                    (t.overridecolor !== undefined ? t.overridecolor :
+                    (t.status !== undefined ? t.status : '')))
+                ).trim();
+
+                const cleanedOverride = window.stripHtml ? window.stripHtml(window.formatTextContent(tOverride)) : tOverride;
+                const statusRes = window.resolveStatusOrColor(tStatusRaw, cleanedOverride);
+                if (statusRes.isClosed) isClosedOverride = true;
+                if (statusRes.customColor && !overrideCustomColor) overrideCustomColor = statusRes.customColor;
+
+                let oText = cleanedOverride;
+                if (oText.toLowerCase().startsWith('heute:')) {
+                    oText = oText.substring(6).trim();
+                }
+                matchedTimes.push(oText);
+            } else {
+                const timeStr = t.time || '';
+                const cleanedTime = window.stripHtml ? window.stripHtml(window.formatTextContent(timeStr)) : timeStr;
+                const timeMatch = cleanedTime.match(/(\d{1,2}(?::\d{2})?\s*[-–bis]+\s*\d{1,2}(?::\d{2})?(?:\s*Uhr)?|ab\s*\d{1,2}(?::\d{2})?(?:\s*Uhr)?)/i);
+                if (timeMatch) {
+                    matchedTimes.push(timeMatch[1].replace(/bis/i, '-').trim());
+                } else {
+                    matchedTimes.push(cleanedTime.split('\n')[0].trim());
+                }
+            }
+        }
+    });
+
+    if (matchedTimes.length > 0) {
+        const colorStyle = overrideCustomColor ? ` style="color: ${overrideCustomColor} !important;"` : '';
+        if (hasOverrideForToday && isClosedOverride) {
+            badge.className = 'nav-today-badge closed';
+            const compactStatus = window.formatCompactTodayTime(matchedTimes.join(' & '));
+            badge.innerHTML = `<span class="today-label">Heute:</span> <span class="today-time closed"${colorStyle}>${compactStatus}</span>`;
+        } else {
+            badge.className = 'nav-today-badge open';
+            const compactStatus = window.formatCompactTodayTime(matchedTimes.join(' & '));
+            badge.innerHTML = `<span class="today-label">Heute:</span> <span class="today-time open"${colorStyle}>${compactStatus}</span>`;
+        }
+    } else {
+        badge.className = 'nav-today-badge closed';
+        badge.innerHTML = `<span class="today-label">Heute:</span> <span class="today-time closed">kein Schach</span>`;
+    }
+    badge.classList.remove('hidden');
 };
 
 window.openLegalModal = function(type) {
@@ -938,7 +1134,67 @@ document.addEventListener('DOMContentLoaded', () => {
     initHamburger();
     initBanner();
     initDynamicMenu();
+    initSharedInfo();
 });
+
+async function initSharedInfo() {
+    try {
+        const response = await window.fetchCSVSource('data/info.csv');
+        if (!response.ok) return;
+        const text = await window.fetchTextWithEncoding(response);
+        const rows = parseCSVShared(text);
+        if (rows.length < 2) return;
+        
+        const info = {};
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length >= 2) {
+                const keyPath = (row[0] || '').trim().replace(/^"|"$/g, '');
+                const val = (row[1] || '').trim().replace(/^"|"$/g, '');
+                if (!keyPath) continue;
+                
+                const parts = keyPath.split('.');
+                let current = info;
+                for (let j = 0; j < parts.length - 1; j++) {
+                    const part = parts[j];
+                    const partLower = part.toLowerCase();
+                    if (!current[part]) current[part] = {};
+                    if (!current[partLower]) current[partLower] = current[part];
+                    current = current[part];
+                }
+                const lastPart = parts[parts.length - 1];
+                current[lastPart] = val;
+                current[lastPart.toLowerCase()] = val;
+            }
+        }
+        
+        function convertToArray(obj) {
+            if (typeof obj === 'object' && obj !== null) {
+                const keys = Object.keys(obj);
+                if (keys.length > 0 && keys.every(k => !isNaN(parseInt(k)))) {
+                    const arr = [];
+                    for (let k in obj) {
+                        arr[parseInt(k) - 1] = convertToArray(obj[k]);
+                    }
+                    return arr.filter(x => x !== undefined);
+                }
+                for (let k in obj) {
+                    obj[k] = convertToArray(obj[k]);
+                }
+            }
+            return obj;
+        }
+        const cleanInfo = convertToArray(info);
+        window.globalInfoData = cleanInfo;
+        
+        const clubEl = document.getElementById('nav-club-name');
+        if (clubEl && cleanInfo.clubName && !clubEl.textContent.trim()) {
+            clubEl.textContent = cleanInfo.clubName;
+        }
+        
+        if (window.initTodayStatusBadge) window.initTodayStatusBadge(cleanInfo);
+    } catch(e) {}
+}
 
 async function initDynamicMenu() {
     const navLinks = document.querySelector('.nav-links');

@@ -264,6 +264,77 @@ h1, h2, h3, h4, .brand, .section-title {
     filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6));
 }
 
+/* Brand Wrapper & Nav Today Status */
+.brand-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-right: 1.5rem;
+    flex-shrink: 0;
+}
+
+.brand-wrapper .brand {
+    margin-right: 0;
+}
+
+.nav-today-badge {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    margin-top: -0.1rem;
+    margin-left: 2.3rem; /* Fluchtet sauber unter dem Text "Schach Rheinfelden" hinter dem ♞ Icon */
+    transition: color 0.3s ease;
+    white-space: nowrap;
+}
+
+.nav-today-badge .today-label {
+    color: var(--text-primary);
+    font-weight: 550;
+    margin-right: 0.25rem;
+}
+
+.nav-today-badge .today-time {
+    font-weight: 700;
+}
+
+.nav-today-badge .today-time.open {
+    color: #10b981;
+}
+
+body.light-theme .nav-today-badge .today-time.open {
+    color: #059669;
+}
+
+.nav-today-badge .today-time.closed {
+    color: #ef4444;
+}
+
+body.light-theme .nav-today-badge .today-time.closed {
+    color: #dc2626;
+}
+
+.nav-today-badge.hidden {
+    display: none !important;
+}
+
+@media (max-width: 1150px) {
+    .nav-today-badge {
+        margin-left: 2.3rem;
+    }
+}
+
+@media (max-width: 680px) {
+    .brand-wrapper {
+        margin-right: auto;
+    }
+    .nav-today-badge {
+        margin-left: 2.3rem;
+        font-size: 0.74rem;
+        margin-top: -0.15rem;
+    }
+}
+
 .nav-links {
     display: flex;
     list-style: none;

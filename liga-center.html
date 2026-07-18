@@ -19,7 +19,7 @@
     <meta property="og:image" content="assets/Schach-Rheinfelden_Banner.png" />
     <meta property="og:site_name" content="Schach-Rheinfelden" />
 
-    <link rel="stylesheet" href="css/style.css?v=9">
+    <link rel="stylesheet" href="css/style.css?v=30">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
@@ -371,10 +371,13 @@
     <div id="top-banner" class="top-banner"></div>
     <header id="navbar" class="navbar">
         <nav class="container nav-content">
-            <a href="index.html" class="brand">
-                <span class="logo-icon">♞</span>
-                <span id="nav-club-name" class="brand-name">Schach Rheinfelden</span>
-            </a>
+            <div class="brand-wrapper">
+                <a href="index.html" class="brand">
+                    <span class="logo-icon">♞</span>
+                    <span id="nav-club-name" class="brand-name">Schach Rheinfelden</span>
+                </a>
+                <div id="nav-today-badge" class="nav-today-badge hidden"></div>
+            </div>
             <ul class="nav-links" id="nav-links">
                 <li><a href="index.html#news">News</a></li>
                 <li><a href="index.html#teams">Mannschaften</a></li>
@@ -608,7 +611,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <!-- App Scripts -->
-    <script src="js/shared.js?v=19"></script>
+    <script src="js/shared.js?v=31"></script>
     <script src="js/liga-center.js?v=18"></script>
 </body>
 </html>

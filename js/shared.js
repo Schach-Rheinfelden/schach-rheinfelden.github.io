@@ -35,7 +35,7 @@ window.cleanMojibake = function(text) {
             }
             if (canConvert) {
                 const decoded = new TextDecoder('utf-8').decode(bytes);
-                if (decoded && !decoded.includes('')) {
+                if (decoded && !decoded.includes('�')) {
                     text = decoded;
                 }
             }
@@ -425,7 +425,6 @@ window.formatEventTimeDisplay = function(event) {
     }
 
     if (t && et) {
-        const suffix = (t.toLowerCase().includes('uhr') || et.toLowerCase().includes('uhr')) ? '' : ' Uhr';
         return `🕒 ${cleanTime(t)} - ${cleanTime(et)} Uhr`;
     }
     if (t) {
@@ -556,37 +555,7 @@ window.fetchTextWithEncoding = async function(response) {
 
 window.sourcesConfigCache = null;
 
-function parseCSVShared(text) {
-    if (!text) return [];
-    if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
-    const result = [];
-    let row = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        if (inQuotes) {
-            if (char === '"') {
-                if (i + 1 < text.length && text[i+1] === '"') { current += '"'; i++; }
-                else { inQuotes = false; }
-            } else { current += char; }
-        } else {
-            if (char === '"') { inQuotes = true; }
-            else if (char === ';') { row.push(current); current = ''; }
-            else if (char === '\n') {
-                row.push(current);
-                if (row.length > 0 && !(row.length === 1 && row[0].trim() === '')) result.push(row);
-                row = []; current = '';
-            } else if (char === '\r') {}
-            else { current += char; }
-        }
-    }
-    if (current || row.length > 0) {
-        row.push(current);
-        if (row.length > 0 && !(row.length === 1 && row[0].trim() === '')) result.push(row);
-    }
-    return result;
-}
+// parseCSVShared ist weiter unten einmalig definiert (Function Hoisting).
 
 window.loadSourcesConfig = async function() {
     if (window.sourcesConfigCache) return window.sourcesConfigCache;
@@ -601,7 +570,9 @@ window.loadSourcesConfig = async function() {
             if (row && row.length >= 1) {
                 const fname = (row[0] || '').trim();
                 const source = row.length >= 2 ? (row[1] || '').trim() : '';
-                const gid = row.length >= 3 ? (row[2] || '').trim() : '0';
+                // Spalte 3 ist in sources.csv die Beschreibung – nur als gid übernehmen, wenn numerisch
+                const col3 = row.length >= 3 ? (row[2] || '').trim() : '';
+                const gid = /^\d+$/.test(col3) ? col3 : '0';
                 if (fname) {
                     window.sourcesConfigCache[fname] = {
                         source: source,
@@ -788,6 +759,7 @@ function initHamburger() {
 window.globalInfoData = null;
 
 function parseCSVShared(text) {
+    if (!text) return [];
     if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
     const result = [];
     let row = [];
@@ -918,7 +890,7 @@ window.formatCompactTodayTime = function(text) {
 
     // 1. Zeiträume mit - oder – oder bis formatieren und ungerade/gerade Minuten beachten
     // Nur "Uhr" anhängen, wenn vorher in dem Match auch tatsächlich "Uhr" stand!
-    t = t.replace(/(\b\d{1,2}(?::\d{2})?\b)\s*[-–bis]+\s*(\b\d{1,2}(?::\d{2})?\b)(?:\s*Uhr)?/gi, (full, start, end) => {
+    t = t.replace(/(\b\d{1,2}(?::\d{2})?\b)\s*(?:[-–]|bis)\s*(\b\d{1,2}(?::\d{2})?\b)(?:\s*Uhr)?/gi, (full, start, end) => {
         const s = start.replace(/:00$/, '');
         const e = end.replace(/:00$/, '');
         const hasUhr = /uhr/i.test(full);
@@ -937,10 +909,11 @@ window.formatCompactTodayTime = function(text) {
     return t.trim();
 };
 
+// Kanonische Version (einheitlich auf allen Seiten): leer/fehlend = false.
 window.isYes = function(val) {
-    if (val === undefined || val === null || val === '') return true;
+    if (val === undefined || val === null || String(val).trim() === '') return false;
     const str = String(val).trim().toLowerCase();
-    return str === 'ja' || str === 'true' || str === '1' || str === 'yes';
+    return str === 'ja' || str === 'j' || str === 'yes' || str === 'y' || str === '1' || str === 'true' || str === 'x' || str === 'ch' || str === 'de';
 };
 
 window.resolveStatusOrColor = function(statusRaw, textRaw) {
@@ -1030,7 +1003,8 @@ window.initTodayStatusBadge = function(info, eventsData) {
     const eventsList = eventsData || window.cachedEventsDataForBadge || (typeof globalEventsData !== 'undefined' ? globalEventsData : []);
     if (eventsList && eventsList.length > 0) window.cachedEventsDataForBadge = eventsList;
 
-    const showFlag = info.showTodayStatus !== undefined ? info.showTodayStatus : (info.showtodaystatus !== undefined ? info.showtodaystatus : (info.show_today_status !== undefined ? info.show_today_status : 'ja'));
+    let showFlag = info.showTodayStatus !== undefined ? info.showTodayStatus : (info.showtodaystatus !== undefined ? info.showtodaystatus : (info.show_today_status !== undefined ? info.show_today_status : 'ja'));
+    if (showFlag === undefined || showFlag === null || String(showFlag).trim() === '') showFlag = 'ja'; // leer = Badge anzeigen (Default)
     if (!window.isYes(showFlag)) {
         badge.classList.add('hidden');
         return;
@@ -1078,13 +1052,13 @@ window.initTodayStatusBadge = function(info, eventsData) {
     }
 
     const daysMap = {
-        0: /sonntag|sonntags|so\b/i,
-        1: /montag|montags|mo\b/i,
-        2: /dienstag|dienstags|di\b/i,
-        3: /mittwoch|mittwochs|mi\b/i,
-        4: /donnerstag|donnerstags|do\b/i,
-        5: /freitag|freitags|fr\b/i,
-        6: /samstag|samstags|sa\b/i
+        0: /sonntag|sonntags|\bso\b/i,
+        1: /montag|montags|\bmo\b/i,
+        2: /dienstag|dienstags|\bdi\b/i,
+        3: /mittwoch|mittwochs|\bmi\b/i,
+        4: /donnerstag|donnerstags|\bdo\b/i,
+        5: /freitag|freitags|\bfr\b/i,
+        6: /samstag|samstags|\bsa\b/i
     };
     const todayDayNum = new Date().getDay();
     const todayRegex = daysMap[todayDayNum];
@@ -1132,7 +1106,7 @@ window.initTodayStatusBadge = function(info, eventsData) {
                 } else {
                     const timeStr = t.time || '';
                     const cleanedTime = window.stripHtml ? window.stripHtml(window.formatTextContent(timeStr)) : timeStr;
-                    const timeMatch = cleanedTime.match(/(\d{1,2}(?::\d{2})?\s*[-–bis]+\s*\d{1,2}(?::\d{2})?(?:\s*Uhr)?|ab\s*\d{1,2}(?::\d{2})?(?:\s*Uhr)?)/i);
+                    const timeMatch = cleanedTime.match(/(\d{1,2}(?::\d{2})?\s*(?:[-–]|bis)\s*\d{1,2}(?::\d{2})?(?:\s*Uhr)?|ab\s*\d{1,2}(?::\d{2})?(?:\s*Uhr)?)/i);
                     if (timeMatch) {
                         matchedTimes.push(timeMatch[1].replace(/bis/i, '-').trim());
                     } else {

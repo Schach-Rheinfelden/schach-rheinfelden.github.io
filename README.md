@@ -15,6 +15,7 @@ Dieses Handbuch erklärt ausführlich die Architektur der Website sowie alle For
 8. [Termine & Kalender (`data/events.csv`)](#8-termine--kalender-dataeventscsv)
 9. [Mannschaften & Spieler (`data/teams.csv` & `players.csv`)](#9-mannschaften--spieler-datateamscsv--playerscsv)
 10. [Externe CSV-Quellen verknüpfen (`data/sources.csv`)](#10-externe-csv-quellen-verknüpfen-datasourcescsv)
+11. [Stimmen aus der Community (`data/guestbook.csv`)](#11-stimmen-aus-der-community-dataguestbookcsv)
 
 ---
 
@@ -113,7 +114,7 @@ Wichtige Schlüssel:
 ## 7. Neuigkeiten & Berichte (`data/news.csv`)
 Spaltenstruktur (exakt passend zu `data/news.csv`):
 ```csv
-id;date;category;title;author;color;image;content;gallery
+id;date;category;title;author;color;image;content;gallery;bildImModal
 ```
 * `id`: Eindeutige Nummer des Artikels (z. B. `1`, `2`).
 * `date`: Datum des Artikels (z. B. `11.07.2026`).
@@ -202,3 +203,25 @@ filename;source
 media.csv;https://example.com/meine-mediathek.csv
 ```
 Bleibt `source` leer, wird die lokale CSV-Datei aus dem `/data/`-Ordner geladen.
+
+---
+
+## 11. Stimmen aus der Community (`data/guestbook.csv`)
+Die Startseite zeigt vor „Dein Team" ein **Testimonial-Carousel**, das zufällige Grüsse und Feedbacks sanft ein- und ausblendet (Wechsel alle 8 Sekunden, Pause bei Maus-Hover). Über den Button **„✍️ Nachricht schreiben"** können Besucher direkt eine eigene Nachricht hinterlassen.
+
+Spaltenstruktur:
+```csv
+id;date;name;origin;message;show
+```
+* `id`: Eindeutige Nummer des Eintrags.
+* `date`: Datum (alle gängigen Formate, siehe Abschnitt 1).
+* `name`: Name des Verfassers (leer = `Anonym`).
+* `origin`: Optionale Herkunft (z. B. `Gastmannschaft SMM`, `Teilnehmer Open Rheinfelden`).
+* `message`: Die Nachricht selbst (wird sicher als reiner Text dargestellt).
+* `show`: `ja` = sichtbar, `nein` = ausgeblendet ohne Löschen (Moderation).
+
+Steuerung über `data/info.csv`:
+* `guestbook.show` – **Hauptschalter** (`ja`/`nein`). Bei `nein` verschwindet die komplette Sektion samt Nav-Link „Stimmen" von der Website.
+* `guestbook.formUrl` – Sende-URL für das Formular. Bleibt sie leer, läuft das Formular im Testmodus (Nachricht nur lokal in der aktuellen Sitzung sichtbar).
+
+Das Formular ist durch ein unsichtbares Honeypot-Feld und eine Zeitprüfung gegen Spam-Bots geschützt.

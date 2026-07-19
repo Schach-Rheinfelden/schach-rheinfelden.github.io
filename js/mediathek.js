@@ -11,21 +11,7 @@ window.loadMoreMedia = function() {
     renderMedia();
 };
 
-// Utilities
-window.parseDate = function(dateStr) {
-    if (!dateStr) return new Date();
-    if (dateStr.includes('.')) {
-        const parts = dateStr.split('.');
-        if (parts.length === 3) {
-            return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-        }
-    }
-    return new Date(dateStr);
-};
-
-
-
-
+// parseDate wird zentral in shared.js definiert (flexibles Datums-Parsing).
 
 function parseCSV(text) {
     if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
@@ -80,19 +66,8 @@ async function fetchDataCSV(url) {
 
 // App Logic
 document.addEventListener('DOMContentLoaded', async () => {
-    // Theme setup
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.className = savedTheme + '-theme';
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        themeToggle.checked = savedTheme === 'light';
-        themeToggle.addEventListener('change', (e) => {
-            const newTheme = e.target.checked ? 'light' : 'dark';
-            document.documentElement.className = newTheme + '-theme';
-            localStorage.setItem('theme', newTheme);
-        });
-    }
-    
+    // Theme wird zentral von shared.js (initTheme, body.light-theme) verwaltet.
+
     // Load data
     try {
         globalMediaData = await fetchDataCSV('./data/media.csv');
@@ -285,7 +260,7 @@ function openMedia(id) {
             <div style="padding: 0.5rem; text-align: center;">
                 <h2 style="color: var(--accent-color); margin-bottom: 0.5rem; font-size: 1.6rem; margin-top: 0;">${item.title}</h2>
                 ${item.description ? `<p style="color: var(--text-primary); margin-bottom: 1rem; font-size: 1rem;">${window.formatTextContent(item.description)}</p>` : ''}
-                <img src="${item.url}" alt="${item.title}" style="max-width: 100%; max-height: 65vh; border-radius: 8px; border: 1px solid var(--border-color); object-fit: contain;">
+                <img src="${item.url}" alt="${item.title}" style="max-width: 100%; max-height: 65vh; border-radius: 8px; border: 1px solid var(--glass-border); object-fit: contain;">
             </div>
         `;
         modal.classList.remove('hidden');

@@ -13,3 +13,4 @@ bsv_spiele.csv;;BSV Ligaspiele (Deutschland)
 bsv_brett_details.csv;;BSV Einzelergebnisse / Brett-Details
 ssb_spiele.csv;;SSB Ligaspiele (Schweiz)
 ssb_brett_details.csv;;SSB Einzelergebnisse / Brett-Details
+guestbook.csv;;Gaestebuch-Eintraege (Gruesse & Feedback der Besucher)

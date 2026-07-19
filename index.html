@@ -25,7 +25,7 @@
     <meta property="og:site_name" content="Schach-Rheinfelden" />
 
     <!-- App Styles -->
-    <link rel="stylesheet" href="css/style.css?v=30">
+    <link rel="stylesheet" href="css/style.css?v=31">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,6 +47,7 @@
                 <li><a href="#teams">Mannschaften</a></li>
                 <li><a href="#tournaments">Turniere</a></li>
                 <li><a href="#events">Termine</a></li>
+                <li><a href="#guestbook">Stimmen</a></li>
                 <li><a href="#members">Vorstand</a></li>
                 <li><a href="mediathek.html">Mediathek</a></li>
             </ul>
@@ -207,6 +208,33 @@
             </div>
         </section>
 
+        <!-- Stimmen-Section (Testimonial-Carousel, gespeist aus data/guestbook.csv / Google-Sheet-Blatt "guestbook") -->
+        <section id="guestbook" class="section glass-section">
+            <div class="container">
+                <h2 class="section-title">Stimmen aus der <span class="accent">Community</span></h2>
+                <div id="guestbook-stage" class="guestbook-stage" aria-live="polite">
+                    <div class="loading">Lade Stimmen...</div>
+                </div>
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <button id="guestbook-toggle-btn" class="btn btn-secondary" style="border-color: var(--accent-color); color: var(--accent-color);">✍️ Nachricht schreiben</button>
+                </div>
+                <div id="guestbook-form-wrapper" style="display: none; max-width: 640px; margin: 1.5rem auto 0 auto;">
+                    <form id="guestbook-form" style="position: relative; display: flex; flex-direction: column; gap: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.75rem;">
+                        <h3 style="margin: 0 0 0.25rem 0; color: var(--accent-color); font-size: 1.15rem;">✍️ Deine Nachricht an uns</h3>
+                        <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
+                            <input type="text" name="gb-name" class="search-bar" placeholder="Dein Name (optional)" maxlength="60" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                            <input type="text" name="gb-origin" class="search-bar" placeholder="z.B. Gastmannschaft, Turnierteilnehmer (optional)" maxlength="80" style="flex: 1.4; min-width: 220px; margin-bottom: 0;">
+                        </div>
+                        <textarea name="gb-message" class="search-bar" placeholder="Deine Nachricht ..." rows="3" maxlength="400" required style="resize: vertical; margin-bottom: 0; font-family: inherit;"></textarea>
+                        <!-- Honeypot gegen Spam-Bots: für Menschen unsichtbar -->
+                        <input type="text" name="website" tabindex="-1" autocomplete="off" style="position: absolute; left: -9999px; height: 0; opacity: 0;" aria-hidden="true">
+                        <button type="submit" class="btn btn-primary" style="align-self: flex-start;">Gruss senden</button>
+                        <div id="guestbook-form-status" style="font-size: 0.95rem; color: var(--text-secondary);"></div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
         <!-- Members Section -->
         <section id="members" class="section glass-section">
             <div class="container">
@@ -320,6 +348,6 @@
 
     <!-- App Logic -->
     <script src="js/shared.js?v=32"></script>
-    <script src="js/app.js?v=32"></script>
+    <script src="js/app.js?v=39"></script>
 </body>
 </html>

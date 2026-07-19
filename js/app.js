@@ -1,17 +1,4 @@
-
-window.parseDate = function(dateStr) {
-    if (!dateStr) return new Date();
-    if (dateStr.includes('.')) {
-        const parts = dateStr.split('.');
-        if (parts.length === 3) {
-            return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-        }
-    }
-    return new Date(dateStr);
-};
-
-
-
+// parseDate wird zentral in shared.js definiert (flexibles Datums-Parsing).
 
 /**
  * Schach Rheinfelden - No-Database-CMS Logic
@@ -828,12 +815,17 @@ currentEventCategory = 'Alle';
 showingPastEvents = false;
 let currentEventsLimit = 5;
 
+function loadMoreEvents() {
+    currentEventsLimit += 5;
+    renderEvents();
+}
+
 
 
 function downloadSingleEvent(id) {
     const event = globalEventsData.find(e => e.id === id);
     if (event) {
-        generateICS([event], event.title.replace(/\\s+/g, '_') + '.ics');
+        generateICS([event], event.title.replace(/\s+/g, '_') + '.ics');
     }
 }
 
@@ -906,11 +898,7 @@ function generateICS(events, filename) {
     }
 }
 
-window.isYes = function(val) {
-    if (!val) return false;
-    const v = String(val).trim().toLowerCase();
-    return v === 'ja' || v === 'j' || v === 'yes' || v === 'y' || v === '1' || v === 'true' || v === 'x' || v === 'ch' || v === 'de';
-};
+// isYes wird kanonisch in shared.js definiert (leer = false).
 
 function initMembersFilter(members) {
     const filterContainer = document.getElementById('members-filter');
@@ -2151,8 +2139,11 @@ window.closeTournamentModal = function() {
 window.onclick = function(event) {
     if (event.target.classList.contains('modal') || event.target.classList.contains('close-modal')) {
         document.querySelectorAll('.modal').forEach(m => {
-            m.style.display = 'none';
-            if(m.classList.contains('hidden') === false && m.id !== 'team-modal') {
+            // Nur die hidden-Klasse togglen – KEIN Inline-display setzen,
+            // sonst lassen sich Modals danach nicht mehr öffnen.
+            if (m.id === 'team-modal') {
+                m.style.display = 'none'; // team-modal nutzt Inline-Display statt hidden-Klasse
+            } else if (!m.classList.contains('hidden')) {
                 m.classList.add('hidden');
             }
         });

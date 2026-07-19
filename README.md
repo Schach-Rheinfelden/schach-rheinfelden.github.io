@@ -100,9 +100,12 @@ Wichtige Schlüssel:
 * `clubName` – Name des Vereins (`Schach Rheinfelden`)
 * `slogan` – Untertitel
 * `announcement` – Banner oben auf der Seite (*Intelligentes Verhalten:* Wenn ein Besucher das Banner über das `×`-Symbol schließt, bleibt es dauerhaft ausgeblendet. Erst wenn du in `info.csv` einen neuen Text für das Announcement veröffentlichst, erscheint das Banner automatisch wieder!)
-* `showTodayStatus` – Hauptschalter für die "Heute-Anzeige" in der Navigationsleiste oben (Erlaubte Werte: `ja` oder `nein`). Wenn auf `nein` gesetzt, wird die Anzeige ausgeblendet.
-* `todayOverride` – Optionale manuelle Überschreibung der Heute-Anzeige. Trage hier z. B. `geschlossen wegen Ferien` (wird automatisch rot) oder `Spezialtraining ab 18:00 Uhr` (wird automatisch grün) ein. Wenn das Feld leer bleibt, ermittelt das System vollautomatisch anhand des aktuellen Wochentags und der `training.n`-Einträge, ob heute Trainingszeiten stattfinden (z. B. `🟢 Heute: 17:00 - 19:00 Uhr`) oder nicht (`🔴 Heute: kein Schach`).
-* `training.1.group` / `training.1.time` bis `training.n.group` / `training.n.time` – Dynamische Trainingszeiten (z. B. `training.1.time;Dienstags, 17:00 - 19:00 Uhr`). Aus diesen Uhrzeiten bedient sich auch die automatische Heute-Anzeige!
+* `showTodayStatus` – Hauptschalter für die "Heute-Anzeige" (Today-Badge) in der Navigationsleiste oben (Erlaubte Werte: `ja` oder `nein`). Wenn auf `nein` gesetzt, wird die Anzeige ausgeblendet.
+* `todayOverride` (oder `todayOverrideText`) – Optionale **globale manuelle Überschreibung** der Heute-Anzeige mit höchster Priorität. Trage hier z. B. `geschlossen wegen Vereinsausflug` (wird automatisch rot) oder `Spezialtraining ab 18:00 Uhr` (wird automatisch grün) ein.
+* `todayOverrideStatus` (oder `todayOverrideColor`) – Setzt explizit die Farbe/den Status für den globalen Override (z. B. `red`, `green`, `closed`, `open`).
+* `training.1.group` / `training.1.time` bis `training.n.group` / `training.n.time` – Dynamische Trainingszeiten (z. B. `training.1.time;Dienstags, 17:00 - 19:00 Uhr`). Aus diesen Uhrzeiten bedient sich die automatische Heute-Anzeige für den jeweiligen Wochentag.
+* `training.1.country` bis `training.n.country` – **Länderzugehörigkeit der Trainingsgruppe** (`DE` oder `CH`). Wichtig für die automatische Erkennung von Ferien und Feiertagen (z. B. `CH` für das Schweizer Freizeitschach am Dienstag in der Reha, `DE` für die Trainings im Gambrinus).
+* `training.1.overrideText` bis `training.n.overrideText` – **Gruppenspezifische Überschreibung** (z. B. wenn nur das Dienstagstraining krankheitsbedingt ausfällt, trage hier `Fällt heute aus` ein).
 * `footer.copyright` – Überschreibt den Copyright-Text im Footer (z. B. `© 2027 Schach Rheinfelden. Alle Rechte vorbehalten.`)
 
 ---
@@ -127,7 +130,7 @@ id;date;category;title;author;color;image;content;gallery
 ## 8. Termine & Kalender (`data/events.csv`)
 Spaltenstruktur (exakt passend zu `data/events.csv`):
 ```csv
-id;date;endDate;time;endTime;category;color;title;author;location;locationUrl;image;gallery;content
+id;date;endDate;time;endTime;category;color;title;author;location;locationUrl;image;gallery;content;bildImModal
 ```
 * `id`: Eindeutige Nummer des Termins.
 * `date`: Startdatum oder Zeitraum – unterstützt alle gängigen Formate: `DD.MM.YYYY` (`11.09.2026`), `DD.MM.YY` (`11.09.26`), kompaktes `YYYYMMDD` (`20260911`), kompaktes `YYMMDD` (`260911`), ISO `YYYY-MM-DD`, ausgeschriebene Monate (`Juni 2026`, `06.2026`), reine Jahre (`2026`) oder auch `?` / `TBD`.
@@ -135,15 +138,27 @@ id;date;endDate;time;endTime;category;color;title;author;location;locationUrl;im
 * `time`: Startuhrzeit (z. B. `13:45`). Kann auch leer gelassen werden oder Texte wie `Ganztägig` enthalten.
 * `endTime`: Optionale Enduhrzeit (z. B. `20:00`). Wenn du nicht weißt, wie lange ein Event dauert, lass diese Spalte einfach leer – es wird dann sauber nur die Startzeit angezeigt (`13:45 Uhr`).
 * `category`: Kategorien kommagetrennt (z. B. `SMM, Rhy 1`).
+  * **Länder-Tags (`DE`, `CH`) & Automatische Ausfallerkennung:** Trägst du in `category` zusätzlich ein Länderkürzel ein (z. B. `Freizeit, DE` für deutsche Ferien oder `Freizeit, CH` für Schweizer Feiertage), verknüpft die Website diesen Termin automatisch mit den passenden Trainingsgruppen aus `info.csv` (`training.n.country`)!
 * `color`: Optionale Akzentfarbe für die Terminkachel.
-* `title`: Titel des Termins (z. B. `SMM 2026 - Runde 6`).
+  * **🔴 Automatische Today-Badge Erkennung (Kein Schach / Ferien):** Wenn ein Termin das heutige Datum betrifft (`date` bis `endDate`) und die Farbe auf `red` (oder einen roten Farbcode wie `#ef4444`) gesetzt ist ODER der Titel sowohl die Wörter `kein` als auch `Schach` enthält, erkennt die Website dies vollautomatisch! Der Today-Badge in der Navigation wechselt für die betroffenen Trainingsgruppen automatisch auf rot (`🔴 Heute: kein Schach`).
+  * Gilt das Event nur für `DE` (`Freizeit, DE`), bleibt das Schweizer Training (`CH`) davon unberührt und wird weiterhin grün angezeigt.
+  * Hat das Ausfall-Event kein Länderkürzel in `category`, gilt der Ausfall für den gesamten Verein (alle Trainingsgruppen).
+* `title`: Titel des Termins (z. B. `SMM 2026 - Runde 6` oder `Kein Freizeitschach DE (Ferien / Sommerpause)`).
 * `author`: Optionale Angabe zur Turnierleitung / Ansprechpartner.
 * `location`: Ort des Termins (z. B. `Bioland, Tannwaldstrasse 44, 4600 Olten`).
 * `locationUrl`: Link zu Google Maps / OpenStreetMap.
 * `image`: Optionales Bild für den Termin.
 * `gallery`: Optionale Fotogalerie zum Termin.
 * `content`: Ausführliche Beschreibung, Ausschreibungsdetails, Zeitplan oder Links (kann als Text oder HTML eingetragen werden).
+* `bildImModal`: Steuert, ob das Hauptbild zusätzlich groß im Detail-Modal angezeigt werden soll (`ja` oder `nein`).
 * *Hinweis:* Termine ab dem heutigen Tag erscheinen automatisch unter **Anstehende Termine**, vergangene Termine lassen sich unter **Vergangene Termine** ein- und ausblenden.
+
+### 🔝 Prioritäts-Hierarchie der Heute-Anzeige (Today-Badge)
+Das System bestimmt den Status in der Navigationsleiste automatisch nach folgender Reihenfolge:
+1. **Priorität 1 (Höchste): Global Override (`todayOverride` in `info.csv`)** – Überschreibt alles (z. B. kurzfristige Notabsage des gesamten Vereins).
+2. **Priorität 2: Per-Training Override (`training.N.overrideText` in `info.csv`)** – Überschreibt nur die jeweilige Trainingsgruppe an diesem Tag.
+3. **Priorität 3: Automatische Event-Erkennung (`events.csv`)** – Prüft, ob heute ein rotes Ausfall-Event für das Land der Trainingsgruppe (`DE`/`CH`) aktiv ist.
+4. **Priorität 4 (Standard): Reguläre Trainingszeit (`training.N.time` in `info.csv`)** – Zeigt die normale Uhrzeit laut Wochentag an (`🟢 Heute: 17:00 - 19:00 Uhr`).
 
 
 ---

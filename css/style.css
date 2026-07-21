@@ -140,6 +140,11 @@ html {
     scroll-behavior: smooth;
 }
 
+/* Anker-Ziele nicht unter der fixen Navbar verstecken (Sprung aus Menü/Unterseite) */
+#news, #teams, #tournaments, #events, #training, #guestbook, #members {
+    scroll-margin-top: 90px;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
     width: 10px;

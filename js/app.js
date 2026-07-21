@@ -138,6 +138,17 @@ async function initApp() {
         if (eventParam) setTimeout(() => window.openEventModal(parseInt(eventParam)), 100);
         if (tournamentParam) setTimeout(() => window.openTournamentModal(parseInt(tournamentParam)), 100);
 
+        // Anker-Ziel nach dem dynamischen Nachladen erneut ansteuern.
+        // (Mobile: Inhalte werden async injiziert, die Seite wächst -> der erste Sprung verrutscht.)
+        if (window.location.hash && window.location.hash.length > 1) {
+            const targetId = decodeURIComponent(window.location.hash.substring(1));
+            const scrollToTarget = (smooth) => {
+                const el = document.getElementById(targetId);
+                if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+            };
+            [300, 800, 1500].forEach((delay, i) => setTimeout(() => scrollToTarget(i > 0), delay));
+        }
+
     } catch (error) {
         console.error('Fehler beim Laden der Daten:', error);
         alert('Die Inhalte konnten nicht geladen werden (' + (error && error.message ? error.message : error) + '). Bitte stelle sicher, dass du die Seite über einen lokalen Server startest (z.B. VSCode Live Server).');

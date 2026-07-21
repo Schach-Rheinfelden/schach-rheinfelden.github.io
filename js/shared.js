@@ -1248,7 +1248,18 @@ async function initSharedInfo() {
         }
         const cleanInfo = convertToArray(info);
         window.globalInfoData = cleanInfo;
-        
+
+        // Gästebuch-Hauptschalter auch auf Unterseiten beachten:
+        // Steht guestbook.show auf nein, den "Stimmen"-Menülink überall entfernen.
+        const gbCfg = cleanInfo.guestbook || cleanInfo.Guestbook || {};
+        const gbShow = String(gbCfg.show !== undefined && String(gbCfg.show).trim() !== '' ? gbCfg.show : 'ja').trim().toLowerCase();
+        if (gbShow === 'nein' || gbShow === 'false' || gbShow === 'no' || gbShow === '0') {
+            document.querySelectorAll('.nav-links a[href$="#guestbook"]').forEach(a => {
+                const li = a.closest('li');
+                if (li) li.remove(); else a.remove();
+            });
+        }
+
         const clubEl = document.getElementById('nav-club-name');
         if (clubEl && cleanInfo.clubName && !clubEl.textContent.trim()) {
             clubEl.textContent = cleanInfo.clubName;

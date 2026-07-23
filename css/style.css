@@ -345,9 +345,9 @@ body.light-theme .nav-today-badge .today-time.closed {
     list-style: none;
     gap: 0.8rem 1.4rem;
     flex-wrap: wrap;
-    justify-content: flex-start;
-    margin: 0 auto 0 1rem;
-    flex-grow: 1;
+    justify-content: flex-end;
+    margin-left: auto;
+    margin-right: 2rem;
 }
 
 .nav-links a {
@@ -355,10 +355,113 @@ body.light-theme .nav-today-badge .today-time.closed {
     font-size: 1rem;
     color: var(--text-secondary);
     white-space: nowrap;
+    text-decoration: none;
 }
 
 .nav-links a:hover {
     color: var(--accent-color);
+}
+
+/* Dropdown Menus */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-arrow {
+    font-size: 0.75rem;
+    margin-left: 0.2rem;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #0d1320;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    min-width: 180px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px) scale(0.95);
+    filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    list-style: none;
+    padding: 0.5rem 0;
+    z-index: 1001;
+}
+
+.dropdown:hover .dropdown-menu,
+.dropdown.open .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+}
+
+.dropdown:hover .dropdown-arrow,
+.dropdown.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu li {
+    margin: 0;
+}
+
+.dropdown-menu a {
+    display: block;
+    padding: 0.6rem 1.2rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: normal;
+}
+
+.dropdown-menu a:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--accent-color);
+}
+
+body.light-theme .dropdown-menu {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .dropdown-menu a:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* =========================================================================
+   Focus Mode for Navigation (Desktop Only)
+   ========================================================================= */
+@media (hover: hover) and (pointer: fine) {
+    /* Blur main content and header elements when hovering any menu item */
+    body:has(.nav-links > li:hover) main,
+    body:has(.nav-links > li:hover) footer,
+    body:has(.nav-links > li:hover) .top-banner,
+    body:has(.nav-links > li:hover) .brand-wrapper,
+    body:has(.nav-links > li:hover) .theme-switch {
+        filter: blur(5px);
+        transition: filter 0.4s ease, transform 0.4s ease;
+    }
+
+    /* Blur other non-hovered menu items */
+    .nav-links:hover > li:not(:hover) {
+        filter: blur(4px);
+        opacity: 0.4;
+        transition: filter 0.4s ease, opacity 0.4s ease;
+    }
+
+    /* Smooth transition back to normal state */
+    main, footer, .top-banner, .brand-wrapper, .theme-switch, .nav-links > li {
+        transition: filter 0.4s ease, opacity 0.4s ease;
+    }
 }
 
 .nav-controls {
@@ -991,6 +1094,8 @@ body.light-theme .media-card:hover {
         flex-direction: column !important;
         flex-wrap: nowrap !important;
         justify-content: flex-start;
+        margin-left: 0;
+        margin-right: 0;
         align-items: center;
         padding: 5.5rem 1.5rem 3rem 1.5rem;
         overflow-y: auto;
@@ -2341,4 +2446,39 @@ body.light-theme .guestbook-card {
     .guestbook-card { padding: 1.75rem 1.25rem; }
     .guestbook-message { font-size: 1.05rem; }
     .guestbook-stage { min-height: 280px; }
+}
+
+/* Mobile Dropdown Styling */
+@media (max-width: 1150px) {
+    .dropdown-menu {
+        position: static;
+        box-shadow: none;
+        background: transparent;
+        border: none;
+        min-width: 100%;
+        padding: 0;
+        display: none;
+        transform: none;
+        filter: none;
+        opacity: 1;
+        visibility: visible;
+        margin-top: 0.5rem;
+    }
+    
+    .dropdown.open .dropdown-menu {
+        display: block;
+    }
+    
+    .dropdown-menu a {
+        font-size: 1.05rem;
+        padding: 0.4rem 0;
+        color: var(--text-secondary);
+        text-align: center;
+    }
+
+    body.light-theme .dropdown-menu {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
 }

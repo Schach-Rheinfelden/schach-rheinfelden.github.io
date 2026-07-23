@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jugend & Nachwuchs | Schach-Rheinfelden (CH & DE)</title>
+    <meta name="description" content="Jugend-Treff, Schach-AGs und Turniere für Kinder und Jugendliche beim Schachverein Rheinfelden." />
+
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+
+    <meta property="og:title" content="Jugend & Nachwuchs - Schach-Rheinfelden" />
+    <meta property="og:description" content="Jugend-Treff, Schach-AGs und Turniere für Kinder und Jugendliche beim Schachverein Rheinfelden." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://schach-rheinfelden.github.io/youth.html" />
+    <meta property="og:image" content="https://res.cloudinary.com/i1wuvnct/image/upload/w_800,c_limit,f_auto,q_auto/v1784323180/Bilder/Logos/Schach-Rheinfelden_Banner_jjcvcl.png" />
+    <meta property="og:site_name" content="Schach-Rheinfelden" />
+
+    <link rel="stylesheet" href="css/style.css?v=33">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <style>
+        .youth-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .youth-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.1);
+            border-color: var(--accent-color);
+        }
+        .youth-icon {
+            font-size: 3rem;
+            flex-shrink: 0;
+            background: rgba(212, 175, 55, 0.1);
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 2px solid var(--accent-color);
+        }
+        .youth-content h2 {
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+        .youth-content p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+        .youth-content ul {
+            margin-top: 0.5rem;
+            margin-left: 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+        .youth-content li {
+            margin-bottom: 0.5rem;
+        }
+        @media (max-width: 768px) {
+            .youth-card {
+                flex-direction: column;
+                padding: 1.5rem;
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="top-banner" class="top-banner"></div>
+    <header id="navbar" class="navbar">
+        <nav class="container nav-content">
+            <div class="brand-wrapper">
+                <a href="index.html" class="brand">
+                    <span class="logo-icon">♞</span>
+                    <span id="nav-club-name" class="brand-name">Schach Rheinfelden</span>
+                </a>
+                <div id="nav-today-badge" class="nav-today-badge hidden"></div>
+            </div>
+            <ul class="nav-links" id="nav-links">
+                <!-- Navigation is built dynamically by shared.js -->
+            </ul>
+            <div class="nav-controls">
+                <label class="theme-switch" title="Theme wechseln">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider round"></span>
+                </label>
+                <div class="hamburger" id="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main style="padding-top: 120px; min-height: 100vh;">
+        <section class="section">
+            <div class="container">
+                <h1 class="section-title" style="margin-bottom: 2rem;">Schach für <span class="accent">Jugendliche</span></h1>
+                <p style="font-size: 1.2rem; margin-bottom: 3rem; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto;">
+                    Entdecke die faszinierende Welt des Schachs! Wir bieten Kindern und Jugendlichen einen spielerischen Einstieg, spannende Turniere und gezielte Förderung.
+                </p>
+                <div id="youth-container">
+                    <div class="loading">Lade Infos...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer id="contact" class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <h3>Kontakt</h3>
+                <div id="footer-contact-container"></div>
+            </div>
+            <div class="footer-legal">
+                <p id="footer-copyright-line">&copy; <span id="current-year"></span> <span id="footer-club-name">Schach Rheinfelden</span>.</p>
+                <p><a href="#" onclick="openLegalModal('impressum'); return false;">Impressum</a> | <a href="#" onclick="openLegalModal('datenschutz'); return false;">Datenschutz</a><span id="footer-bank-sep" style="display: none;"> | <a href="#" onclick="openLegalModal('bankverbindung'); return false;">Bankverbindung</a></span></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Legal Modal -->
+    <div id="legal-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeLegalModal()"></div>
+        <div class="modal-content glass-card" style="max-width: 600px;">
+            <button class="close-btn" onclick="closeLegalModal()">&times;</button>
+            <h2 id="legal-modal-title" style="margin-bottom: 1.5rem; color: var(--accent-color);"></h2>
+            <div id="legal-modal-body" style="font-size: 1.1rem; line-height: 1.6; color: var(--text-primary);"></div>
+        </div>
+    </div>
+
+    <script src="js/shared.js?v=36"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // shared.js auto-init handles: initTheme, initHamburger, initBanner, initDynamicMenu, initSharedInfo
+            
+            const container = document.getElementById('youth-container');
+            
+            try {
+                const response = await window.fetchCSVSource('data/youth.csv');
+                if (!response || !response.ok) throw new Error("youth.csv not found");
+                const text = await window.fetchTextWithEncoding(response);
+                const rows = parseCSVShared(text);
+                
+                if (rows.length > 1) {
+                    container.innerHTML = '';
+                    const headers = rows[0].map(h => h.trim().toLowerCase());
+                    const idIdx = headers.indexOf('id');
+                    const titleIdx = headers.indexOf('title');
+                    const contentIdx = headers.indexOf('content');
+                    const iconIdx = headers.indexOf('icon');
+                    
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (row.length < 3 || !row[titleIdx]) continue;
+                        
+                        const title = row[titleIdx].trim();
+                        const content = row[contentIdx] || '';
+                        const icon = iconIdx >= 0 && row[iconIdx] ? row[iconIdx].trim() : '♟️';
+                        
+                        const card = document.createElement('div');
+                        card.className = 'youth-card'; // Entfernt fade-in-up zur Sicherheit
+                        card.innerHTML = `
+                            <div class="youth-icon">${icon}</div>
+                            <div class="youth-content">
+                                <h2>${title}</h2>
+                                <div>${content}</div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    }
+                    
+                    // Trigger scroll animations for newly added cards
+                    if (typeof initScrollAnimations === 'function') initScrollAnimations();
+                } else {
+                    container.innerHTML = '<p>Keine Jugend-Informationen verfügbar.</p>';
+                }
+            } catch (e) {
+                console.error("Error loading youth data:", e);
+                container.innerHTML = '<p>Fehler beim Laden der Jugend-Informationen.</p>';
+            }
+
+            // Footer year
+            const cyEl = document.getElementById('current-year');
+            if (cyEl) cyEl.textContent = new Date().getFullYear();
+        });
+    </script>
+</body>
+</html>

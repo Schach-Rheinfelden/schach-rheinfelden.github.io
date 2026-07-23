@@ -237,7 +237,7 @@ function renderNews() {
     if (searchTerm) {
         filteredNews = filteredNews.filter(item => {
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = item.content || "";
+            tempDiv.innerHTML = (item.content || "").replace(/<br\s*[\/]?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, ' ');
             const textContent = tempDiv.textContent || tempDiv.innerText || "";
             return item.title.toLowerCase().includes(searchTerm) || 
                    textContent.toLowerCase().includes(searchTerm) ||
@@ -280,23 +280,37 @@ function renderNews() {
         const dateObj = window.parseDate(item.date);
         const dateString = dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const authorHTML = item.author ? ` &middot; 👤 ${item.author}` : '';
-        
-        const imgHTML = item.image && item.image.trim() !== "" 
-            ? `<div class="news-img" style="background-image: url('${item.image}')"></div>` 
-            : '';
-
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = window.formatTextContent(item.content);
-        const textContent = tempDiv.textContent || tempDiv.innerText || "";
 
         const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '' };
+
+        let imgHTML = '';
+        let articleStyle = `cursor: pointer; opacity: 1; transform: none; ${colorStyles.cardStyle}`;
+        
+        const hasImage = item.image && item.image.trim() !== "";
+        const isBackground = String(item.bildAlsHintergrund || '').trim().toLowerCase();
+        const asBg = (isBackground === 'ja' || isBackground === 'true' || isBackground === '1' || isBackground === 'yes');
+
+        if (hasImage) {
+            if (asBg) {
+                const overlayTop = colorStyles.color ? `color-mix(in srgb, ${colorStyles.color} 40%, rgba(11, 18, 32, 0.7))` : `rgba(11, 18, 32, 0.4)`;
+                const overlayBottom = colorStyles.color ? `color-mix(in srgb, ${colorStyles.color} 20%, rgba(11, 18, 32, 0.95))` : `rgba(11, 18, 32, 0.95)`;
+                
+                articleStyle += ` background: linear-gradient(to bottom, ${overlayTop}, ${overlayBottom}), url('${item.image}') center/cover no-repeat !important; text-shadow: 0 2px 10px rgba(0,0,0,0.9); border: 1px solid var(--glass-border);`;
+            } else {
+                imgHTML = `<div class="news-img" style="background-image: url('${item.image}')"></div>`;
+            }
+        }
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = window.formatTextContent(item.content).replace(/<br\s*[\/]?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, ' ');
+        const textContent = tempDiv.textContent || tempDiv.innerText || "";
 
         const tagsHTML = item.category 
             ? `<div style="margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge">🏷️ ${tag.trim()}</span>`).join('')}</div>` 
             : '';
 
         return `
-        <article class="glass-card news-card fade-in-up" onclick="openNewsModal(${item.id})" style="cursor: pointer; opacity: 1; transform: none; ${colorStyles.cardStyle}">
+        <article class="glass-card news-card fade-in-up" onclick="openNewsModal(${item.id})" style="${articleStyle}">
             ${imgHTML}
             <div class="news-content">
                 <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : ''}>${dateString}${authorHTML}</span>

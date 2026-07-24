@@ -236,9 +236,7 @@
 
         if (searchTerm) {
             filteredNews = filteredNews.filter(item => {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = (item.content || "").replace(/<br\s*[\/]?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, ' ');
-                const textContent = tempDiv.textContent || tempDiv.innerText || "";
+                const textContent = window.stripHtml ? window.stripHtml(item.content || "") : (item.content || "");
                 return item.title.toLowerCase().includes(searchTerm) ||
                     textContent.toLowerCase().includes(searchTerm) ||
                     (item.author && item.author.toLowerCase().includes(searchTerm));
@@ -284,7 +282,7 @@
             const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '' };
 
             let imgHTML = '';
-            let articleStyle = `cursor: pointer; opacity: 1; transform: none; ${colorStyles.cardStyle}`;
+            let articleStyle = `cursor: pointer; opacity: 1; transform: none; height: 100%; min-height: 100%; align-self: stretch; display: flex; flex-direction: column; ${colorStyles.cardStyle}`;
 
             const hasImage = item.image && item.image.trim() !== "";
             const isBackground = String(item.bildAlsHintergrund || '').trim().toLowerCase();
@@ -301,21 +299,24 @@
                 }
             }
 
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = window.formatTextContent(item.content).replace(/<br\s*[\/]?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, ' ');
-            const textContent = tempDiv.textContent || tempDiv.innerText || "";
+            const galleryItems = window.parseGalleryString ? window.parseGalleryString(item.gallery) : [];
+            const textContent = window.getPreviewText
+                ? window.getPreviewText(item.content, { hasGallery: galleryItems.length > 0 })
+                : (window.stripHtml ? window.stripHtml(window.formatTextContent(item.content)) : "");
 
             const tagsHTML = item.category
-                ? `<div style="margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" ${asBg ? 'style="text-shadow: none !important;"' : ''}>🏷️ ${tag.trim()}</span>`).join('')}</div>`
+                ? `<div style="margin-top: 1rem; padding-top: 0; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" ${asBg ? 'style="text-shadow: none !important;"' : ''}>🏷️ ${tag.trim()}</span>`).join('')}</div>`
                 : '';
 
             return `
-        <article class="glass-card news-card fade-in-up ${asBg ? 'image-bg-card' : ''}" onclick="openNewsModal(${item.id})" style="${articleStyle}">
+        <article class="glass-card news-card fade-in-up ${asBg ? 'image-bg-card' : ''} ${!hasImage ? 'no-image-card' : ''}" onclick="openNewsModal(${item.id})" style="${articleStyle}">
             ${imgHTML}
-            <div class="news-content" ${asBg ? 'style="color: #ffffff !important;"' : ''}>
-                <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : (asBg ? 'style="color: rgba(255,255,255,0.8);"' : '')}>${dateString}${authorHTML}</span>
-                <h3 class="news-title" ${asBg ? 'style="color: #ffffff !important;"' : ''}>${item.title}</h3>
-                <div class="news-text text-truncate" ${asBg ? 'style="color: rgba(255,255,255,0.9) !important;"' : ''}>${textContent}</div>
+            <div class="news-content" style="display: flex; flex-direction: column; ${asBg ? 'color: #ffffff !important;' : ''}">
+                <div class="news-content-top" style="display: flex; flex-direction: column;">
+                    <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : (asBg ? 'style="color: rgba(255,255,255,0.8);"' : '')}>${dateString}${authorHTML}</span>
+                    <h3 class="news-title" ${asBg ? 'style="color: #ffffff !important;"' : ''}>${item.title}</h3>
+                    <div class="news-text text-truncate" ${asBg ? 'style="color: rgba(255,255,255,0.9) !important;"' : ''}>${textContent}</div>
+                </div>
                 ${tagsHTML}
             </div>
         </article>

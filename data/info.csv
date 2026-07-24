@@ -1,7 +1,8 @@
 Key;Value
 clubName;Schach Rheinfelden
 slogan;Schachsport und Freizeit am Hochrhein
-announcement;"Finde deinen Weg zu uns und starte deine neue sportliche Erfolgsgeschichte im <a href=""index.html#training"" style=""color: #ffd700; text-decoration: underline; font-weight: bold;"">Probetraining</a>"
+announcement;"Finde deinen Weg zu uns und starte deine neue sportliche Erfolgsgeschichte im <a href=""index.html#training"" style=""color: #ffd700; text-decoration: underline; font-weight: bold;"">Probetraining</a> ♟️"
+announcement_color;
 showTodayStatus;ja
 todayOverride;
 todayOverrideStatus;

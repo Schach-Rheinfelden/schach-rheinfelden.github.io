@@ -705,8 +705,8 @@ window.formatTextContent = function (text) {
 window.stripHtml = function (html) {
     if (!html) return '';
     const tmp = document.createElement("DIV");
-    // Preserve spacing for block elements before extracting textContent
-    tmp.innerHTML = html.replace(/<br\s*[\/]?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, ' ');
+    // Preserve spacing for block elements AND inline elements like span/strong/b/a to avoid glued words
+    tmp.innerHTML = html.replace(/<br\s*[\/]?>|<\/(p|div|li|h[1-6]|span|strong|b|a)>/gi, ' ');
     return (tmp.textContent || tmp.innerText || "").trim().replace(/\s+/g, ' ');
 };
 

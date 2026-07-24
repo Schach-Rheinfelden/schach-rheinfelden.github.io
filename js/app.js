@@ -644,7 +644,7 @@ function renderNews() {
                 const overlayTop = colorStyles.color ? `color-mix(in srgb, ${colorStyles.color} 40%, rgba(11, 18, 32, 0.7))` : `rgba(11, 18, 32, 0.4)`;
                 const overlayBottom = colorStyles.color ? `color-mix(in srgb, ${colorStyles.color} 20%, rgba(11, 18, 32, 0.95))` : `rgba(11, 18, 32, 0.95)`;
 
-                articleStyle += ` background: linear-gradient(to bottom, ${overlayTop}, ${overlayBottom}), url('${item.image}') center/cover no-repeat !important; text-shadow: 0 2px 10px rgba(0,0,0,0.9); border: 1px solid var(--glass-border);`;
+                articleStyle += ` background-color: transparent !important; background-image: linear-gradient(to bottom, ${overlayTop}, ${overlayBottom}), url('${item.image}') !important; background-position: center !important; background-size: cover !important; background-repeat: no-repeat !important;`;
             } else {
                 imgHTML = `<div class="news-img" style="background-image: url('${item.image}')"></div>`;
             }
@@ -653,16 +653,16 @@ function renderNews() {
         const textContent = window.stripHtml ? window.stripHtml(window.formatTextContent(item.content)) : "";
 
         const tagsHTML = item.category
-            ? `<div style="margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge">🏷️ ${tag.trim()}</span>`).join('')}</div>`
+            ? `<div style="margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" ${asBg ? 'style="text-shadow: none !important;"' : ''}>🏷️ ${tag.trim()}</span>`).join('')}</div>`
             : '';
 
         return `
-        <article class="glass-card news-card fade-in-up" onclick="openNewsModal(${item.id})" style="${articleStyle}">
+        <article class="glass-card news-card fade-in-up ${asBg ? 'image-bg-card' : ''}" onclick="openNewsModal(${item.id})" style="${articleStyle}">
             ${imgHTML}
-            <div class="news-content">
-                <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : ''}>${dateString}${authorHTML}</span>
-                <h3 class="news-title">${item.title}</h3>
-                <div class="news-text text-truncate">${textContent}</div>
+            <div class="news-content" ${asBg ? 'style="color: #ffffff !important;"' : ''}>
+                <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : (asBg ? 'style="color: rgba(255,255,255,0.8);"' : '')}>${dateString}${authorHTML}</span>
+                <h3 class="news-title" ${asBg ? 'style="color: #ffffff !important;"' : ''}>${item.title}</h3>
+                <div class="news-text text-truncate" ${asBg ? 'style="color: rgba(255,255,255,0.9) !important;"' : ''}>${textContent}</div>
                 ${tagsHTML}
             </div>
         </article>
@@ -1908,16 +1908,18 @@ async function renderTournaments() {
 
             let frontStyle = `border: 1px solid var(--glass-border); border-radius: 12px; background: var(--surface-color); overflow: hidden; transform: translateZ(0);`;
             let textShadowStyle = `var(--card-title-shadow, 0 2px 10px rgba(0,0,0,0.8))`;
+            let isBgClass = '';
             if (t.image && t.image.trim() !== '') {
-                frontStyle += ` background-image: linear-gradient(to bottom, rgba(11, 18, 32, 0.4), rgba(11, 18, 32, 0.9)), url('${t.image}'); background-position: center; background-size: 102% 102%; background-repeat: no-repeat;`;
-                textShadowStyle = `0 2px 10px rgba(0,0,0,0.8)`;
+                frontStyle = `border-radius: 12px; background-color: transparent !important; background-image: linear-gradient(to bottom, rgba(11, 18, 32, 0.4), rgba(11, 18, 32, 0.9)), url('${t.image}'); background-position: center; background-size: cover; background-repeat: no-repeat; overflow: hidden; transform: translateZ(0);`;
+                textShadowStyle = `none`;
+                isBgClass = 'image-bg-card';
             }
 
             return `
             <div class="flip-card" style="cursor: pointer;" onclick="openTournamentModal(${t.id})">
                 <div class="flip-card-inner">
                     <!-- Vorderseite -->
-                    <div class="flip-card-front" style="${frontStyle}">
+                    <div class="flip-card-front ${isBgClass}" style="${frontStyle}">
                         <h3 style="color: var(--accent-color); font-size: 1.5rem; word-break: break-word; hyphens: auto; padding: 0 1rem; text-align: center; margin: 0; text-shadow: ${textShadowStyle};">${t.name}</h3>
                     </div>
                     <!-- Rückseite -->

@@ -777,6 +777,7 @@ body.light-theme .glass-card:hover {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 2rem;
+    align-items: stretch !important;
 }
 
 /* News Cards */
@@ -791,6 +792,9 @@ body.light-theme .glass-card:hover {
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-highlight), 0 10px 30px rgba(0, 0, 0, 0.3);
     border-radius: var(--border-radius);
+    height: 100%;
+    min-height: 100%;
+    align-self: stretch !important;
 }
 
 .news-card:hover {
@@ -829,7 +833,11 @@ body.light-theme .media-card:hover {
 }
 
 .news-img {
+    /* Mindesthoehe; das Bild waechst in den freien Platz, wenn die Kachel
+       durch eine hoehere Nachbarkachel gestreckt wird (kein Leerraum mehr). */
     height: 200px;
+    flex: 1 1 200px;
+    min-height: 200px;
     background-color: transparent;
     background-size: cover;
     background-position: center;
@@ -838,6 +846,15 @@ body.light-theme .media-card:hover {
 
 .news-content {
     padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    /* Nur so hoch wie noetig - der Rest gehoert dem Bild. */
+    flex: 0 0 auto;
+}
+
+/* Push text down ONLY for image background cards */
+.news-card.image-bg-card .news-content {
+    margin-top: 200px;
 }
 
 .news-date {
@@ -1248,6 +1265,42 @@ body.light-theme .media-card:hover {
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   News-Kacheln OHNE Bild: Text darf mehr Zeilen zeigen
+   (Wenn eine bildlose Kachel neben einer Kachel mit Bild steht, ist sie
+   durch das Grid genauso hoch - der Text darf diesen Raum nutzen.)
+   Da hier kein Bild da ist, das den freien Platz aufnehmen koennte,
+   uebernimmt der Inhaltsbereich diese Aufgabe.
+   ========================================================================== */
+.news-card.no-image-card .news-content {
+    flex: 1 1 auto;
+}
+
+.news-card.no-image-card .news-text.text-truncate {
+    /* Zeilenanzahl grosszuegiger: fuellt die Hoehe der Nachbarkachel mit Bild */
+    -webkit-line-clamp: 14;
+    line-clamp: 14;
+}
+
+/* Auf schmalen Bildschirmen stehen die Kacheln untereinander,
+   dort gibt es keinen Höhenunterschied auszugleichen. */
+@media (max-width: 660px) {
+
+    .news-card.no-image-card .news-text.text-truncate {
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+    }
+}
+
+/* Hinweis in der Kachel-Vorschau auf Inhalte, die sich dort nicht sinnvoll
+   darstellen lassen (Tabellen, Bilder, Galerien). Kursiv + leicht gedämpft,
+   damit sie sich klar vom Fliesstext abheben. */
+.preview-media-hint {
+    font-style: italic;
+    opacity: 0.8;
+    white-space: nowrap;
 }
 
 /* Team Cards & HTML5 Roster Animation */
@@ -2003,6 +2056,58 @@ body.light-theme .tag-badge {
     border: 1px solid #fef08a !important;
     color: #854d0e !important;
     box-shadow: none !important;
+}
+
+/* Turnier-Raster (ersetzt das frühere horizontale Scrollen).
+   4 Karten pro Reihe auf grossen Bildschirmen, dann schrittweise weniger. */
+.tournaments-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+    .tournaments-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 820px) {
+    .tournaments-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .tournaments-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Neu nachgeladene Turnierkarten sanft einblenden */
+@keyframes tournamentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tournaments-grid .flip-card.is-new {
+    animation: tournamentFadeIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* Zaehlzeile unter dem "Weitere Turniere"-Knopf */
+.tournaments-count-hint {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.3px;
 }
 
 /* Horizontal Scroll Container (e.g. for Tournaments) */

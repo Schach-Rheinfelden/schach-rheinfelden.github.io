@@ -1585,10 +1585,41 @@ async function initBanner() {
                 }
 
                 const formattedBanner = window.formatTextContent(rawVal);
+
+                // Farbverlauf steuern
+                const colorMatch = text.match(/announcement_color;(.*)/);
+                let bannerBg = 'var(--gold-gradient)'; // Standard
+                let textColor = '#333'; // Standard (dunkel für Gold)
+                if (colorMatch && colorMatch[1].trim()) {
+                    const cStr = colorMatch[1].trim().toLowerCase();
+                    if (cStr === 'red' || cStr === 'rot') {
+                        bannerBg = 'linear-gradient(to right, #dc2626, #991b1b)';
+                        textColor = '#fff';
+                    } else if (cStr === 'blue' || cStr === 'blau') {
+                        bannerBg = 'linear-gradient(to right, #2563eb, #1e40af)';
+                        textColor = '#fff';
+                    } else if (cStr === 'green' || cStr === 'grün' || cStr === 'gruen') {
+                        bannerBg = 'linear-gradient(to right, #16a34a, #166534)';
+                        textColor = '#fff';
+                    } else if (cStr === 'gold' || cStr === 'gelb') {
+                        bannerBg = 'var(--gold-gradient)';
+                        textColor = '#333';
+                    } else if (cStr.includes('gradient')) {
+                        bannerBg = colorMatch[1].trim();
+                        textColor = '#fff';
+                    } else {
+                        // Jeder andere gültige Farbwert (z.B. Hex, 'purple', 'lightblue')
+                        const customColor = colorMatch[1].trim();
+                        bannerBg = `linear-gradient(to right, ${customColor}, color-mix(in srgb, ${customColor}, black 40%))`;
+                        textColor = '#fff';
+                    }
+                }
+                banner.style.background = bannerBg;
+
                 banner.innerHTML = `
-                    <div class="container" style="text-align: center; color: #fff; position: relative;">
-                        <strong>${formattedBanner}</strong>
-                        <span class="close-banner" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.5rem; line-height: 1;" title="Schließen">&times;</span>
+                    <div class="container" style="text-align: center; color: ${textColor}; font-weight: 500; font-family: var(--font-main); font-size: 1.05rem; position: relative;">
+                        <span>${formattedBanner}</span>
+                        <span class="close-banner" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.5rem; line-height: 1; color: ${textColor};" title="Schließen">&times;</span>
                     </div>`;
                 banner.style.display = 'block';
                 const navbar = document.getElementById('navbar');

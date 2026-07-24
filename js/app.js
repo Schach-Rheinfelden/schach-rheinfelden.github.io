@@ -136,7 +136,7 @@ async function initApp() {
         const tournamentParam = urlParams.get('tournament');
         if (newsParam) setTimeout(() => window.openNewsModal(parseInt(newsParam)), 100);
         if (eventParam) setTimeout(() => window.openEventModal(parseInt(eventParam)), 100);
-        if (tournamentParam) setTimeout(() => window.openTournamentModal(parseInt(tournamentParam)), 100);
+        if (tournamentParam) openTournamentFromUrl(tournamentParam);
 
         // Anker-Ziel nach dem dynamischen Nachladen erneut ansteuern.
         // (Mobile: Inhalte werden async injiziert, die Seite wächst -> der erste Sprung verrutscht.)
@@ -153,6 +153,44 @@ async function initApp() {
         console.error('Fehler beim Laden der Daten:', error);
         alert('Die Inhalte konnten nicht geladen werden (' + (error && error.message ? error.message : error) + '). Bitte stelle sicher, dass du die Seite über einen lokalen Server startest (z.B. VSCode Live Server).');
     }
+}
+
+// Oeffnet ein Turnier-Modal anhand der URL (?tournament=<id>).
+// Wartet dabei kurz, bis tournaments.csv geladen ist - sonst wuerde ein
+// direkter Aufruf ins Leere laufen (Daten noch nicht da).
+function openTournamentFromUrl(rawId) {
+    const id = /^\d+$/.test(String(rawId).trim()) ? parseInt(rawId, 10) : String(rawId).trim();
+    let versuche = 0;
+    const versuchen = () => {
+        versuche++;
+        const geladen = Array.isArray(globalTournamentsData) && globalTournamentsData.length > 0;
+        if (geladen && typeof window.openTournamentModal === 'function') {
+            window.openTournamentModal(id);
+            return;
+        }
+        if (versuche < 40) setTimeout(versuchen, 150); // max. ca. 6 Sekunden
+    };
+    setTimeout(versuchen, 100);
+}
+
+// Entfernt Modal-Parameter aus der Adresszeile, sobald ein Modal geschlossen
+// wird. Sonst bliebe z. B. ?tournament=1 stehen, obwohl nichts mehr offen ist -
+// beim Kopieren des Links oder Neuladen wuerde sich das Modal erneut oeffnen.
+function clearModalUrlParams() {
+    try {
+        const url = new URL(window.location.href);
+        let veraendert = false;
+        ['tournament', 'news', 'newsId', 'event', 'eventId'].forEach(p => {
+            if (url.searchParams.has(p)) {
+                url.searchParams.delete(p);
+                veraendert = true;
+            }
+        });
+        if (veraendert) {
+            const neu = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash;
+            history.replaceState(null, '', neu);
+        }
+    } catch (e) { /* Adresszeile aufraeumen ist optional */ }
 }
 
 // Hilfsfunktion für Initialien
@@ -633,7 +671,7 @@ function renderNews() {
         const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '' };
 
         let imgHTML = '';
-        let articleStyle = `cursor: pointer; ${colorStyles.cardStyle}`;
+        let articleStyle = `cursor: pointer; height: 100%; min-height: 100%; align-self: stretch; display: flex; flex-direction: column; ${colorStyles.cardStyle}`;
 
         const hasImage = item.image && item.image.trim() !== "";
         const isBackground = String(item.bildAlsHintergrund || '').trim().toLowerCase();
@@ -650,19 +688,24 @@ function renderNews() {
             }
         }
 
-        const textContent = window.stripHtml ? window.stripHtml(window.formatTextContent(item.content)) : "";
+        const galleryItems = window.parseGalleryString ? window.parseGalleryString(item.gallery) : [];
+        const textContent = window.getPreviewText
+            ? window.getPreviewText(item.content, { hasGallery: galleryItems.length > 0 })
+            : (window.stripHtml ? window.stripHtml(window.formatTextContent(item.content)) : "");
 
         const tagsHTML = item.category
-            ? `<div style="margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" ${asBg ? 'style="text-shadow: none !important;"' : ''}>🏷️ ${tag.trim()}</span>`).join('')}</div>`
+            ? `<div style="margin-top: 1rem; padding-top: 0; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" ${asBg ? 'style="text-shadow: none !important;"' : ''}>🏷️ ${tag.trim()}</span>`).join('')}</div>`
             : '';
 
         return `
-        <article class="glass-card news-card fade-in-up ${asBg ? 'image-bg-card' : ''}" onclick="openNewsModal(${item.id})" style="${articleStyle}">
+        <article class="glass-card news-card fade-in-up ${asBg ? 'image-bg-card' : ''} ${!hasImage ? 'no-image-card' : ''}" onclick="openNewsModal(${item.id})" style="${articleStyle}">
             ${imgHTML}
-            <div class="news-content" ${asBg ? 'style="color: #ffffff !important;"' : ''}>
-                <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : (asBg ? 'style="color: rgba(255,255,255,0.8);"' : '')}>${dateString}${authorHTML}</span>
-                <h3 class="news-title" ${asBg ? 'style="color: #ffffff !important;"' : ''}>${item.title}</h3>
-                <div class="news-text text-truncate" ${asBg ? 'style="color: rgba(255,255,255,0.9) !important;"' : ''}>${textContent}</div>
+            <div class="news-content" style="display: flex; flex-direction: column; ${asBg ? 'color: #ffffff !important;' : ''}">
+                <div class="news-content-top" style="display: flex; flex-direction: column;">
+                    <span class="news-date" ${colorStyles.color ? `style="color: ${colorStyles.color}; font-weight: 600;"` : (asBg ? 'style="color: rgba(255,255,255,0.8);"' : '')}>${dateString}${authorHTML}</span>
+                    <h3 class="news-title" ${asBg ? 'style="color: #ffffff !important;"' : ''}>${item.title}</h3>
+                    <div class="news-text text-truncate" ${asBg ? 'style="color: rgba(255,255,255,0.9) !important;"' : ''}>${textContent}</div>
+                </div>
                 ${tagsHTML}
             </div>
         </article>
@@ -1890,7 +1933,117 @@ function initPhysicsEngine(cardsData, container, canvas) {
     updatePhysics();
 }
 
-// 4.6 Turniere (Ligen) rendern
+// 4.6 Turniere (Ligen) rendern - mit Paginierung (jeweils 2 volle Reihen nachladen)
+let currentTournamentsLimit = 0; // wird beim ersten Rendern aus dem Layout bestimmt
+let tournamentsRenderedCount = 0;
+
+// Liest die tatsaechliche Spaltenanzahl aus dem CSS-Grid aus, damit
+// "2 Reihen" auf jeder Bildschirmbreite stimmt (4 / 3 / 2 / 1 Spalten).
+function getTournamentColumns() {
+    const container = document.getElementById('tournaments-container');
+    if (!container) return 4;
+    const cols = window.getComputedStyle(container).gridTemplateColumns;
+    if (!cols || cols === 'none') return 4;
+    const count = cols.split(' ').filter(Boolean).length;
+    return count > 0 ? count : 4;
+}
+
+function getTournamentPageSize() {
+    const cols = getTournamentColumns();
+    // Auf schmalen Bildschirmen (1-2 Spalten) waeren 2 Reihen nur 1-2 Karten -
+    // das wuerde zu vielen Klicks fuehren. Daher dort mehr Reihen pro Schritt.
+    if (cols === 1) return 6;   // Handy: 6 Reihen
+    if (cols === 2) return 8;   // Tablet hochkant: 4 Reihen
+    return cols * 2;            // Desktop: 2 volle Reihen (8 bzw. 6 Karten)
+}
+
+function buildTournamentCardHTML(t, isNew) {
+    let buttonHTML = '';
+    if (t.link && t.link.trim() !== '') {
+        const linkText = t.linkText || 'Tabelle ansehen';
+        buttonHTML = `<a href="${t.link}" target="_blank" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="event.stopPropagation()">${linkText}</a>`;
+    }
+
+    let frontStyle = `border: 1px solid var(--glass-border); border-radius: 12px; background: var(--surface-color); overflow: hidden; transform: translateZ(0);`;
+    let textShadowStyle = `var(--card-title-shadow, 0 2px 10px rgba(0,0,0,0.8))`;
+    let isBgClass = '';
+    if (t.image && t.image.trim() !== '') {
+        frontStyle = `border-radius: 12px; background-color: transparent !important; background-image: linear-gradient(to bottom, rgba(11, 18, 32, 0.4), rgba(11, 18, 32, 0.9)), url('${t.image}'); background-position: center; background-size: cover; background-repeat: no-repeat; overflow: hidden; transform: translateZ(0);`;
+        textShadowStyle = `none`;
+        isBgClass = 'image-bg-card';
+    }
+
+    return `
+    <div class="flip-card${isNew ? ' is-new' : ''}" style="cursor: pointer;" onclick="openTournamentModal(${t.id})">
+        <div class="flip-card-inner">
+            <!-- Vorderseite -->
+            <div class="flip-card-front ${isBgClass}" style="${frontStyle}">
+                <h3 style="color: var(--accent-color); font-size: 1.5rem; word-break: break-word; hyphens: auto; padding: 0 1rem; text-align: center; margin: 0; text-shadow: ${textShadowStyle};">${t.name}</h3>
+            </div>
+            <!-- Rückseite -->
+            <div class="flip-card-back" style="background: var(--surface-color); border: 1px solid var(--accent-color); border-radius: 12px; padding: 1rem;">
+                <p style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;">${window.stripHtml(t.description)}</p>
+                ${buttonHTML}
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+// Zeichnet die Turnierkarten bis zum aktuellen Limit und aktualisiert den Button.
+function renderTournamentCards(markNewFrom) {
+    const container = document.getElementById('tournaments-container');
+    if (!container) return;
+
+    const all = globalTournamentsData || [];
+    const visible = all.slice(0, currentTournamentsLimit);
+
+    container.innerHTML = visible
+        .map((t, idx) => buildTournamentCardHTML(t, markNewFrom !== undefined && idx >= markNewFrom))
+        .join('');
+    tournamentsRenderedCount = visible.length;
+
+    const loadMore = document.getElementById('tournaments-load-more');
+    if (loadMore) {
+        const remaining = all.length - visible.length;
+        if (remaining > 0) {
+            // Eindeutige Beschriftung: der Knopf sagt, wie viele dazukommen,
+            // die Zeile darunter, wie viele insgesamt schon sichtbar sind.
+            const step = Math.min(getTournamentPageSize(), remaining);
+            const stepLabel = step === 1 ? '1 weiteres Turnier anzeigen' : `${step} weitere Turniere anzeigen`;
+            loadMore.innerHTML = `
+                <button class="btn btn-secondary" onclick="loadMoreTournaments()">
+                    ${stepLabel}
+                </button>
+                <div class="tournaments-count-hint">${visible.length} von ${all.length} Turnieren</div>`;
+        } else if (all.length > getTournamentPageSize()) {
+            // Alles sichtbar -> Moeglichkeit zum Einklappen anbieten
+            loadMore.innerHTML = `
+                <button class="btn btn-secondary" onclick="collapseTournaments()">
+                    Weniger anzeigen
+                </button>
+                <div class="tournaments-count-hint">Alle ${all.length} Turniere werden angezeigt</div>`;
+        } else {
+            loadMore.innerHTML = '';
+        }
+    }
+
+    setTimeout(() => initScrollAnimations(), 50);
+}
+
+window.loadMoreTournaments = function () {
+    const previousCount = tournamentsRenderedCount;
+    currentTournamentsLimit += getTournamentPageSize();
+    renderTournamentCards(previousCount);
+};
+
+window.collapseTournaments = function () {
+    currentTournamentsLimit = getTournamentPageSize();
+    renderTournamentCards();
+    const section = document.getElementById('tournaments');
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
 async function renderTournaments() {
     const container = document.getElementById('tournaments-container');
     if (!container) return;
@@ -1899,51 +2052,28 @@ async function renderTournaments() {
         const tournaments = await fetchDataCSV('./data/tournaments.csv');
         globalTournamentsData = tournaments;
 
-        container.innerHTML = tournaments.map(t => {
-            let buttonHTML = '';
-            if (t.link && t.link.trim() !== '') {
-                const linkText = t.linkText || 'Tabelle ansehen';
-                buttonHTML = `<a href="${t.link}" target="_blank" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="event.stopPropagation()">${linkText}</a>`;
-            }
+        currentTournamentsLimit = getTournamentPageSize();
+        renderTournamentCards();
 
-            let frontStyle = `border: 1px solid var(--glass-border); border-radius: 12px; background: var(--surface-color); overflow: hidden; transform: translateZ(0);`;
-            let textShadowStyle = `var(--card-title-shadow, 0 2px 10px rgba(0,0,0,0.8))`;
-            let isBgClass = '';
-            if (t.image && t.image.trim() !== '') {
-                frontStyle = `border-radius: 12px; background-color: transparent !important; background-image: linear-gradient(to bottom, rgba(11, 18, 32, 0.4), rgba(11, 18, 32, 0.9)), url('${t.image}'); background-position: center; background-size: cover; background-repeat: no-repeat; overflow: hidden; transform: translateZ(0);`;
-                textShadowStyle = `none`;
-                isBgClass = 'image-bg-card';
-            }
-
-            return `
-            <div class="flip-card" style="cursor: pointer;" onclick="openTournamentModal(${t.id})">
-                <div class="flip-card-inner">
-                    <!-- Vorderseite -->
-                    <div class="flip-card-front ${isBgClass}" style="${frontStyle}">
-                        <h3 style="color: var(--accent-color); font-size: 1.5rem; word-break: break-word; hyphens: auto; padding: 0 1rem; text-align: center; margin: 0; text-shadow: ${textShadowStyle};">${t.name}</h3>
-                    </div>
-                    <!-- Rückseite -->
-                    <div class="flip-card-back" style="background: var(--surface-color); border: 1px solid var(--accent-color); border-radius: 12px; padding: 1rem;">
-                        <p style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;">${window.stripHtml(t.description)}</p>
-                        ${buttonHTML}
-                    </div>
-                </div>
-            </div>
-            `;
-        }).join('');
-
-        // Re-init animations for new dynamic elements
-        setTimeout(() => initScrollAnimations(), 100);
-
-        // Init carousel buttons
-        const prevBtn = document.querySelector('.prev-btn');
-        const nextBtn = document.querySelector('.next-btn');
-        if (prevBtn && nextBtn) {
-            prevBtn.addEventListener('click', () => {
-                container.scrollBy({ left: -274, behavior: 'smooth' });
-            });
-            nextBtn.addEventListener('click', () => {
-                container.scrollBy({ left: 274, behavior: 'smooth' });
+        // Bei Groessenaenderung des Fensters kann sich die Spaltenzahl aendern.
+        // Dann das Limit auf volle Reihen aufrunden, damit keine halbe Reihe entsteht.
+        if (!window._tournamentsResizeBound) {
+            window._tournamentsResizeBound = true;
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (!globalTournamentsData || globalTournamentsData.length === 0) return;
+                    const cols = getTournamentColumns();
+                    const total = globalTournamentsData.length;
+                    if (currentTournamentsLimit >= total) return; // alles sichtbar, nichts zu tun
+                    const rounded = Math.ceil(currentTournamentsLimit / cols) * cols;
+                    const newLimit = Math.max(getTournamentPageSize(), Math.min(rounded, total));
+                    if (newLimit !== currentTournamentsLimit) {
+                        currentTournamentsLimit = newLimit;
+                        renderTournamentCards();
+                    }
+                }, 200);
             });
         }
     } catch (e) {
@@ -2213,6 +2343,7 @@ function openNewsModal(id) {
 function closeNewsModal() {
     document.getElementById('news-modal').classList.add('hidden');
     document.body.style.overflow = '';
+    clearModalUrlParams();
 }
 
 window.openEventModal = function (id) {
@@ -2282,6 +2413,7 @@ window.openEventModal = function (id) {
 window.closeEventModal = function () {
     document.getElementById('event-modal').classList.add('hidden');
     document.body.style.overflow = '';
+    clearModalUrlParams();
 };
 
 window.openTournamentModal = function (id) {
@@ -2329,6 +2461,7 @@ window.openTournamentModal = function (id) {
 window.closeTournamentModal = function () {
     document.getElementById('tournament-modal').classList.add('hidden');
     document.body.style.overflow = '';
+    clearModalUrlParams();
 };
 
 // 7. Global Window Click Handler für alle Modals
@@ -2344,6 +2477,7 @@ window.onclick = function (event) {
             }
         });
         document.body.style.overflow = '';
+        clearModalUrlParams();
     }
 }
 

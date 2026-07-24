@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- === Titel & Suchmaschinen === -->
     <title>Schach-Rheinfelden | Die Schach-Gemeinschaft am Rheinknie (CH & DE)</title>
-    <meta name="description" content="Die grenzüberschreitende Schach-Gemeinschaft am Rheinknie: Schachclub Rhy (CH) & Schach-Rheinfelden e.V. (DE). Liga-Sport, Jugendförderung und Turniere." />
+    <meta name="description"
+        content="Die grenzüberschreitende Schach-Gemeinschaft am Rheinknie: Schachclub Rhy (CH) & Schach-Rheinfelden e.V. (DE). Liga-Sport, Jugendförderung und Turniere." />
 
     <!-- === Favicon & Icons === -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
@@ -18,19 +20,24 @@
          >>> aendern sollen. og:image muss eine ABSOLUTE URL sein (https://...).
          ================================================================ -->
     <meta property="og:title" content="Schach-Rheinfelden - Die Schach-Gemeinschaft am Rheinknie" />
-    <meta property="og:description" content="Liga-Sport in CH & DE, Jugendförderung und Turniere. Werde Teil unserer binationalen Schach-Community." />
+    <meta property="og:description"
+        content="Liga-Sport in CH & DE, Jugendförderung und Turniere. Werde Teil unserer binationalen Schach-Community." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://schach-rheinfelden.github.io/" />
-    <meta property="og:image" content="https://res.cloudinary.com/i1wuvnct/image/upload/w_800,c_limit,f_auto,q_auto/v1784323180/Bilder/Logos/Schach-Rheinfelden_Banner_jjcvcl.png" />
+    <meta property="og:image"
+        content="https://res.cloudinary.com/i1wuvnct/image/upload/w_800,c_limit,f_auto,q_auto/v1784323180/Bilder/Logos/Schach-Rheinfelden_Banner_jjcvcl.png" />
     <meta property="og:site_name" content="Schach-Rheinfelden" />
 
     <!-- App Styles -->
-    <link rel="stylesheet" href="css/style.css?v=32">
+    <link rel="stylesheet" href="css/style.css?v=100">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div id="top-banner" class="top-banner"></div>
     <header id="navbar" class="navbar">
@@ -61,197 +68,251 @@
 
     <main>
         <!-- Dynamic Page Container -->
-        <div id="dynamic-page" class="section glass-section" style="display: none; min-height: 100vh; padding-top: 100px;">
+        <div id="dynamic-page" class="section glass-section"
+            style="display: none; min-height: 100vh; padding-top: 100px;">
             <div class="container" id="dynamic-page-content">
                 <div class="loading">Lade Seite...</div>
             </div>
         </div>
 
         <div id="home-content">
-        <!-- Hero Section -->
-        <section class="hero" id="home">
-            <div class="container" style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
-                <div class="hero-content fade-in-up" style="flex: 1; display: flex; flex-direction: column; justify-content: center; z-index: 10;">
-                    <h1 id="hero-title">Willkommen</h1>
-                    <p class="subtitle" id="hero-slogan">Slogan</p>
-                    <div class="hero-actions">
-                        <a href="#news" class="btn btn-primary">Aktuelles</a>
-                        <a href="#events" class="btn btn-secondary">Termine</a>
-                    </div>
-                    
-                    <!-- Quote Section embedded in Hero -->
-                    <div id="quote-container" class="glass-card" style="margin-top: 4rem; padding: 1.5rem; border-left: 4px solid var(--accent-color); border-radius: 0 8px 8px 0; max-width: 600px; background: var(--nav-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
-                        <p id="quote-text" style="font-size: 1.2rem; font-style: italic; margin-bottom: 0.5rem; line-height: 1.4; color: var(--text-primary);">Lade inspirierendes Zitat...</p>
-                        <p id="quote-author" style="color: var(--accent-color); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;"></p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- News Section -->
-        <section id="news" class="section glass-section">
-            <div class="container">
-                <h2 class="section-title">Aktuelle <span class="accent">News</span></h2>
-                <div id="news-filter" class="filter-bar"></div>
-                <div id="news-container" class="grid-container">
-                    <!-- News will be injected here via JS -->
-                    <div class="loading">Lade News...</div>
-                </div>
-                <div style="text-align: center; margin-top: 3rem;">
-                    <a href="news-archive.html" class="btn btn-secondary">Alle News im Archiv anzeigen</a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Events & Training Split Section (Aktuelles) -->
-        <section class="section glass-section">
-            <div class="container split-container">
-                <!-- Termine -->
-                <div class="split-col" id="events">
-                    <h2 class="section-title">Anstehende <span class="accent">Termine</span></h2>
-                    <div id="events-filter" class="filter-bar" style="justify-content: flex-start; gap: 0.5rem; margin-bottom: 1.25rem;"></div>
-                    <button id="download-all-events-btn" class="btn btn-secondary" style="margin-bottom: 2rem; width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; border-color: var(--accent-color); color: var(--accent-color);" onclick="downloadAllEvents()">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span>Alle Termine speichern</span>
-                    </button>
-                    <ul id="events-container" class="event-list">
-                        <!-- Events injected here -->
-                        <li class="loading" style="list-style: none;">Lade Termine...</li>
-                    </ul>
-                    
-                    <div style="margin-top: 2rem; text-align: center;">
-                        <a href="events-archive.html" class="btn btn-secondary">Weitere Termine</a>
-                    </div>
-                </div>
-
-                <!-- Training & Info -->
-                <div class="split-col" id="training">
-                    <h2 class="section-title">Unsere <span class="accent">Trainingszeiten</span></h2>
-                    <div class="glass-card fade-in-up" style="padding: 2rem; text-align: center;">
-                        <div id="training-container">
-                            <!-- Training info injected here -->
-                            <div class="loading">Lade Trainingszeiten...</div>
+            <!-- Hero Section -->
+            <section class="hero" id="home">
+                <div class="container"
+                    style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                    <div class="hero-content fade-in-up"
+                        style="flex: 1; display: flex; flex-direction: column; justify-content: center; z-index: 10;">
+                        <h1 id="hero-title">Willkommen</h1>
+                        <p class="subtitle" id="hero-slogan">Slogan</p>
+                        <div class="hero-actions">
+                            <a href="#news" class="btn btn-primary">Aktuelles</a>
+                            <a href="#events" class="btn btn-secondary">Termine</a>
                         </div>
-                        <div id="location-container" class="location-info" style="font-size: 1.1rem; color: var(--text-primary);">
-                            <!-- Location injected here -->
-                        </div>
-                        <div id="social-links-container" class="social-links" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                            <!-- Links injected here -->
+
+                        <!-- Quote Section embedded in Hero -->
+                        <div id="quote-container" class="glass-card"
+                            style="margin-top: 4rem; padding: 1.5rem; border-left: 4px solid var(--accent-color); border-radius: 0 8px 8px 0; max-width: 600px; background: var(--nav-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+                            <p id="quote-text"
+                                style="font-size: 1.2rem; font-style: italic; margin-bottom: 0.5rem; line-height: 1.4; color: var(--text-primary);">
+                                Lade inspirierendes Zitat...</p>
+                            <p id="quote-author"
+                                style="color: var(--accent-color); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">
+                            </p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <!-- News Section -->
+            <section id="news" class="section glass-section">
+                <div class="container">
+                    <h2 class="section-title">Aktuelle <span class="accent">News</span></h2>
+                    <div id="news-filter" class="filter-bar"></div>
+                    <div id="news-container" class="grid-container">
+                        <!-- News will be injected here via JS -->
+                        <div class="loading">Lade News...</div>
+                    </div>
+                    <div style="text-align: center; margin-top: 3rem;">
+                        <a href="news-archive.html" class="btn btn-secondary">Alle News im Archiv anzeigen</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Events & Training Split Section (Aktuelles) -->
+            <section class="section glass-section">
+                <div class="container split-container">
+                    <!-- Termine -->
+                    <div class="split-col" id="events">
+                        <h2 class="section-title">Anstehende <span class="accent">Termine</span></h2>
+                        <div id="events-filter" class="filter-bar"
+                            style="justify-content: flex-start; gap: 0.5rem; margin-bottom: 1.25rem;"></div>
+                        <button id="download-all-events-btn" class="btn btn-secondary"
+                            style="margin-bottom: 2rem; width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; border-color: var(--accent-color); color: var(--accent-color);"
+                            onclick="downloadAllEvents()">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            <span>Alle Termine speichern</span>
+                        </button>
+                        <ul id="events-container" class="event-list">
+                            <!-- Events injected here -->
+                            <li class="loading" style="list-style: none;">Lade Termine...</li>
+                        </ul>
+
+                        <div style="margin-top: 2rem; text-align: center;">
+                            <a href="events-archive.html" class="btn btn-secondary">Weitere Termine</a>
+                        </div>
+                    </div>
+
+                    <!-- Training & Info -->
+                    <div class="split-col" id="training">
+                        <h2 class="section-title">Unsere <span class="accent">Trainingszeiten</span></h2>
+                        <div class="glass-card fade-in-up" style="padding: 2rem; text-align: center;">
+                            <div id="training-container">
+                                <!-- Training info injected here -->
+                                <div class="loading">Lade Trainingszeiten...</div>
+                            </div>
+                            <div id="location-container" class="location-info"
+                                style="font-size: 1.1rem; color: var(--text-primary);">
+                                <!-- Location injected here -->
+                            </div>
+                            <div id="social-links-container" class="social-links"
+                                style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <!-- Links injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
 
-        <!-- Tournaments Section -->
-        <section id="tournaments" class="section glass-section">
-            <div class="container">
-                <h2 class="section-title">Aktuelle <span class="accent">Turniere</span></h2>
-                <div class="carousel-wrapper">
-                    <div id="tournaments-container" class="horizontal-scroll-container">
+            <!-- Tournaments Section -->
+            <section id="tournaments" class="section glass-section">
+                <div class="container">
+                    <h2 class="section-title">Aktuelle <span class="accent">Turniere</span></h2>
+                    <div id="tournaments-container" class="tournaments-grid">
                         <!-- Tournaments will be injected here -->
                     </div>
-                    <div class="carousel-controls">
-                        <button class="carousel-btn prev-btn" aria-label="Zurück">&#10094;</button>
-                        <button class="carousel-btn next-btn" aria-label="Vor">&#10095;</button>
-                    </div>
+                    <div id="tournaments-load-more" style="text-align: center; margin-top: 2.5rem;"></div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Teams Section (Floating Field) (Verein) -->
-        <section id="teams" class="section glass-section">
-            <div class="container">
-                <h2 class="section-title">Unsere <span class="accent">Mannschaften</span></h2>
-                <div class="teams-toolbar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                    <div style="flex: 1; min-width: 280px; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-                        <input type="text" id="teams-search-input" class="search-bar" placeholder="Suchen nach Name oder Team..." style="margin-bottom: 0; flex: 1; min-width: 220px;">
-                        <div id="teams-sort-container" style="display: none; align-items: center; gap: 0.6rem;">
-                            <label for="teams-list-sort" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Sortieren:</label>
-                            <select id="teams-list-sort" class="search-bar" style="margin-bottom: 0; width: auto; padding: 0.6rem 2.4rem 0.6rem 0.9rem; font-size: 0.9rem; cursor: pointer;">
-                                <option value="name_asc">Alphabetisch (A - Z)</option>
-                                <option value="name_desc">Alphabetisch (Z - A)</option>
-                            </select>
+            <!-- Teams Section (Floating Field) (Verein) -->
+            <section id="teams" class="section glass-section">
+                <div class="container">
+                    <h2 class="section-title">Unsere <span class="accent">Mannschaften</span></h2>
+                    <div class="teams-toolbar"
+                        style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div
+                            style="flex: 1; min-width: 280px; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="teams-search-input" class="search-bar"
+                                placeholder="Suchen nach Name oder Team..."
+                                style="margin-bottom: 0; flex: 1; min-width: 220px;">
+                            <div id="teams-sort-container" style="display: none; align-items: center; gap: 0.6rem;">
+                                <label for="teams-list-sort"
+                                    style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Sortieren:</label>
+                                <select id="teams-list-sort" class="search-bar"
+                                    style="margin-bottom: 0; width: auto; padding: 0.6rem 2.4rem 0.6rem 0.9rem; font-size: 0.9rem; cursor: pointer;">
+                                    <option value="name_asc">Alphabetisch (A - Z)</option>
+                                    <option value="name_desc">Alphabetisch (Z - A)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="teams-view-toggle" style="display: flex; gap: 0.6rem;">
+                            <button id="view-floating-btn" class="btn btn-primary" title="Schwebende Ansicht"
+                                style="padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: center;">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <circle cx="6" cy="6" r="3" />
+                                    <circle cx="18" cy="18" r="3" />
+                                    <path d="M8.5 8.5l7 7" />
+                                </svg>
+                            </button>
+                            <button id="view-list-btn" class="btn btn-secondary" title="Listenansicht"
+                                style="padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: center;">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
-                    <div class="teams-view-toggle" style="display: flex; gap: 0.6rem;">
-                        <button id="view-floating-btn" class="btn btn-primary" title="Schwebende Ansicht" style="padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: center;">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.5 8.5l7 7"/></svg>
-                        </button>
-                        <button id="view-list-btn" class="btn btn-secondary" title="Listenansicht" style="padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: center;">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                        </button>
+                    <div id="teams-rating-filters" style="margin-bottom: 1.75rem;"></div>
+                    <div id="teams-legend"
+                        style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                        <!-- Legend toggles injected via JS -->
                     </div>
-                </div>
-                <div id="teams-rating-filters" style="margin-bottom: 1.75rem;"></div>
-                <div id="teams-legend" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
-                    <!-- Legend toggles injected via JS -->
-                </div>
-                <div id="floating-field" style="position: relative; width: 100%; height: 600px; overflow: hidden; border-radius: 12px; background: rgba(0,0,0,0.05); border: 1px solid var(--glass-border); touch-action: none; user-select: none;">
-                    <canvas id="tether-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"></canvas>
-                    <div id="physics-world" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: top left; z-index: 2;">
-                        <!-- Players injected here -->
-                    </div>
-                    <div class="loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;">Lade Spieler...</div>
-                    <div id="zoom-controls" class="zoom-controls">
-                        <button id="zoom-in-btn" class="zoom-btn" title="Hineinzoomen">+</button>
-                        <button id="zoom-out-btn" class="zoom-btn" title="Herauszoomen">−</button>
-                    </div>
-                </div>
-                <div id="teams-list-view" style="display: none;"></div>
-            </div>
-        </section>
-
-        <!-- Stimmen-Section (Testimonial-Carousel, gespeist aus data/guestbook.csv / Google-Sheet-Blatt "guestbook") -->
-        <section id="guestbook" class="section glass-section">
-            <div class="container">
-                <h2 class="section-title">Stimmen aus der <span class="accent">Community</span></h2>
-                <div id="guestbook-stage" class="guestbook-stage" aria-live="polite">
-                    <div class="loading">Lade Stimmen...</div>
-                </div>
-                <div style="text-align: center; margin-top: 2.5rem;">
-                    <button id="guestbook-toggle-btn" class="btn btn-secondary" style="border-color: var(--accent-color); color: var(--accent-color);">✍️ Nachricht schreiben</button>
-                </div>
-                <div id="guestbook-form-wrapper" style="display: none; max-width: 640px; margin: 1.5rem auto 0 auto;">
-                    <form id="guestbook-form" style="position: relative; display: flex; flex-direction: column; gap: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.75rem;">
-                        <h3 style="margin: 0 0 0.25rem 0; color: var(--accent-color); font-size: 1.15rem;">✍️ Deine Nachricht an uns</h3>
-                        <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
-                            <input type="text" name="gb-name" class="search-bar" placeholder="Dein Name (optional)" maxlength="60" style="flex: 1; min-width: 200px; margin-bottom: 0;">
-                            <input type="text" name="gb-origin" class="search-bar" placeholder="z.B. Gastmannschaft, Turnierteilnehmer (optional)" maxlength="80" style="flex: 1.4; min-width: 220px; margin-bottom: 0;">
+                    <div id="floating-field"
+                        style="position: relative; width: 100%; height: 600px; overflow: hidden; border-radius: 12px; background: rgba(0,0,0,0.05); border: 1px solid var(--glass-border); touch-action: none; user-select: none;">
+                        <canvas id="tether-canvas"
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"></canvas>
+                        <div id="physics-world"
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: top left; z-index: 2;">
+                            <!-- Players injected here -->
                         </div>
-                        <textarea name="gb-message" class="search-bar" placeholder="Deine Nachricht ..." rows="3" maxlength="400" required style="resize: vertical; margin-bottom: 0; font-family: inherit;"></textarea>
-                        <!-- Honeypot gegen Spam-Bots: für Menschen unsichtbar -->
-                        <input type="text" name="website" tabindex="-1" autocomplete="off" style="position: absolute; left: -9999px; height: 0; opacity: 0;" aria-hidden="true">
-                        <button type="submit" class="btn btn-primary" style="align-self: flex-start;">Gruss senden</button>
-                        <div id="guestbook-form-status" style="font-size: 0.95rem; color: var(--text-secondary);"></div>
-                    </form>
+                        <div class="loading"
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;">
+                            Lade Spieler...</div>
+                        <div id="zoom-controls" class="zoom-controls">
+                            <button id="zoom-in-btn" class="zoom-btn" title="Hineinzoomen">+</button>
+                            <button id="zoom-out-btn" class="zoom-btn" title="Herauszoomen">−</button>
+                        </div>
+                    </div>
+                    <div id="teams-list-view" style="display: none;"></div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Members Section (Verein) -->
-        <section id="members" class="section glass-section">
-            <div class="container">
-                <h2 class="section-title">Dein <span class="accent">Team</span></h2>
-                <div id="members-filter" class="filter-container" style="display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 2.5rem; flex-wrap: wrap;"></div>
-                <div id="members-container" class="grid-container members-grid">
-                    <!-- Members will be injected here via JS -->
-                    <div class="loading">Lade Vorstandsmitglieder...</div>
+            <!-- Stimmen-Section (Testimonial-Carousel, gespeist aus data/guestbook.csv / Google-Sheet-Blatt "guestbook") -->
+            <section id="guestbook" class="section glass-section">
+                <div class="container">
+                    <h2 class="section-title">Stimmen aus der <span class="accent">Community</span></h2>
+                    <div id="guestbook-stage" class="guestbook-stage" aria-live="polite">
+                        <div class="loading">Lade Stimmen...</div>
+                    </div>
+                    <div style="text-align: center; margin-top: 2.5rem;">
+                        <button id="guestbook-toggle-btn" class="btn btn-secondary"
+                            style="border-color: var(--accent-color); color: var(--accent-color);">✍️ Nachricht
+                            schreiben</button>
+                    </div>
+                    <div id="guestbook-form-wrapper"
+                        style="display: none; max-width: 640px; margin: 1.5rem auto 0 auto;">
+                        <form id="guestbook-form"
+                            style="position: relative; display: flex; flex-direction: column; gap: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.75rem;">
+                            <h3 style="margin: 0 0 0.25rem 0; color: var(--accent-color); font-size: 1.15rem;">✍️ Deine
+                                Nachricht an uns</h3>
+                            <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
+                                <input type="text" name="gb-name" class="search-bar" placeholder="Dein Name (optional)"
+                                    maxlength="60" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                                <input type="text" name="gb-origin" class="search-bar"
+                                    placeholder="z.B. Gastmannschaft, Turnierteilnehmer (optional)" maxlength="80"
+                                    style="flex: 1.4; min-width: 220px; margin-bottom: 0;">
+                            </div>
+                            <textarea name="gb-message" class="search-bar" placeholder="Deine Nachricht ..." rows="3"
+                                maxlength="400" required
+                                style="resize: vertical; margin-bottom: 0; font-family: inherit;"></textarea>
+                            <!-- Honeypot gegen Spam-Bots: für Menschen unsichtbar -->
+                            <input type="text" name="website" tabindex="-1" autocomplete="off"
+                                style="position: absolute; left: -9999px; height: 0; opacity: 0;" aria-hidden="true">
+                            <button type="submit" class="btn btn-primary" style="align-self: flex-start;">Gruss
+                                senden</button>
+                            <div id="guestbook-form-status" style="font-size: 0.95rem; color: var(--text-secondary);">
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <!-- Members Section (Verein) -->
+            <section id="members" class="section glass-section">
+                <div class="container">
+                    <h2 class="section-title">Dein <span class="accent">Team</span></h2>
+                    <div id="members-filter" class="filter-container"
+                        style="display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 2.5rem; flex-wrap: wrap;">
+                    </div>
+                    <div id="members-container" class="grid-container members-grid">
+                        <!-- Members will be injected here via JS -->
+                        <div class="loading">Lade Vorstandsmitglieder...</div>
+                    </div>
+                </div>
+            </section>
 
         </div>
     </main>
 
     <!-- Team Roster Modal -->
     <div id="team-modal" class="modal" style="display: none;">
-        <div class="modal-content glass-card" style="max-width: 800px; width: 90%; text-align: center; background: rgba(11, 18, 32, 0.95); border: 2px solid var(--accent-color); box-shadow: 0 0 50px rgba(212, 175, 55, 0.3);">
+        <div class="modal-content glass-card"
+            style="max-width: 800px; width: 90%; text-align: center; background: rgba(11, 18, 32, 0.95); border: 2px solid var(--accent-color); box-shadow: 0 0 50px rgba(212, 175, 55, 0.3);">
             <span class="close-modal">&times;</span>
-            <h2 id="modal-team-name" style="font-size: 3rem; color: var(--accent-color); margin-bottom: 0.5rem; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);">Rhy 1</h2>
-            <p id="modal-team-league" style="color: #f8fafc; font-size: 1.2rem; margin-bottom: 2rem; letter-spacing: 2px; text-transform: uppercase;"></p>
-            
+            <h2 id="modal-team-name"
+                style="font-size: 3rem; color: var(--accent-color); margin-bottom: 0.5rem; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);">
+                Rhy 1</h2>
+            <p id="modal-team-league"
+                style="color: #f8fafc; font-size: 1.2rem; margin-bottom: 2rem; letter-spacing: 2px; text-transform: uppercase;">
+            </p>
+
             <div id="roster-container" style="display: flex; flex-direction: column; gap: 1rem; perspective: 1000px;">
                 <!-- Roster items will be injected here -->
             </div>
@@ -268,8 +329,12 @@
                 </div>
             </div>
             <div class="footer-legal">
-                <p id="footer-copyright-line">&copy; <span id="current-year"></span> <span id="footer-club-name">Verein</span>.</p>
-                <p><a href="#" onclick="openLegalModal('impressum'); return false;">Impressum</a> | <a href="#" onclick="openLegalModal('datenschutz'); return false;">Datenschutz</a><span id="footer-bank-sep" style="display: none;"> | <a href="#" onclick="openLegalModal('bankverbindung'); return false;">Bankverbindung</a></span></p>
+                <p id="footer-copyright-line">&copy; <span id="current-year"></span> <span
+                        id="footer-club-name">Verein</span>.</p>
+                <p><a href="#" onclick="openLegalModal('impressum'); return false;">Impressum</a> | <a href="#"
+                        onclick="openLegalModal('datenschutz'); return false;">Datenschutz</a><span id="footer-bank-sep"
+                        style="display: none;"> | <a href="#"
+                            onclick="openLegalModal('bankverbindung'); return false;">Bankverbindung</a></span></p>
             </div>
         </div>
     </footer>
@@ -326,16 +391,21 @@
         <div class="modal-content glass-card maps-modal-content">
             <button class="close-btn" onclick="closeMapsModal()">&times;</button>
             <div style="margin-bottom: 1rem;">
-                <h2 id="maps-modal-title" style="margin: 0 0 0.4rem 0; color: var(--accent-color); font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <h2 id="maps-modal-title"
+                    style="margin: 0 0 0.4rem 0; color: var(--accent-color); font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
                     📍 Spielort auf Google Maps
                 </h2>
                 <div id="maps-modal-subtitle" style="font-size: 0.95rem; color: var(--text-secondary);"></div>
             </div>
             <div id="maps-modal-body" class="maps-modal-body"></div>
             <div class="maps-modal-footer">
-                <a id="maps-external-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <a id="maps-external-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary"
+                    style="display: inline-flex; align-items: center; gap: 0.5rem;">
                     <span>In Google Maps öffnen / Routenplaner</span>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
                 </a>
                 <button class="btn btn-secondary" onclick="closeMapsModal()">Schließen</button>
             </div>
@@ -343,7 +413,8 @@
     </div>
 
     <!-- App Logic -->
-    <script src="js/shared.js?v=36"></script>
-    <script src="js/app.js?v=40"></script>
+    <script src="js/shared.js?v=100"></script>
+    <script src="js/app.js?v=100"></script>
 </body>
+
 </html>

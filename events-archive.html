@@ -177,8 +177,14 @@
                     <div class="loading">Lade Termine...</div>
                 </div>
                 
-                <div id="events-timeline-container" class="events-timeline hidden">
-                    <!-- Timeline injected here -->
+                <!-- Auf schmalen Bildschirmen bekommt die Zeitleiste eine feste
+                     Mindestbreite und wird seitlich scrollbar (siehe style.css).
+                     Ohne den Wrapper muessten die Balken verzerrt werden, um
+                     ueberhaupt sichtbar zu bleiben. -->
+                <div class="events-timeline-scroll">
+                    <div id="events-timeline-container" class="events-timeline hidden">
+                        <!-- Timeline injected here -->
+                    </div>
                 </div>
                 <div id="events-archive-load-more" style="text-align: center; margin-top: 3rem;"></div>
             </div>

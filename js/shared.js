@@ -281,13 +281,59 @@ window.formatFlexDate = function (dateStr) {
 // Get a sortable date (for comparisons), with range start or TBD sorted properly
 window.parseDateSortable = function (dateStr) {
     if (!dateStr) return new Date('2099-12-31T00:00:00');
+    const range = window.parseDateRange(dateStr);
+    if (range.start) return range.start;
+    return new Date('2099-12-31T00:00:00');
+};
+
+// Returns { start: Date|null, end: Date|null, isRange: boolean }
+window.parseDateRange = function (dateStr) {
+    if (!dateStr) return { start: null, end: null, isRange: false };
     let s = String(dateStr).trim();
-    if (s.includes(' - ') || s.includes('–') || s.includes(' bis ')) {
-        s = s.split(/\s+[-–]\s+|\s+bis\s+/i)[0].trim();
+    
+    // Check if it's an ISO date first to avoid splitting it
+    if (/^\d{2,4}-\d{2}-\d{2}$/.test(s) || /^\d{2,4}-\d{2}$/.test(s)) {
+        const parsed = window.parseFlexDate(s);
+        return { start: parsed.date, end: null, isRange: false };
+    }
+    
+    let parts = [];
+    if (s.includes(' bis ')) {
+        parts = s.split(/\s+bis\s+/i);
+    } else if (s.includes('-') || s.includes('–')) {
+        parts = s.split(/\s*[-–]\s*/);
+    }
+    
+    if (parts.length >= 2) {
+        let startStr = parts[0].trim();
+        let endStr = parts[1].trim();
+        
+        const pEnd = window.parseFlexDate(endStr);
+        
+        let pStart;
+        const dayMatch = startStr.match(/^(\d{1,2})\.?$/);
+        if (dayMatch && pEnd.date) {
+            const day = parseInt(dayMatch[1], 10);
+            pStart = { date: new Date(pEnd.date.getFullYear(), pEnd.date.getMonth(), day, 0, 0, 0), type: 'full' };
+        } else {
+            const yearMatch = endStr.match(/\b(20\d{2})\b/);
+            if (yearMatch && !/\b(20\d{2})\b/.test(startStr)) {
+                // If it ends with dot (e.g. "11.08."), append without space
+                if (startStr.endsWith('.')) {
+                    startStr += yearMatch[1];
+                } else {
+                    startStr += ' ' + yearMatch[1];
+                }
+            }
+            pStart = window.parseFlexDate(startStr);
+        }
+        
+        if (pStart && pStart.date && pEnd && pEnd.date) {
+            return { start: pStart.date, end: pEnd.date, isRange: true };
+        }
     }
     const parsed = window.parseFlexDate(s);
-    if (!parsed.date) return new Date('2099-12-31T00:00:00');
-    return parsed.date;
+    return { start: parsed.date, end: null, isRange: false };
 };
 
 // Helper to get exact end of a period (day, month, year, or TBD future)

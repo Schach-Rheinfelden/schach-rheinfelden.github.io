@@ -2888,6 +2888,28 @@ body.light-theme .guestbook-card {
     width: 100%;
 }
 
+/* Seitwaerts-Scroll auf schmalen Bildschirmen.
+   Die Balkenbreite ist ein Prozentsatz des Containers. Auf 320px Breite ergibt
+   ein dreitaegiger Termin in einem Zeitraum von fuenf Monaten nur rund 8px -
+   nicht von einem eintaegigen Punkt zu unterscheiden. Die Balken dafuer optisch
+   zu verbreitern waere falsch, weil die Mindestbreite nur nach rechts waechst
+   und der Termin dann laenger erscheint, als er ist, und spaetere Termine
+   optisch ueberholt. Stattdessen bekommt die Zeitleiste eine feste
+   Mindestbreite und wird seitlich verschiebbar - die Verhaeltnisse bleiben
+   dadurch exakt wie auf dem Desktop. */
+.events-timeline-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+@media (max-width: 700px) {
+    .events-timeline {
+        min-width: 680px;
+    }
+}
+
 .timeline-line {
     position: absolute;
     top: 75%;
@@ -2986,7 +3008,11 @@ body.light-theme .timeline-line {
 .timeline-event-range {
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);
+    /* translateX(-50%), weil renderTimeline() die Mitte des Zeitraums als
+       left-Wert setzt statt der linken Kante. So wirkt eine erzwungene
+       Mindestbreite symmetrisch nach beiden Seiten und verschiebt den Termin
+       nicht nach hinten. */
+    transform: translate(-50%, -50%);
     height: 8px;
     min-width: 8px;
     border-radius: 4px;
@@ -2994,6 +3020,16 @@ body.light-theme .timeline-line {
     z-index: 9; /* Below nodes but above timeline line */
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* Mehrtaegige Termine brauchen eine etwas groessere Mindestbreite als Punkte,
+   damit sie als Balken erkennbar bleiben. Bewusst nur 12px: Die Mindestbreite
+   waechst ausschliesslich nach rechts und behauptet damit eine Dauer, die der
+   Termin nicht hat. Bei zu grossem Wert ueberholt ein kurzer Balken optisch
+   einen spaeteren Termin. Den eigentlichen Platz schafft der Seitwaerts-Scroll
+   weiter unten, nicht dieser Wert. */
+.timeline-event-range.is-range {
+    min-width: 12px;
 }
 
 .timeline-event-range:hover {

@@ -62,6 +62,7 @@ async function fetchDataCSV(url) {
 
 let globalEventsData = [];
 let currentCategory = 'Alle';
+let currentView = 'grid'; // 'grid' or 'timeline'
 let searchTerm = '';
 let dateFrom = '';
 let dateTo = '';
@@ -75,6 +76,36 @@ const EVENTS_PAGE_STEP = 12;
 window.loadMoreUpcomingEvents = function() {
     currentUpcomingLimit += EVENTS_PAGE_STEP;
     savedUpcomingLimit = currentUpcomingLimit;
+    renderEvents();
+};
+
+window.toggleView = function(view) {
+    if (view === currentView) return;
+    currentView = view;
+    
+    const gridBtn = document.getElementById('view-grid-btn');
+    const timeBtn = document.getElementById('view-timeline-btn');
+    
+    if (view === 'grid') {
+        if(gridBtn) {
+            gridBtn.classList.remove('btn-secondary');
+            gridBtn.classList.add('btn-primary');
+        }
+        if(timeBtn) {
+            timeBtn.classList.remove('btn-primary');
+            timeBtn.classList.add('btn-secondary');
+        }
+    } else {
+        if(timeBtn) {
+            timeBtn.classList.remove('btn-secondary');
+            timeBtn.classList.add('btn-primary');
+        }
+        if(gridBtn) {
+            gridBtn.classList.remove('btn-primary');
+            gridBtn.classList.add('btn-secondary');
+        }
+    }
+    
     renderEvents();
 };
 
@@ -97,6 +128,56 @@ window.buildShareUrl = function(type, id) {
     const url = new URL(window.location.href);
     url.searchParams.set(type + 'Id', id);
     return url.href;
+};
+
+// Global click listener to close timeline labels when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.timeline-event-range')) {
+        document.querySelectorAll('.timeline-event-range.show-label').forEach(node => {
+            node.classList.remove('show-label');
+        });
+    }
+});
+
+// Die Balken sind divs mit onclick und waeren ohne das hier per Tastatur nicht
+// erreichbar. Zusammen mit tabindex/role/aria-label aus renderTimeline() sind
+// sie damit anfokussierbar und mit Enter oder Leertaste ausloesbar.
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    const node = e.target && e.target.closest ? e.target.closest('.timeline-event-range') : null;
+    if (!node) return;
+    e.preventDefault(); // verhindert das Scrollen bei der Leertaste
+    node.click();
+});
+
+// Escape schliesst ein offenes Label, ohne dass man daneben klicken muss.
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.timeline-event-range.show-label').forEach(node => {
+        node.classList.remove('show-label');
+    });
+});
+
+window.toggleNodeLabel = function(nodeElementId, eventId, event) {
+    event.stopPropagation();
+    const node = document.getElementById(nodeElementId);
+    if (!node) return;
+    
+    // Auf dem PC (Maus) öffnet ein Klick direkt das Modal, da das Label schon beim Hover erscheint.
+    if (window.matchMedia('(hover: hover)').matches) {
+        openEventModal(eventId);
+        return;
+    }
+    
+    // Auf Mobilgeräten (Touch): Erstes Klicken zeigt Label, zweites Klicken öffnet Modal
+    if (node.classList.contains('show-label')) {
+        openEventModal(eventId);
+    } else {
+        document.querySelectorAll('.timeline-event-range.show-label').forEach(n => {
+            n.classList.remove('show-label');
+        });
+        node.classList.add('show-label');
+    }
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -175,7 +256,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const urlParams = new URLSearchParams(window.location.search);
         const eventParam = urlParams.get('eventId');
-        if (eventParam) setTimeout(() => window.openEventModal(parseInt(eventParam)), 500);
+        // Ohne parseInt: openEventModal vergleicht inzwischen typtolerant, und
+        // parseInt haette bei einer nicht numerischen ID NaN geliefert.
+        if (eventParam) setTimeout(() => window.openEventModal(eventParam), 500);
 
     } catch (error) {
         console.error('Fehler beim Laden der Termine:', error);
@@ -255,7 +338,12 @@ function generateICS(events, filename) {
 }
 
 window.openEventModal = function(id) {
-    const event = globalEventsData.find(e => e.id === id);
+    // Typtoleranter Vergleich: fetchDataCSV wandelt rein numerische IDs in
+    // Zahlen um, alle anderen bleiben Strings. Aufrufer liefern mal das eine,
+    // mal das andere (Zeitleiste als String, Kacheln als Zahl, Deep-Link aus
+    // der URL immer als String). Ein striktes === wuerde je nach Herkunft
+    // fehlschlagen, obwohl dieselbe ID gemeint ist.
+    const event = globalEventsData.find(e => String(e.id) === String(id));
     if (!event) return;
 
     const modalBody = document.getElementById('event-modal-body');
@@ -422,9 +510,23 @@ function renderEvents() {
         }
     }
 
+    const gridContainer = document.getElementById('events-archive-container');
+    const timelineContainer = document.getElementById('events-timeline-container');
+    
     if (filteredEvents.length === 0) {
-        container.innerHTML = '<p class="loading">Keine Termine gefunden.</p>';
+        if (gridContainer) gridContainer.innerHTML = '<p class="loading">Keine Termine gefunden.</p>';
+        if (timelineContainer) timelineContainer.innerHTML = '';
         return;
+    }
+    
+    if (currentView === 'timeline') {
+        if (gridContainer) gridContainer.classList.add('hidden');
+        if (timelineContainer) timelineContainer.classList.remove('hidden');
+        renderTimeline(filteredEvents);
+        return;
+    } else {
+        if (gridContainer) gridContainer.classList.remove('hidden');
+        if (timelineContainer) timelineContainer.classList.add('hidden');
     }
 
     const today = new Date();
@@ -547,4 +649,333 @@ window.togglePastEvents = function() {
     pastEventsExpanded = !pastEventsExpanded;
     renderEvents();
 };
+
+function renderTimeline(events) {
+    const container = document.getElementById('events-timeline-container');
+    if (!container) return;
+    
+    // 1. Valid events that have a parseable date
+    const validEvents = events.filter(e => {
+        const parsed = window.parseFlexDate(e.date);
+        return parsed.date && parsed.type !== 'tbd';
+    });
+    
+    if (validEvents.length === 0) {
+        // Die Hoehe stammt sonst noch vom vorherigen Rendering und die Meldung
+        // stuende in einem mehrere hundert Pixel hohen leeren Kasten.
+        container.style.minHeight = '';
+        container.innerHTML = '<p class="loading" style="text-align: center;">Für die gewählten Termine kann keine Zeitleiste generiert werden (fehlende oder ungenaue Daten).</p>';
+        return;
+    }
+    
+    // Sort chronologically
+    validEvents.sort((a, b) => window.parseDateSortable(a.date) - window.parseDateSortable(b.date));
+    
+    // 2. Determine bounds (Start / End)
+    let minDate, maxDate;
+    if (dateFrom && dateTo) {
+        minDate = new Date(dateFrom).getTime();
+        maxDate = new Date(dateTo).getTime();
+    } else {
+        minDate = window.parseDateSortable(validEvents[0].date).getTime();
+        maxDate = window.parseDateSortable(validEvents[validEvents.length - 1].date).getTime();
+    }
+    
+    // If only one event or range is 0, pad it
+    if (maxDate <= minDate) {
+        minDate -= 86400000 * 7; // -1 week
+        maxDate += 86400000 * 7; // +1 week
+    } else {
+        // Add 5% padding on both sides
+        const range = maxDate - minDate;
+        minDate -= range * 0.05;
+        maxDate += range * 0.05;
+    }
+    
+    const totalDuration = maxDate - minDate;
+    
+    // 3. Collect all valid timeline items (points and ranges)
+    const timelineItems = [];
+    
+    validEvents.forEach(evt => {
+        const time = window.parseDateSortable(evt.date).getTime();
+        
+        const rangeInfo = window.parseDateRange ? window.parseDateRange(evt.date) : { isRange: false };
+        let isRange = rangeInfo.isRange;
+        let endTime = rangeInfo.end ? rangeInfo.end.getTime() : null;
+        
+        if (!isRange && evt.endDate && evt.endDate.trim() !== '') {
+            const endParsed = window.parseFlexDate(evt.endDate);
+            if (endParsed.date && endParsed.date.getTime() > time) {
+                isRange = true;
+                endTime = endParsed.date.getTime();
+            }
+        }
+        
+        // Ein als Zeitraum erkannter Termin ohne verwertbares Enddatum wird wie
+        // ein Punkt behandelt. Ohne diese Korrektur waere endTime null, und
+        // "null < minDate" ergaebe "0 < minDate" - der Termin verschwaende
+        // kommentarlos aus der Zeitleiste.
+        if (isRange && endTime === null) {
+            isRange = false;
+        }
+
+        // If the event starts after maxDate or ends before minDate, skip
+        if (time > maxDate || (isRange && endTime < minDate) || (!isRange && time < minDate)) {
+            return;
+        }
+        
+        let startPercent = ((time - minDate) / totalDuration) * 100;
+        let endPercent = startPercent;
+        
+        if (isRange && endTime) {
+            // Add 1 day to endTime to make the range inclusive of the last day
+            let adjustedEndTime = endTime + (86400000 * 0.99); // almost 1 day
+            endPercent = ((adjustedEndTime - minDate) / totalDuration) * 100;
+        }
+        
+        // Clamp bounds
+        if (startPercent < 0) startPercent = 0;
+        if (endPercent > 100) endPercent = 100;
+        
+        let widthPercent = endPercent - startPercent;
+        
+        // For points, we give them a small fixed virtual width for collision detection (e.g. 0.8%)
+        // Ranges will be naturally wider due to the +1 day adjustment above
+        const isPoint = !isRange || widthPercent <= 0;
+        const virtualWidth = isPoint ? 0.8 : widthPercent;
+        
+        timelineItems.push({
+            evt,
+            isRange: !isPoint,
+            startPercent,
+            endPercent: startPercent + virtualWidth, // for collision
+            widthPercent: virtualWidth // for styling
+        });
+    });
+    
+    // 4. Color Swimlanes & Pyramid Sorting
+    
+    // Determine color for each item
+    timelineItems.forEach(item => {
+        item.color = (window.parseEventColor && window.parseEventColor(item.evt.color || item.evt.akzentfarbe || item.evt.accentColor)) || '#64748b';
+    });
+    
+    // Sort items for Pyramid packing:
+    // 1. Duration (longest first)
+    // 2. Start Date (earliest first)
+    timelineItems.sort((a, b) => {
+        const durA = a.endPercent - a.startPercent;
+        const durB = b.endPercent - b.startPercent;
+        if (Math.abs(durA - durB) > 0.01) return durB - durA; // Longest first
+        return a.startPercent - b.startPercent;
+    });
+    
+    // Group by color
+    const colorGroups = {};
+    timelineItems.forEach(item => {
+        if (!colorGroups[item.color]) colorGroups[item.color] = [];
+        colorGroups[item.color].push(item);
+    });
+    
+    // Determine the maximum duration within each color group
+    const colorMaxDurations = {};
+    Object.keys(colorGroups).forEach(color => {
+        let maxDur = 0;
+        colorGroups[color].forEach(item => {
+            const dur = item.endPercent - item.startPercent;
+            if (dur > maxDur) maxDur = dur;
+        });
+        colorMaxDurations[color] = maxDur;
+    });
+    
+    // Sort color swimlanes dynamically: 
+    // The color with the absolute longest bar goes to the very bottom.
+    const colorOrder = Object.keys(colorGroups).sort((a, b) => {
+        const diff = colorMaxDurations[b] - colorMaxDurations[a];
+        if (Math.abs(diff) > 0.01) return diff;
+        return a.localeCompare(b);
+    });
+    
+    let currentTrackOffset = 0;
+    
+    colorOrder.forEach(color => {
+        const items = colorGroups[color];
+        const tracks = []; // array of endPercents for this color
+        
+        items.forEach(item => {
+            let assignedLocalTrack = -1;
+            // No padding so adjacent events (like end 14th, start 15th) can share the same track
+            const padding = 0;
+            
+            for (let i = 0; i < tracks.length; i++) {
+                if (tracks[i] + padding <= item.startPercent) {
+                    assignedLocalTrack = i;
+                    break;
+                }
+            }
+            
+            if (assignedLocalTrack === -1) {
+                assignedLocalTrack = tracks.length;
+                tracks.push(item.endPercent);
+            } else {
+                tracks[assignedLocalTrack] = Math.max(tracks[assignedLocalTrack], item.endPercent);
+            }
+            
+            item.track = currentTrackOffset + assignedLocalTrack;
+        });
+        
+        // No extra gap between color swimlanes to keep it compact
+        currentTrackOffset += tracks.length;
+    });
+
+    // 4. Render HTML
+
+    // Geometrie der Zeitleiste. Muss vor dem Rendern stehen, da sowohl die
+    // Balkenposition als auch die Containerhoehe darauf aufbauen.
+    const TRACK_HEIGHT = 12;   // vertikaler Abstand zweier Spuren in px
+    const LINE_POSITION = 0.75; // Lage der Zeitachse als Anteil der Containerhoehe
+
+    let html = '<div class="timeline-line"></div>';
+    
+    // Zeitmarker erzeugen. Die Schrittweite richtet sich nach der Gesamtdauer:
+    // Bei jedem Monat einen Marker zu setzen funktioniert nur bei kurzen
+    // Zeitraeumen. Ein Label ist rund 55px breit - ueber etwa 18 Monaten
+    // ueberlappen sie zu einem unlesbaren Band. Deshalb wird ab dort auf
+    // Quartale und ab 5 Jahren auf Jahre ausgeduennt.
+    const totalMonths = Math.max(1, Math.round(totalDuration / (86400000 * 30.44)));
+    let monthStep = 1;
+    if (totalMonths > 60) monthStep = 12;
+    else if (totalMonths > 36) monthStep = 6;
+    else if (totalMonths > 18) monthStep = 3;
+
+    const startDate = new Date(minDate);
+    let currentMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    if (currentMonth.getTime() < minDate) {
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+    }
+
+    // Bei Quartals- und Jahresschritten auf ein glattes Raster einrasten,
+    // damit die Marker auf Jan/Apr/Jul/Okt bzw. auf den Jahreswechsel fallen
+    // statt auf einen zufaelligen Startmonat.
+    if (monthStep > 1) {
+        while (currentMonth.getMonth() % monthStep !== 0) {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+    }
+
+    while (currentMonth.getTime() <= maxDate) {
+        const time = currentMonth.getTime();
+        const percent = ((time - minDate) / totalDuration) * 100;
+        // Bei Jahresschritten reicht die Jahreszahl allein.
+        const monthName = monthStep >= 12
+            ? String(currentMonth.getFullYear())
+            : currentMonth.toLocaleString('de-CH', { month: 'short', year: 'numeric' });
+
+        html += `
+            <div class="timeline-month-marker" style="left: ${percent}%;">
+                <div class="timeline-month-tick"></div>
+                <div class="timeline-month-label">${monthName}</div>
+            </div>
+        `;
+
+        currentMonth.setMonth(currentMonth.getMonth() + monthStep);
+    }
+
+    // "Heute"-Marker. Wichtigster Orientierungspunkt einer Zeitleiste, die
+    // Vergangenes und Kommendes zeigt - man sucht als Erstes danach.
+    // Wird nur gezeichnet, wenn der heutige Tag im dargestellten Zeitraum liegt.
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const todayTime = todayDate.getTime();
+
+    if (todayTime >= minDate && todayTime <= maxDate) {
+        const todayPercent = ((todayTime - minDate) / totalDuration) * 100;
+        // Nahe am Rand wuerde die zentrierte Beschriftung aus dem Container
+        // ragen, deshalb dort auf die Innenseite ausrichten.
+        let todayCls = '';
+        if (todayPercent < 5) todayCls = 'align-right';
+        else if (todayPercent > 95) todayCls = 'align-left';
+
+        html += `
+            <div class="timeline-today-marker ${todayCls}" style="left: ${todayPercent}%;">
+                <div class="timeline-today-label">Heute</div>
+                <div class="timeline-today-line"></div>
+            </div>
+        `;
+    }
+    
+    // Render timeline items (points and ranges as bars)
+    // Attributwerte absichern: Titel und IDs stammen aus der CSV und koennen
+    // Anfuehrungszeichen enthalten, die sonst das umgebende Attribut sprengen.
+    const escapeAttr = (val) => String(val == null ? '' : val)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // Fuer Werte, die in einem onclick-Attribut als JS-String landen, reicht
+    // escapeAttr NICHT: Der Browser dekodiert &#39; zurueck zu einem echten
+    // Apostroph, und genau das ist der Begrenzer des JS-Strings. Eine ID wie
+    // "O'Brien Cup" wuerde den String aufbrechen. Deshalb erst fuer JavaScript
+    // maskieren (Backslash), danach fuer HTML - in dieser Reihenfolge bleibt
+    // aus dem Apostroph ein \' und der String haelt.
+    const escapeJsInAttr = (val) => escapeAttr(
+        String(val == null ? '' : val)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+    );
+
+    timelineItems.forEach((item, index) => {
+        const evt = item.evt;
+        const dateStr = window.formatEventDateBox ? window.formatEventDateBox(evt).replace(/<[^>]+>/g, ' ') : evt.date;
+        // Farbe wurde bereits fuer die Swimlane-Gruppierung ermittelt.
+        const parsedColor = item.color;
+        const nodeId = `timeline-item-${index}`;
+        // Die ID gehoert in Anfuehrungszeichen: Ohne sie wuerde eine nicht
+        // numerische ID wie "sommerfest" als Variablenname interpretiert und
+        // beim Klick einen ReferenceError ausloesen.
+        const onClickFn = `window.toggleNodeLabel(&#39;${nodeId}&#39;, &#39;${escapeJsInAttr(evt.id)}&#39;, event)`;
+
+        // Calculate vertical offset based on track
+        // All events stack UPWARDS.
+        // Timeline line is 4px (2px half). Gap = 4px. Bar = 8px (4px half).
+        // Center of track 0 is 10px above center of line.
+        let offsetPx = -10 - (item.track * TRACK_HEIGHT);
+
+        // Label-Ausrichtung in drei Zonen statt der bisherigen Haelften-Logik.
+        // Nur Balken nahe am Rand werden verankert, alles dazwischen bleibt
+        // zentriert - sonst kippt schon ein Termin bei 45% unnoetig zur Seite.
+        const centerPercent = item.startPercent + item.widthPercent / 2;
+        let positionCls = '';
+        if (centerPercent < 15) positionCls = 'align-right';
+        else if (centerPercent > 85) positionCls = 'align-left';
+
+        const ariaLabel = escapeAttr(`${evt.title}, ${String(dateStr).trim()}`);
+
+        html += `
+            <div class="timeline-event-range ${positionCls}" id="${nodeId}" style="left: ${item.startPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
+                <div class="timeline-label">
+                    <div class="timeline-date">${dateStr}</div>
+                    <div class="timeline-title">${evt.title}</div>
+                    <div class="timeline-tooltip-hint">Klick für Details</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Hoehe aus dem tatsaechlichen Platzbedarf ableiten statt aus einer festen
+    // Formel. Die Balken stapeln nach oben ab der Linie bei 75% der Hoehe -
+    // pro Spur waechst der verfuegbare Platz also nur um 75% des Zuwachses.
+    // Die fruehere Formel (150 + 12 * Spuren) gab pro Spur 9px Platz bei 12px
+    // Bedarf und lief ab etwa 37 Spuren oben aus dem Container heraus.
+    // Oberkante des obersten Balkens: Grundabstand 10px + Stapel + halbe Balkenhoehe.
+    const stackHeight = 10 + (currentTrackOffset * TRACK_HEIGHT) + 6;
+    const requiredHeight = Math.max(250, Math.ceil(stackHeight / LINE_POSITION) + 40);
+    container.style.minHeight = requiredHeight + 'px';
+    
+    container.innerHTML = html;
+}
+
 })();

@@ -241,6 +241,33 @@ id;date;endDate;time;endTime;category;color;title;author;location;locationUrl;im
 
 > Termine ab heute erscheinen unter **Anstehende Termine**; vergangene lassen sich im Archiv einsehen. Jeder Termin kann einzeln oder gesammelt als **Kalenderdatei (.ics)** heruntergeladen werden.
 
+### 🗓️ Ansichten im Terminarchiv
+
+Das Terminarchiv (`events-archive.html`) bietet zwei Darstellungen, umschaltbar über die beiden Knöpfe rechts neben den Filtern:
+
+| Ansicht | Eignung |
+| :--- | :--- |
+| **Kachelansicht** (Standard) | Einzelne Termine im Detail lesen, mit Bild und Beschreibung. |
+| **Zeitleistenansicht** | Überblick über einen längeren Zeitraum – wann sich Termine häufen, überschneiden oder Lücken lassen. |
+
+Beide Ansichten zeigen dieselbe Auswahl: Kategorie-Filter, Suche und Datumsfilter wirken auf beide gleichermassen.
+
+#### Wie die Zeitleiste liest
+
+* **Balkenlänge = Dauer.** Ein eintägiger Termin erscheint als kurzer Punkt, ein mehrtägiges Turnier (Spalte `endDate`) als durchgehender Balken über den gesamten Zeitraum.
+* **Farbe = Spalte `color`.** Termine gleicher Farbe werden in einer gemeinsamen Spur gebündelt. So bleiben zusammengehörige Reihen – etwa alle SMM-Runden – auf einer Linie beieinander. Termine ohne eigene Farbe erhalten ein neutrales Grau.
+* **Stapelung.** Überschneiden sich Termine zeitlich, rücken sie übereinander statt sich zu verdecken. Die längsten Balken liegen unten, kurze weiter oben.
+* **Senkrechte Linie „Heute".** Markiert den heutigen Tag. Sie erscheint nur, wenn das aktuelle Datum im dargestellten Zeitraum liegt – bei einem reinen Vergangenheitsfilter also nicht.
+* **Beschriftung der Zeitachse.** Die Skala passt sich der Spannweite an: bis eineinhalb Jahre einzelne Monate, darüber Quartale, ab fünf Jahren nur noch Jahreszahlen. So bleiben die Beschriftungen auch bei einem grossen Archiv lesbar.
+
+#### Bedienung
+
+* **Maus:** Fahren über einen Balken zeigt Datum und Titel, ein Klick öffnet das Detailfenster.
+* **Touch:** Der erste Tipper zeigt die Beschriftung, der zweite öffnet das Detailfenster.
+* **Tastatur:** Mit `Tab` von Termin zu Termin, `Enter` oder `Leertaste` öffnet das Detailfenster, `Esc` schliesst eine offene Beschriftung.
+
+> **Termine ohne festes Datum** (`?` oder `TBD` in der Spalte `date`) lassen sich nicht auf einer Zeitachse verorten und erscheinen deshalb nur in der Kachelansicht. Enthält die Auswahl ausschliesslich solche Termine, weist die Zeitleiste darauf hin.
+
 ---
 
 ## 8. Turniere (`tournaments.csv`)

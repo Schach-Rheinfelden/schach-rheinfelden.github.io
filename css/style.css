@@ -171,6 +171,11 @@ input:checked+.slider:before {
     box-sizing: border-box;
 }
 
+/* Utilities */
+.hidden {
+    display: none !important;
+}
+
 html {
     scroll-behavior: smooth;
 }
@@ -2869,5 +2874,252 @@ body.light-theme .guestbook-card {
         background: transparent;
         border: none;
         box-shadow: none;
+    }
+}
+
+/* ============================================================
+   Timeline View (Zeitleiste für Termine)
+   ============================================================ */
+.events-timeline {
+    position: relative;
+    padding: 4rem 0;
+    margin: 2rem 0;
+    min-height: 200px;
+    width: 100%;
+}
+
+.timeline-line {
+    position: absolute;
+    top: 75%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--glass-border);
+    border-radius: 2px;
+    transform: translateY(-50%);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+body.light-theme .timeline-line {
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+
+
+.timeline-month-marker {
+    position: absolute;
+    top: 75%;
+    transform: translate(-50%, 0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.timeline-month-tick {
+    width: 2px;
+    height: 16px;
+    background: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.timeline-month-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    font-weight: 600;
+}
+
+/* "Heute"-Marker: senkrechte Linie vom oberen Rand bis auf die Zeitachse
+   (die bei 75% der Containerhoehe liegt, daher bottom: 25%).
+   z-index 6 haelt ihn ueber der Achse und den Monatsmarkern, aber unter den
+   Terminbalken (z-index 9) - er soll orientieren, nichts verdecken. */
+.timeline-today-marker {
+    position: absolute;
+    top: 0;
+    bottom: 25%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.timeline-today-line {
+    flex: 1;
+    width: 2px;
+    /* Oben ausgeblendet, damit die Linie nicht hart abgeschnitten wirkt. */
+    background: linear-gradient(to bottom, transparent, var(--accent-color) 25%, var(--accent-color));
+    opacity: 0.65;
+}
+
+.timeline-today-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #000;
+    background: var(--accent-color);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+/* Randnah: Beschriftung nach innen ziehen, damit sie im Container bleibt.
+   Die Linie selbst bleibt dank align-items an ihrer Position. */
+.timeline-today-marker.align-right .timeline-today-label {
+    align-self: flex-start;
+    margin-left: -1px;
+}
+
+.timeline-today-marker.align-left .timeline-today-label {
+    align-self: flex-end;
+    margin-right: -1px;
+}
+
+.timeline-event-range {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    min-width: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 9; /* Below nodes but above timeline line */
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.timeline-event-range:hover {
+    height: 12px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.5);
+    z-index: 15;
+}
+
+body.light-theme .timeline-event-range {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+body.light-theme .timeline-event-range:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.timeline-event-range.show-label {
+    z-index: 1000 !important;
+}
+
+.timeline-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    white-space: nowrap;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 50;
+    
+    background: var(--glass-bg);
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+body.light-theme .timeline-label {
+    background: rgba(255,255,255,0.95);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.timeline-event-range .timeline-label {
+    top: auto;
+    bottom: calc(100% + 15px);
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) translateY(10px) !important;
+}
+
+/* Tastaturfokus sichtbar machen und dasselbe Label wie beim Hover zeigen. */
+.timeline-event-range:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 4px;
+    height: 12px;
+    z-index: 20;
+}
+
+.timeline-event-range:hover .timeline-label,
+.timeline-event-range:focus-visible .timeline-label,
+.timeline-event-range.show-label .timeline-label {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0) !important;
+}
+
+/* Randnahe Balken: Ein zentriertes Label ragt am Anfang und am Ende der
+   Zeitleiste zur Haelfte aus dem Container. Diese beiden Klassen vergibt
+   renderTimeline() fuer Balken mit Mittelpunkt unter 15% bzw. ueber 85%.
+   Die Deklarationen brauchen !important, weil die Basisregel oben die
+   Zentrierung ebenfalls per !important erzwingt. */
+.timeline-event-range.align-right .timeline-label {
+    left: 0 !important;
+    right: auto !important;
+    text-align: left;
+    transform: translateX(0) translateY(10px) !important;
+}
+
+.timeline-event-range.align-right:hover .timeline-label,
+.timeline-event-range.align-right:focus-visible .timeline-label,
+.timeline-event-range.align-right.show-label .timeline-label {
+    transform: translateX(0) translateY(0) !important;
+}
+
+.timeline-event-range.align-left .timeline-label {
+    left: auto !important;
+    right: 0 !important;
+    text-align: right;
+    transform: translateX(0) translateY(10px) !important;
+}
+
+.timeline-event-range.align-left:hover .timeline-label,
+.timeline-event-range.align-left:focus-visible .timeline-label,
+.timeline-event-range.align-left.show-label .timeline-label {
+    transform: translateX(0) translateY(0) !important;
+}
+
+.timeline-date {
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.timeline-title {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.timeline-tooltip-hint {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+/* Mobile Fallback */
+@media (max-width: 768px) {
+    .hide-mobile {
+        display: none !important;
     }
 }

@@ -513,12 +513,15 @@ function renderEvents() {
     const gridContainer = document.getElementById('events-archive-container');
     const timelineContainer = document.getElementById('events-timeline-container');
     
+    const legendContainer = document.getElementById('events-timeline-legend');
+
     if (filteredEvents.length === 0) {
         if (gridContainer) gridContainer.innerHTML = '<p class="loading">Keine Termine gefunden.</p>';
         if (timelineContainer) timelineContainer.innerHTML = '';
+        if (legendContainer) legendContainer.classList.add('hidden');
         return;
     }
-    
+
     if (currentView === 'timeline') {
         if (gridContainer) gridContainer.classList.add('hidden');
         if (timelineContainer) timelineContainer.classList.remove('hidden');
@@ -527,6 +530,9 @@ function renderEvents() {
     } else {
         if (gridContainer) gridContainer.classList.remove('hidden');
         if (timelineContainer) timelineContainer.classList.add('hidden');
+        // Die Legende gehoert zur Zeitachse - in der Kachelansicht hat sie
+        // nichts zu erklaeren.
+        if (legendContainer) legendContainer.classList.add('hidden');
     }
 
     const today = new Date();
@@ -649,6 +655,24 @@ window.togglePastEvents = function() {
     pastEventsExpanded = !pastEventsExpanded;
     renderEvents();
 };
+
+/**
+ * Attributwerte absichern: Titel, IDs und Farben stammen aus der CSV und
+ * koennen Anfuehrungszeichen enthalten, die sonst das umgebende Attribut
+ * sprengen.
+ *
+ * Steht bewusst AUSSERHALB von renderTimeline: Die Legende ist eine eigene
+ * Funktion und braucht dieselbe Absicherung. Als lokale Konstante waere sie
+ * dort nicht sichtbar und der erste Klick liefe in einen ReferenceError.
+ */
+function escapeAttr(val) {
+    return String(val == null ? '' : val)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 
 function renderTimeline(events) {
     const container = document.getElementById('events-timeline-container');
@@ -784,11 +808,22 @@ function renderTimeline(events) {
         return a.startPercent - b.startPercent;
     });
     
-    // Group by color
+    // Nach Farbe gruppieren.
+    //
+    // Gruppiert wird ueber einen NORMIERTEN Schluessel, nicht ueber die
+    // Schreibweise: "#22C55E" und "#22c55e" sind dieselbe Farbe, wuerden als
+    // Text aber zwei Gruppen bilden - der Stapel bekaeme ohne erkennbaren
+    // Grund eine zusaetzliche Spur. Gezeichnet wird weiterhin mit dem
+    // Originalwert, nur die Zuordnung nutzt den Schluessel.
+    const farbSchluessel = (c) => String(c || '').trim().toLowerCase().replace(/\s+/g, '');
+
     const colorGroups = {};
+    const farbAnzeige = {};   // Schluessel -> Farbe, wie sie gezeichnet wird
     timelineItems.forEach(item => {
-        if (!colorGroups[item.color]) colorGroups[item.color] = [];
-        colorGroups[item.color].push(item);
+        const key = farbSchluessel(item.color);
+        item.colorKey = key;
+        if (!colorGroups[key]) { colorGroups[key] = []; farbAnzeige[key] = item.color; }
+        colorGroups[key].push(item);
     });
     
     // Determine the maximum duration within each color group
@@ -863,16 +898,70 @@ function renderTimeline(events) {
 
     let html = '<div class="timeline-line"></div>';
     
-    // Zeitmarker erzeugen. Die Schrittweite richtet sich nach der Gesamtdauer:
-    // Bei jedem Monat einen Marker zu setzen funktioniert nur bei kurzen
-    // Zeitraeumen. Ein Label ist rund 55px breit - ueber etwa 18 Monaten
-    // ueberlappen sie zu einem unlesbaren Band. Deshalb wird ab dort auf
-    // Quartale und ab 5 Jahren auf Jahre ausgeduennt.
+    // Zeitmarker erzeugen.
+    //
+    // Die Schrittweite darf NICHT allein aus der Zahl der Monate folgen. Was
+    // zaehlt, ist der Platz PRO MARKER - und der haengt an der Breite des
+    // Containers. Dieselben zwei Jahre sind auf einem 1400px breiten Monitor
+    // bequem lesbar und auf 680px Handybreite ein unleserliches Band.
+    //
+    // Deshalb in zwei Stufen:
+    //   1. Schrittweite so waehlen, dass ueberhaupt Platz bleibt
+    //   2. Reicht es fuer waagrechte Schrift nicht, wird gekippt statt
+    //      weiter auszuduennen - lieber schraege Beschriftung als gar keine
+    const breite = Math.max(320, container.clientWidth || 1100);
     const totalMonths = Math.max(1, Math.round(totalDuration / (86400000 * 30.44)));
-    let monthStep = 1;
-    if (totalMonths > 60) monthStep = 12;
-    else if (totalMonths > 36) monthStep = 6;
-    else if (totalMonths > 18) monthStep = 3;
+
+    // Geschaetzte Textbreite: "SEPT. 2026" bei 0.7rem in Grossbuchstaben mit
+    // Sperrung sind rund 62px, eine reine Jahreszahl rund 38px.
+    const LABEL_MONAT = 62, LABEL_JAHR = 38;
+    const PLATZ_MIN = 34;    // darunter wird auch gekippte Schrift zum Band
+    const MARKER_MIN = 4;    // weniger Marker geben keine Orientierung mehr
+
+    // Nur uebliche Schrittweiten: Monat, Quartal, Halbjahr, Jahr, 2 / 5 / 10
+    // Jahre. "Alle zwei Monate" waere rechnerisch passend, liest sich aber
+    // willkuerlich - Jan, Mär, Mai ergibt kein vertrautes Raster.
+    const kandidaten = [1, 3, 6, 12, 24, 60, 120];
+    const markerFuer = (step) => Math.max(1, Math.floor(totalMonths / step));
+    const labelFuer  = (step) => (step >= 12 ? LABEL_JAHR : LABEL_MONAT);
+
+    let monthStep = 0;
+    let labelDrehung = 0;
+
+    // DURCHGANG 1 - waagrecht hat Vorrang.
+    // Der feinste Schritt, bei dem die Beschriftung waagrecht passt UND noch
+    // genug Marker uebrig bleiben. Ohne die Bedingung MARKER_MIN wuerde ein
+    // schmaler Container so lange vergroebern, bis nur noch zwei Jahreszahlen
+    // dastehen - technisch lesbar, als Orientierung wertlos.
+    for (let i = 0; i < kandidaten.length; i++) {
+        const step = kandidaten[i];
+        const anzahl = markerFuer(step);
+        if (anzahl < MARKER_MIN) continue;
+        if (breite / anzahl >= labelFuer(step) + 8) { monthStep = step; break; }
+    }
+
+    // DURCHGANG 2 - kippen statt weiter ausduennen.
+    // Kein Schritt schafft waagrechte Schrift mit genug Markern. Statt die
+    // Zeitachse auszuduennen, bis kaum noch Marker uebrig sind, wird der
+    // feinste noch vertretbare Schritt genommen und die Schrift gekippt.
+    if (!monthStep) {
+        for (let i = 0; i < kandidaten.length; i++) {
+            if (breite / markerFuer(kandidaten[i]) >= PLATZ_MIN) { monthStep = kandidaten[i]; break; }
+        }
+        if (!monthStep) monthStep = kandidaten[kandidaten.length - 1];
+
+        const platz = breite / markerFuer(monthStep);
+        const lb = labelFuer(monthStep);
+        // Bei 45 Grad braucht ein Label nur noch cos(45°) ≈ 0.71 seiner Breite,
+        // senkrecht nur noch seine Zeilenhoehe.
+        labelDrehung = (platz >= lb * 0.71 + 6) ? 45 : 90;
+    }
+
+    const labelBreite = labelFuer(monthStep);
+
+    container.classList.remove('labels-rot45', 'labels-rot90');
+    if (labelDrehung === 45) container.classList.add('labels-rot45');
+    if (labelDrehung === 90) container.classList.add('labels-rot90');
 
     const startDate = new Date(minDate);
     let currentMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
@@ -880,12 +969,20 @@ function renderTimeline(events) {
         currentMonth.setMonth(currentMonth.getMonth() + 1);
     }
 
-    // Bei Quartals- und Jahresschritten auf ein glattes Raster einrasten,
-    // damit die Marker auf Jan/Apr/Jul/Okt bzw. auf den Jahreswechsel fallen
-    // statt auf einen zufaelligen Startmonat.
+    // Auf ein glattes Raster einrasten, damit die Marker auf Jan/Apr/Jul/Okt
+    // bzw. auf den Jahreswechsel fallen statt auf einen zufaelligen Startmonat.
     if (monthStep > 1) {
-        while (currentMonth.getMonth() % monthStep !== 0) {
+        const monatsRaster = Math.min(monthStep, 12);
+        while (currentMonth.getMonth() % monatsRaster !== 0) {
             currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        // Bei Mehrjahresschritten zusaetzlich auf ein glattes Jahr einrasten:
+        // 2020, 2025, 2030 liest sich als Raster, 2023, 2028, 2033 nicht.
+        if (monthStep >= 24) {
+            const jahresRaster = monthStep / 12;
+            while (currentMonth.getFullYear() % jahresRaster !== 0) {
+                currentMonth.setFullYear(currentMonth.getFullYear() + 1);
+            }
         }
     }
 
@@ -931,15 +1028,6 @@ function renderTimeline(events) {
     }
     
     // Render timeline items (points and ranges as bars)
-    // Attributwerte absichern: Titel und IDs stammen aus der CSV und koennen
-    // Anfuehrungszeichen enthalten, die sonst das umgebende Attribut sprengen.
-    const escapeAttr = (val) => String(val == null ? '' : val)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
     // Fuer Werte, die in einem onclick-Attribut als JS-String landen, reicht
     // escapeAttr NICHT: Der Browser dekodiert &#39; zurueck zu einem echten
     // Apostroph, und genau das ist der Begrenzer des JS-Strings. Eine ID wie
@@ -994,7 +1082,7 @@ function renderTimeline(events) {
         // verteilt sich die Aufweitung gleichmaessig auf beide Seiten, der
         // Mittelpunkt bleibt zeitlich korrekt und die Reihenfolge stimmt.
         html += `
-            <div class="timeline-event-range ${shapeCls} ${positionCls}" id="${nodeId}" style="left: ${centerPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
+            <div class="timeline-event-range ${shapeCls} ${positionCls}" id="${nodeId}" data-farbe="${escapeAttr(item.colorKey)}" data-event-id="${escapeAttr(evt.id)}" style="left: ${centerPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
                 <div class="timeline-label">
                     <div class="timeline-date">${dateStr}</div>
                     <div class="timeline-title">${evt.title}</div>
@@ -1011,10 +1099,197 @@ function renderTimeline(events) {
     // Bedarf und lief ab etwa 37 Spuren oben aus dem Container heraus.
     // Oberkante des obersten Balkens: Grundabstand 10px + Stapel + halbe Balkenhoehe.
     const stackHeight = 10 + (currentTrackOffset * TRACK_HEIGHT) + 6;
-    const requiredHeight = Math.max(250, Math.ceil(stackHeight / LINE_POSITION) + 40);
+
+    // Gekippte Beschriftungen ragen weiter nach unten als waagrechte und
+    // wuerden sonst unten abgeschnitten. Bei 45 Grad braucht ein 62px breites
+    // Label rund 44px Hoehe, senkrecht seine volle Breite.
+    const labelPlatz = labelDrehung === 90 ? labelBreite + 14
+                     : labelDrehung === 45 ? Math.round(labelBreite * 0.71) + 14
+                     : 0;
+
+    const requiredHeight = Math.max(250, Math.ceil(stackHeight / LINE_POSITION) + 40 + labelPlatz);
     container.style.minHeight = requiredHeight + 'px';
-    
+
     container.innerHTML = html;
+
+    renderTimelineLegende_(colorOrder, colorGroups, farbAnzeige);
+}
+
+/* ===========================================================================
+   Legende
+   ===========================================================================
+   Bewusst KEINE feste Zuordnung "Rot bedeutet X". Die Farben sind frei
+   vergeben und aendern sich - eine feste Legende wuerde eine Bedeutung
+   behaupten, die nach der naechsten Aenderung nicht mehr stimmt.
+
+   Stattdessen wird sie aus den GERADE SICHTBAREN Terminen gebaut: Sie zeigt,
+   welche Kategorien eine Farbe im Moment versammelt. Aendert jemand eine
+   Farbe, aendert sich die Legende beim naechsten Laden von selbst mit.
+
+   Ein Klick hebt alle Termine dieser Farbe hervor und listet sie auf - so
+   sieht man eine Reihe auf einen Blick, ohne jeden Balken einzeln anzufahren.
+   =========================================================================== */
+
+/** Der Container fuer die Legende, bei Bedarf angelegt. */
+function getLegendeContainer_() {
+  let legende = document.getElementById('events-timeline-legend');
+  if (legende) return legende;
+
+  const container = document.getElementById('events-timeline-container');
+  if (!container) return null;
+  // Ausserhalb des seitlich scrollbaren Bereichs, damit die Legende auf dem
+  // Handy stehen bleibt, waehrend man die Zeitachse verschiebt.
+  const bezug = container.closest('.events-timeline-scroll') || container;
+
+  legende = document.createElement('div');
+  legende.id = 'events-timeline-legend';
+  legende.className = 'timeline-legend';
+  bezug.parentNode.insertBefore(legende, bezug.nextSibling);
+  return legende;
+}
+
+function renderTimelineLegende_(colorOrder, colorGroups, farbAnzeige) {
+  const legende = getLegendeContainer_();
+  if (!legende) return;
+
+  // Eine einzige Farbe braucht keine Legende - sie erklaert nichts.
+  if (!colorOrder || colorOrder.length < 2) {
+    legende.innerHTML = '';
+    legende.classList.add('hidden');
+    return;
+  }
+  legende.classList.remove('hidden');
+
+  // Die Reihenfolge spiegelt die Spuren: unten im Stapel, unten in der Liste.
+  const reihen = colorOrder.slice().reverse();
+
+  let html = '<div class="timeline-legend-hint">Farben dieser Auswahl — klicken zeigt alle Termine einer Farbe</div>' +
+             '<div class="timeline-legend-items">';
+
+  reihen.forEach(function (key) {
+    const items = colorGroups[key] || [];
+    const color = (farbAnzeige && farbAnzeige[key]) || key;
+
+    // Kategorien einsammeln, wie sie GERADE bei dieser Farbe vorkommen.
+    const kats = [];
+    items.forEach(function (it) {
+      String((it.evt.category) || '').split(',').forEach(function (k) {
+        const s = k.trim();
+        if (s && kats.indexOf(s) === -1) kats.push(s);
+      });
+    });
+
+    const beschriftung = kats.length ? kats.slice(0, 4).join(' · ') + (kats.length > 4 ? ' …' : '')
+                                     : 'ohne Kategorie';
+
+    html +=
+      '<button type="button" class="timeline-legend-item" data-farbe="' + escapeAttr(key) + '" ' +
+      'aria-pressed="false" onclick="window.toggleTimelineFarbe(this.getAttribute(\'data-farbe\'))">' +
+        '<span class="timeline-legend-dot" style="background:' + color + '"></span>' +
+        '<span class="timeline-legend-text">' + beschriftung + '</span>' +
+        '<span class="timeline-legend-count">' + items.length + '</span>' +
+      '</button>';
+  });
+
+  html += '</div><div class="timeline-legend-list" id="timeline-legend-list"></div>';
+  legende.innerHTML = html;
+}
+
+/**
+ * Eine Farbe hervorheben - oder die Hervorhebung wieder aufheben.
+ * Die uebrigen Balken werden abgedunkelt statt ausgeblendet: Der zeitliche
+ * Zusammenhang bleibt so sichtbar, man sieht die Reihe IM Kontext.
+ */
+window.toggleTimelineFarbe = function (farbe) {
+  const container = document.getElementById('events-timeline-container');
+  const legende = document.getElementById('events-timeline-legend');
+  const liste = document.getElementById('timeline-legend-list');
+  if (!container || !legende) return;
+
+  const aktiv = legende.querySelector('.timeline-legend-item.active');
+  const schonAktiv = aktiv && aktiv.getAttribute('data-farbe') === farbe;
+
+  legende.querySelectorAll('.timeline-legend-item').forEach(function (b) {
+    b.classList.remove('active');
+    b.setAttribute('aria-pressed', 'false');
+  });
+  container.querySelectorAll('.timeline-event-range').forEach(function (n) {
+    n.classList.remove('dimmed', 'hervorgehoben');
+  });
+
+  if (schonAktiv) {
+    container.classList.remove('has-focus');
+    if (liste) liste.innerHTML = '';
+    return;
+  }
+
+  const knopf = legende.querySelector('.timeline-legend-item[data-farbe="' + CSS.escape(farbe) + '"]');
+  if (knopf) { knopf.classList.add('active'); knopf.setAttribute('aria-pressed', 'true'); }
+  container.classList.add('has-focus');
+
+  const treffer = [];
+  container.querySelectorAll('.timeline-event-range').forEach(function (n) {
+    if (n.getAttribute('data-farbe') === farbe) {
+      n.classList.add('hervorgehoben');
+      treffer.push(n);
+    } else {
+      n.classList.add('dimmed');
+    }
+  });
+
+  // Auflistung: chronologisch, damit die Reihe als Abfolge lesbar wird.
+  if (liste) {
+    const eintraege = treffer.map(function (n) {
+      const label = n.getAttribute('aria-label') || '';
+      const trenn = label.lastIndexOf(', ');
+      return {
+        titel: trenn > 0 ? label.slice(0, trenn) : label,
+        datum: trenn > 0 ? label.slice(trenn + 2) : '',
+        links: parseFloat(n.style.left) || 0,
+        nodeId: n.id,
+        eventId: n.getAttribute('data-event-id') || ''
+      };
+    }).sort(function (a, b) { return a.links - b.links; });
+
+    // Klick oeffnet das Terminfenster - dieselbe Wirkung wie ein Klick auf den
+    // Balken. Beim Ueberfahren pulsiert der zugehoerige Balken, damit man den
+    // Zusammenhang zwischen Liste und Zeitachse sieht, ohne klicken zu muessen.
+    liste.innerHTML = eintraege.map(function (e) {
+      const ziel = escapeAttr(e.nodeId);
+      return '<button type="button" class="timeline-legend-row" ' +
+             'onclick="window.openEventModal(\'' + escapeJsAttr_(e.eventId) + '\')" ' +
+             'onmouseenter="window.zeigeBalken(\'' + ziel + '\', true)" ' +
+             'onmouseleave="window.zeigeBalken(\'' + ziel + '\', false)" ' +
+             'onfocus="window.zeigeBalken(\'' + ziel + '\', true)" ' +
+             'onblur="window.zeigeBalken(\'' + ziel + '\', false)">' +
+             '<span class="timeline-legend-row-date">' + e.datum + '</span>' +
+             '<span class="timeline-legend-row-title">' + e.titel + '</span></button>';
+    }).join('');
+  }
+};
+
+/**
+ * Hebt den zu einer Listenzeile gehoerenden Balken hervor.
+ * Bei langen Listen scrollt die Zeitachse seitlich mit, damit der Balken
+ * ueberhaupt im Blick ist - aber nur seitlich, die Seite bleibt stehen.
+ */
+window.zeigeBalken = function (nodeId, an) {
+  const node = document.getElementById(nodeId);
+  if (!node) return;
+  node.classList.toggle('blinkt', !!an);
+  if (!an) return;
+
+  const scroller = node.closest('.events-timeline-scroll');
+  if (!scroller || scroller.scrollWidth <= scroller.clientWidth) return;
+  const mitte = node.offsetLeft - scroller.clientWidth / 2;
+  scroller.scrollTo({ left: Math.max(0, mitte), behavior: 'smooth' });
+};
+
+/** Wie escapeAttr, aber zusaetzlich fuer den JS-String im onclick-Attribut. */
+function escapeJsAttr_(val) {
+  return escapeAttr(String(val == null ? '' : val)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'"));
 }
 
 })();

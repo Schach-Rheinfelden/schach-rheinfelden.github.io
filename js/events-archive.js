@@ -801,27 +801,39 @@ function renderTimeline(events) {
     
     colorOrder.forEach(color => {
         const items = colorGroups[color];
-        const tracks = []; // array of endPercents for this color
-        
+        // Pro Spur die Liste der bereits belegten Intervalle statt nur des
+        // letzten Endzeitpunkts. Das ist entscheidend, weil die Termine nach
+        // Dauer sortiert verarbeitet werden und damit NICHT chronologisch
+        // ankommen: Ein mehrtaegiger Balken belegt eine Spur als Erster und
+        // setzte frueher deren Endmarke weit in die Zukunft. Jeder spaeter
+        // gepruefte, aber frueher startende Termin fiel dann durch die
+        // Bedingung "Spur-Ende <= Termin-Start" - obwohl die Spur zu seinem
+        // Zeitpunkt frei war. Er landete unnoetig eine Stufe hoeher und riss
+        // eine sichtbare Luecke in den Stapel.
+        const tracks = [];
+
         items.forEach(item => {
             let assignedLocalTrack = -1;
-            // No padding so adjacent events (like end 14th, start 15th) can share the same track
-            const padding = 0;
-            
+
             for (let i = 0; i < tracks.length; i++) {
-                if (tracks[i] + padding <= item.startPercent) {
+                // Passt der Termin, wenn er sich mit keinem Intervall dieser
+                // Spur ueberschneidet? Beruehrende Termine (Ende 14., Start
+                // 15.) gelten bewusst als vertraeglich und teilen sich eine Spur.
+                const fits = tracks[i].every(iv =>
+                    item.endPercent <= iv.start || item.startPercent >= iv.end
+                );
+                if (fits) {
                     assignedLocalTrack = i;
                     break;
                 }
             }
-            
+
             if (assignedLocalTrack === -1) {
                 assignedLocalTrack = tracks.length;
-                tracks.push(item.endPercent);
-            } else {
-                tracks[assignedLocalTrack] = Math.max(tracks[assignedLocalTrack], item.endPercent);
+                tracks.push([]);
             }
-            
+
+            tracks[assignedLocalTrack].push({ start: item.startPercent, end: item.endPercent });
             item.track = currentTrackOffset + assignedLocalTrack;
         });
         

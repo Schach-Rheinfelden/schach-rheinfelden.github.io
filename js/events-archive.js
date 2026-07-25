@@ -739,18 +739,31 @@ function renderTimeline(events) {
         if (endPercent > 100) endPercent = 100;
         
         let widthPercent = endPercent - startPercent;
-        
-        // For points, we give them a small fixed virtual width for collision detection (e.g. 0.8%)
-        // Ranges will be naturally wider due to the +1 day adjustment above
+
         const isPoint = !isRange || widthPercent <= 0;
-        const virtualWidth = isPoint ? 0.8 : widthPercent;
-        
+
+        // Zwei getrennte Breiten, weil sie zwei verschiedene Aufgaben haben:
+        //
+        // renderWidth  - die zeitlich korrekte Breite. Ein eintaegiger Termin
+        //   belegt genau einen Tag, kein fester Prozentwert. Frueher bekamen
+        //   Punkte pauschal 0.8%, was ihren Mittelpunkt je nach Zeitraum um
+        //   einen Bruchteil eines Tages nach hinten verschob. Da renderTimeline
+        //   ueber die Mitte positioniert, wanderte damit der ganze Punkt.
+        //
+        // collisionWidth - die Breite fuer die Spurverteilung. Hier ist ein
+        //   Mindestwert noetig: Zwei Termine wenige Tage auseinander liegen in
+        //   einem mehrjaehrigen Zeitraum rechnerisch kaum auseinander, wuerden
+        //   dieselbe Spur bekommen und sich am Bildschirm trotzdem ueberdecken.
+        const dayWidthPercent = ((86400000 * 0.99) / totalDuration) * 100;
+        const renderWidth = isPoint ? dayWidthPercent : widthPercent;
+        const collisionWidth = Math.max(renderWidth, 0.8);
+
         timelineItems.push({
             evt,
             isRange: !isPoint,
             startPercent,
-            endPercent: startPercent + virtualWidth, // for collision
-            widthPercent: virtualWidth // for styling
+            endPercent: startPercent + collisionWidth, // fuer die Spurverteilung
+            widthPercent: renderWidth                  // fuer die Darstellung
         });
     });
     
@@ -966,8 +979,22 @@ function renderTimeline(events) {
 
         const ariaLabel = escapeAttr(`${evt.title}, ${String(dateStr).trim()}`);
 
+        // Mehrtaegige Termine bekommen eine eigene Klasse und darueber eine
+        // groessere Mindestbreite. Ohne sie schrumpft ein dreitaegiger Termin
+        // auf schmalen Displays unter die gemeinsame Mindestbreite von 8px und
+        // ist von einem eintaegigen Punkt nicht mehr zu unterscheiden.
+        const shapeCls = item.isRange ? 'is-range' : 'is-point';
+
+        // Positioniert wird ueber die MITTE des Zeitraums, nicht ueber die
+        // linke Kante (das CSS zieht das Element mit translateX(-50%) zurueck).
+        // Grund: Beide Mindestbreiten - 8px fuer Punkte, 12px fuer Balken -
+        // wachsen nur nach rechts. Bei linker Verankerung erscheint ein Termin
+        // dadurch spaeter und laenger, als er ist. Ein Punkt am 12. reichte so
+        // fast bis ans Ende eines Balkens vom 11. bis 13. Um die Mitte gezeichnet
+        // verteilt sich die Aufweitung gleichmaessig auf beide Seiten, der
+        // Mittelpunkt bleibt zeitlich korrekt und die Reihenfolge stimmt.
         html += `
-            <div class="timeline-event-range ${positionCls}" id="${nodeId}" style="left: ${item.startPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
+            <div class="timeline-event-range ${shapeCls} ${positionCls}" id="${nodeId}" style="left: ${centerPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
                 <div class="timeline-label">
                     <div class="timeline-date">${dateStr}</div>
                     <div class="timeline-title">${evt.title}</div>

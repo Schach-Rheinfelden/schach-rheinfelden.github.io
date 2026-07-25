@@ -133,7 +133,19 @@
             <div class="container">
                 <h1 class="section-title" style="margin-bottom: 2rem;">Termine</h1>
                 
-                <input type="text" id="events-search" class="search-bar" placeholder="Suchen nach Titel, Ort oder Datum...">
+                <div class="events-toolbar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <input type="text" id="events-search" class="search-bar" placeholder="Suchen nach Titel, Ort oder Datum..." style="margin-bottom: 0;">
+                    </div>
+                    <div class="events-view-toggle" style="display: flex; gap: 0.6rem;">
+                        <button id="view-grid-btn" class="btn btn-primary" onclick="toggleView('grid')" title="Raster-Ansicht" style="padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: center;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        </button>
+                        <button id="view-timeline-btn" class="btn btn-secondary" onclick="toggleView('timeline')" title="Zeitleisten-Ansicht" style="padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: center;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M3 12h6m6 0h6"></path></svg>
+                        </button>
+                    </div>
+                </div>
                 
                 <div class="date-filter-container" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 2rem; background: var(--glass-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -152,15 +164,21 @@
                         <!-- Filter buttons injected via JS -->
                     </div>
                     
-                    <button id="download-all-events-btn" class="btn btn-secondary" onclick="downloadAllEvents()" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span>Alle Termine speichern</span>
-                    </button>
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <button id="download-all-events-btn" class="btn btn-secondary" onclick="downloadAllEvents()" style="display: flex; align-items: center; gap: 0.5rem; height: 42px; padding: 0 1rem;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span class="hide-mobile">Alle Termine speichern</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div id="events-archive-container" class="events-grid">
                     <!-- Events injected here -->
                     <div class="loading">Lade Termine...</div>
+                </div>
+                
+                <div id="events-timeline-container" class="events-timeline hidden">
+                    <!-- Timeline injected here -->
                 </div>
                 <div id="events-archive-load-more" style="text-align: center; margin-top: 3rem;"></div>
             </div>

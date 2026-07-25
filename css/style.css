@@ -2954,6 +2954,44 @@ body.light-theme .timeline-line {
     letter-spacing: 1px;
     opacity: 0.6;
     font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Gekippte Achsenbeschriftung.
+   Wird die Zeitleiste eng - langer Zeitraum oder schmales Display - reicht der
+   Platz fuer waagrechte Beschriftungen nicht mehr. Weiter auszuduennen waere
+   der falsche Weg: Man verliert Orientierungspunkte, obwohl das Problem nur
+   die Textrichtung ist. Deshalb kippt renderTimeline() die Labels, statt sie
+   wegzulassen.
+
+   Der Drehpunkt liegt oben rechts, damit das ENDE des Textes am Strich sitzt -
+   so zeigt die Beschriftung eindeutig auf ihren Zeitpunkt. */
+.events-timeline.labels-rot45 .timeline-month-label,
+.events-timeline.labels-rot90 .timeline-month-label {
+    position: absolute;
+    top: 26px;
+    right: 50%;
+    margin-top: 0;
+    transform-origin: 100% 0;
+    text-align: right;
+}
+
+.events-timeline.labels-rot45 .timeline-month-label {
+    transform: rotate(-45deg);
+}
+
+.events-timeline.labels-rot90 .timeline-month-label {
+    transform: rotate(-90deg);
+    /* Senkrecht steht der Text auf dem Strich statt daneben - die halbe
+       Zeilenhoehe schiebt ihn wieder mittig darueber. */
+    right: calc(50% - 0.5em);
+}
+
+/* Der Marker braucht bei gekippter Schrift einen Bezugsrahmen fuer das
+   absolut positionierte Label. */
+.events-timeline.labels-rot45 .timeline-month-marker,
+.events-timeline.labels-rot90 .timeline-month-marker {
+    position: absolute;
 }
 
 /* "Heute"-Marker: senkrechte Linie vom oberen Rand bis auf die Zeitachse
@@ -3030,6 +3068,165 @@ body.light-theme .timeline-line {
    weiter unten, nicht dieser Wert. */
 .timeline-event-range.is-range {
     min-width: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Legende der Zeitachse
+   ---------------------------------------------------------------------------
+   Zeigt, welche Kategorien eine Farbe GERADE versammelt - keine feste
+   Zuordnung. Die Farben werden frei vergeben und aendern sich; eine feste
+   Legende wuerde eine Bedeutung behaupten, die bald nicht mehr stimmt.
+   Aufgebaut wird sie in renderTimelineLegende_() aus den sichtbaren Terminen.
+--------------------------------------------------------------------------- */
+.timeline-legend {
+    margin: 0.5rem 0 2rem;
+}
+
+.timeline-legend-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    margin-bottom: 0.6rem;
+}
+
+.timeline-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.timeline-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.45rem 0.85rem;
+    background: var(--table-bg, rgba(0, 0, 0, 0.05));
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.timeline-legend-item:hover {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.timeline-legend-item.active {
+    border-color: var(--accent-color);
+    background: rgba(212, 175, 55, 0.12);
+    color: var(--text-primary);
+}
+
+.timeline-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+}
+
+.timeline-legend-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0.6;
+    padding-left: 0.15rem;
+}
+
+/* Auflistung der Termine einer Farbe */
+.timeline-legend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 0.8rem;
+}
+
+.timeline-legend-list:empty {
+    margin-top: 0;
+}
+
+.timeline-legend-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.45rem 0.8rem;
+    background: transparent;
+    border: none;
+    border-left: 2px solid var(--glass-border);
+    border-radius: 0 6px 6px 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.timeline-legend-row:hover,
+.timeline-legend-row:focus-visible {
+    background: var(--table-bg, rgba(0, 0, 0, 0.05));
+    border-left-color: var(--accent-color);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.timeline-legend-row-date {
+    flex-shrink: 0;
+    min-width: 6.5rem;
+    font-size: 0.78rem;
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+/* Hervorhebung in der Zeitachse.
+   Die uebrigen Balken werden abgedunkelt statt ausgeblendet - der zeitliche
+   Zusammenhang bleibt so sichtbar, man sieht die Reihe IM Kontext. */
+.events-timeline.has-focus .timeline-event-range.dimmed {
+    opacity: 0.16;
+}
+
+.events-timeline.has-focus .timeline-event-range.hervorgehoben {
+    height: 12px;
+    box-shadow: 0 0 0 1px var(--accent-color), 0 0 14px rgba(212, 175, 55, 0.45);
+    z-index: 14;
+}
+
+/* Beim Ueberfahren einer Listenzeile pulsiert der zugehoerige Balken.
+   Dauerhaft statt einmalig, damit man ihn auch findet, wenn er weit rechts
+   liegt und die Zeitachse erst noch dorthin scrollt. */
+.timeline-event-range.blinkt {
+    height: 12px;
+    z-index: 20;
+    animation: timelineBlink 1.1s ease-in-out infinite;
+}
+
+@keyframes timelineBlink {
+    0%, 100% { box-shadow: 0 0 0 1px var(--accent-color), 0 0 12px rgba(212, 175, 55, 0.4); }
+    50%      { box-shadow: 0 0 0 3px var(--accent-color), 0 0 26px rgba(212, 175, 55, 0.95); }
+}
+
+/* Die Hervorhebung darf auch einen gedimmten Balken zurueckholen - sonst
+   sieht man beim Ueberfahren nichts, wenn gerade eine andere Farbe aktiv ist. */
+.events-timeline.has-focus .timeline-event-range.blinkt {
+    opacity: 1;
+}
+
+.timeline-legend-row-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+    .timeline-legend-row {
+        flex-direction: column;
+        gap: 0.15rem;
+        align-items: flex-start;
+    }
 }
 
 .timeline-event-range:hover {

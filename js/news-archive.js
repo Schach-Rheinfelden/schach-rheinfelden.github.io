@@ -198,23 +198,23 @@
         const filterContainer = document.getElementById('news-filter');
         if (!filterContainer) return;
 
-        const uniqueTags = [];
-        globalNewsData.forEach(item => {
-            if (item.category) {
-                const tags = item.category.split(',').map(s => s.trim());
-                tags.forEach(tag => {
-                    if (tag && !uniqueTags.includes(tag)) uniqueTags.push(tag);
-                });
-            }
-        });
-        uniqueTags.sort((a, b) => a.localeCompare(b, 'de'));
-        const categories = ['Alle', ...uniqueTags];
+        // Nach Aktualitaet statt alphabetisch - siehe shared.js.
+        const uniqueTags = window.sortiereTagsNachAktualitaet
+            ? window.sortiereTagsNachAktualitaet(
+                globalNewsData,
+                i => String(i.category || '').split(',').map(s => s.trim()),
+                i => window.parseDate(i.date))
+            : [];
 
+        const categories = ['Alle', ...uniqueTags];
         if (categories.length <= 1) return;
 
-        filterContainer.innerHTML = categories.map(cat =>
+        const knoepfe = categories.map(cat =>
             `<button class="filter-btn ${cat === currentCategory ? 'active' : ''}" onclick="filterNews('${cat}')">${cat}</button>`
-        ).join('');
+        );
+
+        if (window.renderFilterTags) window.renderFilterTags(filterContainer, knoepfe);
+        else filterContainer.innerHTML = knoepfe.join('');
     }
 
     window.filterNews = function (category) {
@@ -277,7 +277,7 @@
         container.innerHTML = visibleNews.map(item => {
             const dateObj = window.parseDate(item.date);
             const dateString = dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            const authorHTML = item.author ? ` &middot; 👤 ${item.author}` : '';
+            const authorHTML = item.author ? ` 👤 ${item.author}` : '';
 
             const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '' };
 
@@ -342,7 +342,7 @@
 
         const modalBody = document.getElementById('modal-body');
         const dateString = window.parseDate(article.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const authorHTML = article.author ? ` &middot; 👤 ${article.author}` : '';
+        const authorHTML = article.author ? ` 👤 ${article.author}` : '';
 
         const galleryHTML = window.renderGalleryHTML ? window.renderGalleryHTML(article.gallery, '') : '';
 

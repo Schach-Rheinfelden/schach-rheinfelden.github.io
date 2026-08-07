@@ -615,23 +615,23 @@ function initNewsFilter() {
     const filterContainer = document.getElementById('news-filter');
     if (!filterContainer) return;
 
-    const uniqueTags = [];
-    globalNewsData.forEach(item => {
-        if (item.category) {
-            const tags = item.category.split(',').map(s => s.trim());
-            tags.forEach(tag => {
-                if (tag && !uniqueTags.includes(tag)) uniqueTags.push(tag);
-            });
-        }
-    });
-    uniqueTags.sort((a, b) => a.localeCompare(b, 'de'));
-    const categories = ['Alle', ...uniqueTags];
+    // Nach Aktualitaet statt alphabetisch - siehe shared.js.
+    const uniqueTags = window.sortiereTagsNachAktualitaet
+        ? window.sortiereTagsNachAktualitaet(
+            globalNewsData,
+            i => String(i.category || '').split(',').map(s => s.trim()),
+            i => window.parseDate(i.date))
+        : [];
 
+    const categories = ['Alle', ...uniqueTags];
     if (categories.length <= 1) return;
 
-    filterContainer.innerHTML = categories.map(cat =>
+    const knoepfe = categories.map(cat =>
         `<button class="filter-btn ${cat === currentCategory ? 'active' : ''}" onclick="filterNews('${cat}')">${cat}</button>`
-    ).join('');
+    );
+
+    if (window.renderFilterTags) window.renderFilterTags(filterContainer, knoepfe);
+    else filterContainer.innerHTML = knoepfe.join('');
 }
 
 function filterNews(category) {
@@ -666,7 +666,7 @@ function renderNews() {
     container.innerHTML = visibleNews.map(item => {
         const dateObj = window.parseDate(item.date);
         const dateString = dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const authorHTML = item.author ? ` &middot; 👤 ${item.author}` : '';
+        const authorHTML = item.author ? ` 👤 ${item.author}` : '';
 
         const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '' };
 
@@ -765,23 +765,22 @@ function initEventsFilter() {
     const filterContainer = document.getElementById('events-filter');
     if (!filterContainer) return;
 
-    const uniqueTags = [];
-    globalEventsData.forEach(event => {
-        if (event.category) {
-            const tags = event.category.split(',').map(s => s.trim());
-            tags.forEach(tag => {
-                if (tag && !uniqueTags.includes(tag)) uniqueTags.push(tag);
-            });
-        }
-    });
-    uniqueTags.sort((a, b) => a.localeCompare(b, 'de'));
-    const categories = ['Alle', ...uniqueTags];
+    const uniqueTags = window.sortiereTagsNachAktualitaet
+        ? window.sortiereTagsNachAktualitaet(
+            globalEventsData,
+            e => String(e.category || '').split(',').map(s => s.trim()),
+            e => window.parseDateSortable(e.date))
+        : [];
 
+    const categories = ['Alle', ...uniqueTags];
     if (categories.length <= 1) return;
 
-    filterContainer.innerHTML = categories.map(cat =>
+    const knoepfe = categories.map(cat =>
         `<button class="filter-btn ${cat === currentEventCategory ? 'active' : ''}" style="padding: 0.3rem 1rem; font-size: 0.85rem;" onclick="filterEvents('${cat}')">${cat}</button>`
-    ).join('');
+    );
+
+    if (window.renderFilterTags) window.renderFilterTags(filterContainer, knoepfe);
+    else filterContainer.innerHTML = knoepfe.join('');
 }
 
 function filterEvents(category) {
@@ -2319,7 +2318,7 @@ function openNewsModal(id) {
 
     const modalBody = document.getElementById('modal-body');
     const dateString = window.parseDate(article.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const authorHTML = article.author ? ` &middot; 👤 ${article.author}` : '';
+    const authorHTML = article.author ? ` 👤 ${article.author}` : '';
 
     const galleryHTML = window.renderGalleryHTML ? window.renderGalleryHTML(article.gallery, '') : '';
 
@@ -2363,6 +2362,15 @@ window.openEventModal = function (id) {
     if (!event) return;
 
     const modalBody = document.getElementById('event-modal-body');
+
+    // Auch das Detailfenster zeigt an, dass der Termin vorbei ist. Ohne das
+    // waere der Hinweis genau dort verschwunden, wo man am genauesten hinsieht:
+    // Die Kachel verblasst, das geoeffnete Fenster sah aus wie ein aktueller.
+    const modalBox = document.getElementById('event-modal');
+    if (modalBox) {
+        modalBox.classList.toggle('modal-vergangen',
+            window.istVergangenerTermin ? window.istVergangenerTermin(event) : false);
+    }
 
     const locationDisplay = event.locationUrl
         ? `<a href="${event.locationUrl}" target="_blank" style="color: inherit; text-decoration: underline;">${event.location}</a>`

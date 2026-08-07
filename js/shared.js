@@ -2209,18 +2209,38 @@ document.addEventListener('DOMContentLoaded', () => {
    =========================================================================== */
 
 /**
- * Sammelt alle Kategorien und sortiert sie danach, wie aktuell sie zuletzt
- * verwendet wurden.
+ * Sammelt alle Kategorien und sortiert sie zeitlich.
+ *
+ * ZWEI MODI, weil zwei verschiedene Fragen dahinterstehen:
+ *
+ *   'neueste' - fuer News und Mediathek.
+ *       Was zuletzt VEROEFFENTLICHT wurde, steht vorn. Bei veroeffentlichten
+ *       Inhalten ist das Neueste das Interessanteste.
+ *
+ *   'bevorstehend' - fuer Termine.
+ *       Was als Naechstes STATTFINDET, steht vorn. Hier waere "neueste" sogar
+ *       irrefuehrend: Es wuerde die Kategorie mit dem am weitesten entfernten
+ *       Termin nach vorn holen. Wer die Terminseite oeffnet, sucht aber das
+ *       Naechstliegende, nicht das Fernste.
+ *       Kategorien mit ausschliesslich vergangenen Terminen wandern ans Ende.
  *
  * @param {Array}    items    die Datensaetze
  * @param {Function} getTags  liefert die Kategorien eines Datensatzes als Array
  * @param {Function} getDate  liefert das Datum eines Datensatzes (Date oder Zahl)
- * @return {string[]} Kategorien, neueste zuerst
+ * @param {Object}   [options] { modus: 'neueste' | 'bevorstehend' }
+ * @return {string[]} Kategorien in sinnvoller Reihenfolge
  */
-window.sortiereTagsNachAktualitaet = function (items, getTags, getDate) {
-    const neueste = {};
+window.sortiereTagsNachAktualitaet = function (items, getTags, getDate, options) {
+    const modus = (options && options.modus) || 'neueste';
+    const heute = new Date();
+    heute.setHours(0, 0, 0, 0);
+    const heuteZeit = heute.getTime();
+
+    const spaetestes = {};   // groesstes Datum je Kategorie
+    const naechstes = {};    // naechstes Datum ab heute je Kategorie
+
     (items || []).forEach(function (it) {
-        let t = 0;
+        let t = null;
         if (getDate) {
             const d = getDate(it);
             if (d instanceof Date && !isNaN(d)) t = d.getTime();
@@ -2229,12 +2249,22 @@ window.sortiereTagsNachAktualitaet = function (items, getTags, getDate) {
         (getTags(it) || []).forEach(function (tag) {
             const s = String(tag || '').trim();
             if (!s) return;
-            if (!(s in neueste) || t > neueste[s]) neueste[s] = t;
+            if (!(s in spaetestes)) spaetestes[s] = -Infinity;
+            if (t === null) return;
+            if (t > spaetestes[s]) spaetestes[s] = t;
+            if (t >= heuteZeit && (!(s in naechstes) || t < naechstes[s])) naechstes[s] = t;
         });
     });
-    return Object.keys(neueste).sort(function (a, b) {
-        if (neueste[b] !== neueste[a]) return neueste[b] - neueste[a];
-        return a.localeCompare(b, 'de');   // gleich alt: alphabetisch
+
+    return Object.keys(spaetestes).sort(function (a, b) {
+        if (modus === 'bevorstehend') {
+            const A = naechstes[a], B = naechstes[b];
+            if (A !== undefined && B !== undefined && A !== B) return A - B;  // frueher zuerst
+            if (A !== undefined && B === undefined) return -1;                // Kommendes vor Vergangenem
+            if (A === undefined && B !== undefined) return 1;
+        }
+        if (spaetestes[b] !== spaetestes[a]) return spaetestes[b] - spaetestes[a];
+        return a.localeCompare(b, 'de');   // gleichauf: alphabetisch
     });
 };
 

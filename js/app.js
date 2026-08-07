@@ -769,7 +769,8 @@ function initEventsFilter() {
         ? window.sortiereTagsNachAktualitaet(
             globalEventsData,
             e => String(e.category || '').split(',').map(s => s.trim()),
-            e => window.parseDateSortable(e.date))
+            e => window.parseDateSortable(e.date),
+            { modus: 'bevorstehend' })
         : [];
 
     const categories = ['Alle', ...uniqueTags];

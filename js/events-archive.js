@@ -270,23 +270,24 @@ function initEventsFilter() {
     const filterContainer = document.getElementById('events-filter');
     if (!filterContainer) return;
 
-    const uniqueTags = [];
-    globalEventsData.forEach(event => {
-        if (event.category) {
-            const tags = event.category.split(',').map(s => s.trim());
-            tags.forEach(tag => {
-                if (tag && !uniqueTags.includes(tag)) uniqueTags.push(tag);
-            });
-        }
-    });
-    uniqueTags.sort((a, b) => a.localeCompare(b, 'de'));
-    const categories = ['Alle', ...uniqueTags];
+    // Nach Aktualitaet statt alphabetisch: Die Kategorien der juengsten Termine
+    // stehen vorn, danach sucht man am ehesten.
+    const uniqueTags = window.sortiereTagsNachAktualitaet
+        ? window.sortiereTagsNachAktualitaet(
+            globalEventsData,
+            e => String(e.category || '').split(',').map(s => s.trim()),
+            e => window.parseDateSortable(e.date))
+        : [];
 
+    const categories = ['Alle', ...uniqueTags];
     if (categories.length <= 1) return;
 
-    filterContainer.innerHTML = categories.map(cat => 
+    const knoepfe = categories.map(cat =>
         `<button class="filter-btn ${cat === currentCategory ? 'active' : ''}" onclick="filterEvents('${cat}')">${cat}</button>`
-    ).join('');
+    );
+
+    if (window.renderFilterTags) window.renderFilterTags(filterContainer, knoepfe);
+    else filterContainer.innerHTML = knoepfe.join('');
 }
 
 window.filterEvents = function(category) {
@@ -347,6 +348,15 @@ window.openEventModal = function(id) {
     if (!event) return;
 
     const modalBody = document.getElementById('event-modal-body');
+
+    // Auch das Detailfenster zeigt an, dass der Termin vorbei ist. Ohne das
+    // waere der Hinweis genau dort verschwunden, wo man am genauesten hinsieht:
+    // Die Kachel verblasst, das geoeffnete Fenster sah aus wie ein aktueller.
+    const modalBox = document.getElementById('event-modal');
+    if (modalBox) {
+        modalBox.classList.toggle('modal-vergangen',
+            window.istVergangenerTermin ? window.istVergangenerTermin(event) : false);
+    }
     const metaStr = window.formatEventMetaHeader ? window.formatEventMetaHeader(event) : event.date;
     const authorHTML = event.author ? ` | 👤 ${event.author}` : '';
     const metaLine = metaStr + authorHTML;
@@ -695,14 +705,51 @@ function renderTimeline(events) {
     // Sort chronologically
     validEvents.sort((a, b) => window.parseDateSortable(a.date) - window.parseDateSortable(b.date));
     
+    // Heute, auf Mitternacht normiert - Bezugspunkt fuer Rueckblick und
+    // fuer die Frage, welche Termine als vergangen gelten.
+    const heute = new Date();
+    heute.setHours(0, 0, 0, 0);
+    const heuteZeit = heute.getTime();
+
     // 2. Determine bounds (Start / End)
+    //
+    // ══ WARUM DER RUECKBLICK BEGRENZT IST ══
+    // Ohne Begrenzung waechst die Achse mit jedem alten Termin nach links, und
+    // "Heute" wandert immer weiter nach rechts - allein deshalb, weil das
+    // Archiv laenger wird. Der Blick nach vorn, um den es meistens geht, wird
+    // dabei immer schmaler.
+    //
+    // Deshalb beginnt die Achse ohne Datumsfilter stets RUECKBLICK_MONATE vor
+    // heute. Aeltere Termine erscheinen dann nicht in der Zeitachse - in der
+    // Kachelansicht und im Archiv sind sie weiterhin da.
+    //
+    // Setzt du "Von" und "Bis", zaehlt ausschliesslich dein Filter. Dann darfst
+    // du beliebig weit zurueckschauen und "Heute" wandert entsprechend.
+    const RUECKBLICK_MONATE = 1;
+
     let minDate, maxDate;
     if (dateFrom && dateTo) {
         minDate = new Date(dateFrom).getTime();
         maxDate = new Date(dateTo).getTime();
     } else {
-        minDate = window.parseDateSortable(validEvents[0].date).getTime();
-        maxDate = window.parseDateSortable(validEvents[validEvents.length - 1].date).getTime();
+        const rueckblick = new Date(heute);
+        rueckblick.setMonth(rueckblick.getMonth() - RUECKBLICK_MONATE);
+        minDate = rueckblick.getTime();
+
+        // Ende ueber ALLE Termine, nicht nur ueber den letzten Startzeitpunkt:
+        // Ein frueh beginnender Mehrtagestermin kann laenger laufen als ein
+        // spaeter beginnender kurzer.
+        maxDate = validEvents.reduce((max, e) => {
+            const ende = window.getEventEndDate ? window.getEventEndDate(e) : window.parseDateSortable(e.date);
+            const t = ende ? ende.getTime() : window.parseDateSortable(e.date).getTime();
+            return t > max ? t : max;
+        }, window.parseDateSortable(validEvents[validEvents.length - 1].date).getTime());
+
+        // Liegt alles vor dem Rueckblick, waere die Achse leer - dann doch
+        // wieder den Daten folgen.
+        if (maxDate <= minDate) {
+            minDate = window.parseDateSortable(validEvents[0].date).getTime();
+        }
     }
     
     // If only one event or range is 0, pad it
@@ -787,7 +834,10 @@ function renderTimeline(events) {
             isRange: !isPoint,
             startPercent,
             endPercent: startPercent + collisionWidth, // fuer die Spurverteilung
-            widthPercent: renderWidth                  // fuer die Darstellung
+            widthPercent: renderWidth,                 // fuer die Darstellung
+            // Vorbei ist ein Termin erst, wenn sein ENDE hinter uns liegt -
+            // ein laufendes Mehrtagesturnier gehoert nicht ins Verblasste.
+            vergangen: (isRange && endTime ? endTime : time) < heuteZeit
         });
     });
     
@@ -1071,7 +1121,7 @@ function renderTimeline(events) {
         // groessere Mindestbreite. Ohne sie schrumpft ein dreitaegiger Termin
         // auf schmalen Displays unter die gemeinsame Mindestbreite von 8px und
         // ist von einem eintaegigen Punkt nicht mehr zu unterscheiden.
-        const shapeCls = item.isRange ? 'is-range' : 'is-point';
+        const shapeCls = (item.isRange ? 'is-range' : 'is-point') + (item.vergangen ? ' ist-vergangen' : '');
 
         // Positioniert wird ueber die MITTE des Zeitraums, nicht ueber die
         // linke Kante (das CSS zieht das Element mit translateX(-50%) zurueck).

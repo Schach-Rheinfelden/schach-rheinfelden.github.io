@@ -891,9 +891,27 @@ body.light-theme .media-card:hover {
     flex: 0 0 auto;
 }
 
-/* Push text down ONLY for image background cards */
+/* Freiraum ueber dem Text bei Kacheln mit Bild als Hintergrund.
+   ---------------------------------------------------------------------------
+   Frueher stand hier ein starres margin-top: 200px. Das passte nur so lange,
+   wie keine Kachel gestreckt wurde: Steht daneben eine hoehere Nachbarin,
+   waechst bei der Variante "Bild oben" das .news-img mit (flex: 1 1 200px) und
+   schiebt den Text nach unten - bei der Hintergrund-Variante blieb er auf 200px
+   stehen. Nebeneinander sassen die Texte dann auf verschiedenen Hoehen.
+
+   Statt eines festen Abstands ein Platzhalter mit GENAU DEN GLEICHEN
+   Flex-Werten wie .news-img. Damit verhalten sich beide Varianten von sich aus
+   identisch - nicht, weil zwei Werte zufaellig uebereinstimmen, sondern weil es
+   dieselbe Regel ist. */
+.news-card.image-bg-card::before {
+    content: '';
+    flex: 1 1 200px;
+    min-height: 200px;
+    pointer-events: none;
+}
+
 .news-card.image-bg-card .news-content {
-    margin-top: 200px;
+    margin-top: 0;
 }
 
 .news-date {

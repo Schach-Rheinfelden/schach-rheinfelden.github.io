@@ -102,13 +102,26 @@ function buildFilters() {
 
     // Category Filter
     const filterContainer = document.getElementById('media-filter');
-    let filterHTML = '<button class="filter-btn active" data-filter="all">Alle Kategorien</button>';
-    Array.from(categories).sort((a, b) => a.localeCompare(b, 'de')).forEach(cat => {
-        if(cat) filterHTML += `<button class="filter-btn" data-filter="${cat}">${cat}</button>`;
-    });
-    filterContainer.innerHTML = filterHTML;
 
-    filterContainer.querySelectorAll('.filter-btn').forEach(btn => {
+    // Nach Aktualitaet statt alphabetisch - siehe shared.js.
+    const katListe = window.sortiereTagsNachAktualitaet
+        ? window.sortiereTagsNachAktualitaet(
+            globalMediaData || [],
+            i => String(i.category || '').split(',').map(s => s.trim()),
+            i => window.parseDate(i.date))
+        : Array.from(categories).sort((a, b) => a.localeCompare(b, 'de'));
+
+    const katKnoepfe = ['<button class="filter-btn active" data-filter="all">Alle Kategorien</button>']
+        .concat(katListe.filter(Boolean).map(cat =>
+            `<button class="filter-btn" data-filter="${cat}">${cat}</button>`));
+
+    if (window.renderFilterTags) window.renderFilterTags(filterContainer, katKnoepfe);
+    else filterContainer.innerHTML = katKnoepfe.join('');
+
+    // WICHTIG: Der Aufklapp-Knopf traegt ebenfalls .filter-btn, hat aber kein
+    // data-filter. Ohne :not(.filter-more) wuerde ein Klick darauf die Auswahl
+    // auf "undefined" setzen und die Mediathek leerfiltern.
+    filterContainer.querySelectorAll('.filter-btn:not(.filter-more)').forEach(btn => {
         btn.addEventListener('click', (e) => {
             filterContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
@@ -129,7 +142,7 @@ function buildFilters() {
         });
         typeFilterContainer.innerHTML = typeFilterHTML;
 
-        typeFilterContainer.querySelectorAll('.filter-btn').forEach(btn => {
+        typeFilterContainer.querySelectorAll('.filter-btn:not(.filter-more)').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 typeFilterContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');

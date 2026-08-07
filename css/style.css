@@ -3071,6 +3071,89 @@ body.light-theme .timeline-line {
 }
 
 /* ---------------------------------------------------------------------------
+   Vergangene Termine
+   ---------------------------------------------------------------------------
+   Die Klasse .event-past wird in app.js und events-archive.js seit jeher
+   gesetzt, hatte aber nie eine Regel - sie lief ins Leere. Hier bekommt sie
+   endlich eine.
+
+   Bewusst nur gedaempft, nicht ausgegraut: Die Akzentfarbe bleibt erkennbar,
+   damit ein vergangener SMM-Termin weiterhin als SMM-Termin lesbar ist. Beim
+   Ueberfahren kehrt die volle Darstellung zurueck - wer hinsieht, will lesen.
+--------------------------------------------------------------------------- */
+/* Aufklapp-Knopf der Filterleiste.
+   Bewusst zurueckhaltender als die echten Filter - er waehlt nichts aus,
+   er zeigt nur mehr. */
+.filter-btn.filter-more {
+    background: transparent;
+    border-style: dashed;
+    opacity: 0.75;
+}
+
+.filter-btn.filter-more:hover {
+    opacity: 1;
+}
+
+.filter-rest {
+    display: contents;
+}
+
+.filter-rest.hidden {
+    display: none !important;
+}
+
+.event-past {
+    opacity: 0.55;
+    filter: saturate(0.7);
+    transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+/* Das Detailfenster eines vergangenen Termins.
+   ---------------------------------------------------------------------------
+   Bewusst ANDERS gedaempft als die Kacheln: Dort sind 55% Deckkraft richtig,
+   weil man ueberfliegt. Hier liest man - bei 55% waere der Text muehsam. Also
+   entsaettigt statt ausgeblichen.
+
+   KEIN Hinweisbalken oben. Ein solcher Streifen sass ueber dem Bild und
+   zerschnitt das Fenster gleich in der ersten Zeile - er erklaerte etwas, das
+   ohnehin danebensteht: Das Datum im Fenster sagt bereits, dass der Termin
+   vorbei ist. Die Entsaettigung genuegt als leiser Hinweis. */
+.modal.modal-vergangen .modal-content {
+    filter: saturate(0.45);
+}
+
+/* Bilder und Galerien staerker zuruecknehmen - sie tragen die Stimmung,
+   der Text traegt die Information. */
+.modal.modal-vergangen .modal-content img,
+.modal.modal-vergangen .modal-content .event-img-thumbnail {
+    opacity: 0.7;
+}
+
+.event-past:hover,
+.event-past:focus-within {
+    opacity: 1;
+    filter: none;
+}
+
+/* In der Zeitachse etwas kraeftiger gedaempft: Die Balken sind klein und
+   stehen dicht beieinander, da traegt schon ein geringer Unterschied. */
+.timeline-event-range.ist-vergangen {
+    opacity: 0.42;
+}
+
+.timeline-event-range.ist-vergangen:hover,
+.timeline-event-range.ist-vergangen:focus-visible,
+.timeline-event-range.ist-vergangen.blinkt {
+    opacity: 1;
+}
+
+/* Ist eine Farbe hervorgehoben, gilt deren Abdunklung - sonst wuerde ein
+   vergangener Termin doppelt gedaempft und verschwaende ganz. */
+.events-timeline.has-focus .timeline-event-range.hervorgehoben.ist-vergangen {
+    opacity: 0.75;
+}
+
+/* ---------------------------------------------------------------------------
    Legende der Zeitachse
    ---------------------------------------------------------------------------
    Zeigt, welche Kategorien eine Farbe GERADE versammelt - keine feste

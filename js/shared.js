@@ -2194,3 +2194,118 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.loadGlobalInfoAndFooter();
 });
+
+/* ===========================================================================
+   Filter-Knoepfe: nach Aktualitaet sortiert und auf wenige reduziert
+   ===========================================================================
+   Mit wachsendem Bestand wachsen auch die Kategorien. Zwanzig Knoepfe ueber
+   drei Reihen sind keine Hilfe mehr, sondern eine Wand - besonders auf dem
+   Handy, wo sie den halben Bildschirm belegen, bevor der erste Inhalt kommt.
+
+   Deshalb zwei Regeln:
+     1. Sortiert wird nach AKTUALITAET, nicht alphabetisch. Was zuletzt benutzt
+        wurde, steht vorn - danach sucht man am ehesten.
+     2. Gezeigt werden nur die ersten paar, der Rest kommt auf Knopfdruck.
+   =========================================================================== */
+
+/**
+ * Sammelt alle Kategorien und sortiert sie danach, wie aktuell sie zuletzt
+ * verwendet wurden.
+ *
+ * @param {Array}    items    die Datensaetze
+ * @param {Function} getTags  liefert die Kategorien eines Datensatzes als Array
+ * @param {Function} getDate  liefert das Datum eines Datensatzes (Date oder Zahl)
+ * @return {string[]} Kategorien, neueste zuerst
+ */
+window.sortiereTagsNachAktualitaet = function (items, getTags, getDate) {
+    const neueste = {};
+    (items || []).forEach(function (it) {
+        let t = 0;
+        if (getDate) {
+            const d = getDate(it);
+            if (d instanceof Date && !isNaN(d)) t = d.getTime();
+            else if (typeof d === 'number' && isFinite(d)) t = d;
+        }
+        (getTags(it) || []).forEach(function (tag) {
+            const s = String(tag || '').trim();
+            if (!s) return;
+            if (!(s in neueste) || t > neueste[s]) neueste[s] = t;
+        });
+    });
+    return Object.keys(neueste).sort(function (a, b) {
+        if (neueste[b] !== neueste[a]) return neueste[b] - neueste[a];
+        return a.localeCompare(b, 'de');   // gleich alt: alphabetisch
+    });
+};
+
+/**
+ * Schreibt Filterknoepfe in einen Container und versteckt ueberzaehlige.
+ *
+ * @param {Element}  container
+ * @param {string[]} buttonsHtml  fertige Knopf-Elemente, der erste ist "Alle"
+ * @param {Object}   [options]    { limit: 6 }
+ */
+window.renderFilterTags = function (container, buttonsHtml, options) {
+    if (!container || !buttonsHtml || !buttonsHtml.length) return;
+    const limit = (options && typeof options.limit === 'number') ? options.limit : 6;
+
+    // Wenig genug, um alles zu zeigen - dann kein Aufklappen.
+    if (buttonsHtml.length <= limit + 1) {
+        container.innerHTML = buttonsHtml.join('');
+        return;
+    }
+
+    const sichtbar = buttonsHtml.slice(0, limit + 1);
+    const rest = buttonsHtml.slice(limit + 1);
+
+    // Steht die AKTIVE Kategorie im versteckten Teil, wird gleich aufgeklappt.
+    // Sonst saehe man einen Filter wirken, ohne zu erkennen, welcher.
+    const aktivImRest = rest.some(function (h) { return /class="[^"]*\bactive\b/.test(h); });
+
+    const gruppe = 'ft-' + (container.id || String(Math.random()).slice(2, 8));
+
+    container.innerHTML =
+        sichtbar.join('') +
+        '<span class="filter-rest' + (aktivImRest ? '' : ' hidden') + '" data-gruppe="' + gruppe + '">' +
+            rest.join('') +
+        '</span>' +
+        '<button type="button" class="filter-btn filter-more" data-gruppe="' + gruppe + '" ' +
+        'aria-expanded="' + (aktivImRest ? 'true' : 'false') + '" ' +
+        'onclick="window.toggleFilterTags(\'' + gruppe + '\', this)">' +
+        (aktivImRest ? 'weniger anzeigen' : '+ ' + rest.length + ' weitere') +
+        '</button>';
+};
+
+/** Klappt die uebrigen Filterknoepfe auf oder zu. */
+window.toggleFilterTags = function (gruppe, knopf) {
+    const rest = document.querySelector('.filter-rest[data-gruppe="' + gruppe + '"]');
+    if (!rest) return;
+    const zu = rest.classList.toggle('hidden');
+    if (knopf) {
+        knopf.textContent = zu ? '+ ' + rest.children.length + ' weitere' : 'weniger anzeigen';
+        knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
+    }
+};
+
+/**
+ * Ist ein Termin vorbei?
+ *
+ * Massgeblich ist das ENDE, nicht der Beginn: Ein laufendes Mehrtagesturnier
+ * gehoert nicht ins Verblasste. Termine ohne festes Datum ("?" oder "TBD")
+ * gelten nie als vergangen - sie stehen ja noch aus.
+ *
+ * Eine Stelle statt vier: Zuvor rechnete jede Datei das fuer sich aus, und das
+ * Detailfenster gar nicht.
+ */
+window.istVergangenerTermin = function (event) {
+    if (!event) return false;
+    const parsed = window.parseFlexDate ? window.parseFlexDate(event.date) : null;
+    if (parsed && parsed.type === 'tbd') return false;
+
+    const heute = new Date();
+    heute.setHours(0, 0, 0, 0);
+
+    const ende = window.getEventEndDate ? window.getEventEndDate(event) : null;
+    if (!ende || isNaN(ende)) return false;
+    return ende < heute;
+};

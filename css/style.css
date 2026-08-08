@@ -1641,6 +1641,46 @@ body.light-theme .media-card:hover {
     margin-bottom: 0.5rem;
 }
 
+/* Kopfzeile im Detailfenster: Datum und Titel links, Teilen-Knopf rechts.
+   ---------------------------------------------------------------------------
+   Vorher stand das als Inline-Style im JS, ohne Vorkehrung gegen Ueberlauf.
+   Flex-Elemente bekommen von sich aus min-width:auto und schrumpfen deshalb
+   NICHT unter ihre Inhaltsbreite. Ein langes Wort in einer 2rem-Ueberschrift -
+   "Terminverschiebung" ist rund 290px breit - sprengte damit die Zeile, und
+   der Teilen-Knopf wurde aus dem Fenster geschoben.
+
+   Drei Vorkehrungen: Der Textblock darf schrumpfen (min-width: 0), der Knopf
+   nicht (flex-shrink: 0), und bei ganz wenig Platz rutscht er in die naechste
+   Zeile statt hinauszuragen. */
+.modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.modal-head-text {
+    flex: 1 1 220px;
+    min-width: 0;          /* ohne das schrumpft nichts */
+}
+
+.modal-head-text h2 {
+    /* Lange Woerter duerfen umbrechen, statt die Zeile zu sprengen. */
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.modal-head > .btn {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+    .modal-head > .btn {
+        margin-top: 0.25rem;
+    }
+}
+
 .modal-hero-header {
     margin: -3rem -2rem 2rem -2rem;
     width: calc(100% + 4rem);
@@ -3100,16 +3140,33 @@ body.light-theme .timeline-line {
    Ueberfahren kehrt die volle Darstellung zurueck - wer hinsieht, will lesen.
 --------------------------------------------------------------------------- */
 /* Aufklapp-Knopf der Filterleiste.
+   ---------------------------------------------------------------------------
    Bewusst zurueckhaltender als die echten Filter - er waehlt nichts aus,
-   er zeigt nur mehr. */
-.filter-btn.filter-more {
+   er zeigt nur mehr.
+
+   ACHTUNG, hier lag ein Fehler: Die Regel ".filter-btn:hover, .filter-btn.active"
+   setzt Goldgrund UND color:#000. Sie hat dieselbe Spezifitaet wie
+   ".filter-btn.filter-more" - der Hintergrund wurde also transparent, die
+   SCHRIFT blieb aber schwarz. Im dunklen Modus stand damit schwarze Schrift auf
+   dunklem Grund: nach dem Antippen unlesbar, weil der Hover-Zustand auf
+   Mobilgeraeten haengen bleibt.
+
+   Deshalb hier eigene Regeln fuer jeden Zustand, mit einer Klasse mehr in der
+   Spezifitaet - damit gewinnen sie unabhaengig von der Reihenfolge. */
+.filter-btn.filter-more,
+.filter-btn.filter-more:hover,
+.filter-btn.filter-more:focus,
+.filter-btn.filter-more:active {
     background: transparent;
-    border-style: dashed;
-    opacity: 0.75;
+    border: 1px dashed var(--glass-border);
+    color: var(--text-secondary);
+    box-shadow: none;
 }
 
-.filter-btn.filter-more:hover {
-    opacity: 1;
+.filter-btn.filter-more:hover,
+.filter-btn.filter-more:focus-visible {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
 }
 
 .filter-rest {
@@ -3128,23 +3185,33 @@ body.light-theme .timeline-line {
 
 /* Das Detailfenster eines vergangenen Termins.
    ---------------------------------------------------------------------------
-   Bewusst ANDERS gedaempft als die Kacheln: Dort sind 55% Deckkraft richtig,
-   weil man ueberfliegt. Hier liest man - bei 55% waere der Text muehsam. Also
-   entsaettigt statt ausgeblichen.
+   Dieselbe Daempfung wie bei den Kacheln - 55% Deckkraft und leicht entsaettigt.
+   Ich hatte zunaechst nur entsaettigt, um die Lesbarkeit zu schonen; das war
+   aber inkonsequent: Ein Termin sah in der Uebersicht vergangen aus und im
+   geoeffneten Fenster wieder aktuell.
+
+   Wie bei den Kacheln kehrt beim Ueberfahren die volle Darstellung zurueck -
+   wer hinsieht, will lesen.
 
    KEIN Hinweisbalken oben. Ein solcher Streifen sass ueber dem Bild und
    zerschnitt das Fenster gleich in der ersten Zeile - er erklaerte etwas, das
-   ohnehin danebensteht: Das Datum im Fenster sagt bereits, dass der Termin
-   vorbei ist. Die Entsaettigung genuegt als leiser Hinweis. */
+   ohnehin danebensteht: Das Datum sagt bereits, dass der Termin vorbei ist. */
 .modal.modal-vergangen .modal-content {
-    filter: saturate(0.45);
+    opacity: 0.55;
+    filter: saturate(0.7);
+    transition: opacity 0.25s ease, filter 0.25s ease;
 }
 
-/* Bilder und Galerien staerker zuruecknehmen - sie tragen die Stimmung,
-   der Text traegt die Information. */
-.modal.modal-vergangen .modal-content img,
-.modal.modal-vergangen .modal-content .event-img-thumbnail {
-    opacity: 0.7;
+.modal.modal-vergangen .modal-content:hover,
+.modal.modal-vergangen .modal-content:focus-within {
+    opacity: 1;
+    filter: none;
+}
+
+/* Der Schliessen-Knopf bleibt immer voll sichtbar - er gehoert zum Fenster,
+   nicht zum Inhalt, und muss auch ohne Maus erreichbar aussehen. */
+.modal.modal-vergangen .modal-content .modal-close {
+    opacity: 1;
 }
 
 .event-past:hover,

@@ -2333,8 +2333,8 @@ function openNewsModal(id) {
 
     modalBody.innerHTML = `
         ${headerImgHTML}
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
+        <div class="modal-head">
+            <div class="modal-head-text">
                 <span class="news-date">${dateString}${authorHTML}</span>
                 <h2 style="margin-bottom: 0.5rem; font-size: 2rem;">${article.title}</h2>
             </div>
@@ -2400,8 +2400,8 @@ window.openEventModal = function (id) {
 
     modalBody.innerHTML = `
         ${headerImgHTML}
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
+        <div class="modal-head">
+            <div class="modal-head-text">
                 <div style="font-size: 0.9rem; color: ${accentCol}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
                     ${metaLine}
                 </div>

@@ -356,8 +356,8 @@
 
         modalBody.innerHTML = `
         ${headerImgHTML}
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
+        <div class="modal-head">
+            <div class="modal-head-text">
                 <span class="news-date">${dateString}${authorHTML}</span>
                 <h2 style="margin-bottom: 0.5rem; font-size: 2rem;">${article.title}</h2>
             </div>

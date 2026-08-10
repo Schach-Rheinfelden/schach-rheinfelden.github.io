@@ -1451,6 +1451,22 @@ body.light-theme .media-card:hover {
     color: #000;
 }
 
+/* Schwebende Spielerkarten
+   ---------------------------------------------------------------------------
+   PROBLEM: Die Karte ist so breit wie der NAME, nicht wie der Avatar.
+   "Matthias Zimmermann" ergibt 159px Kartenbreite bei 60px Avatar - der
+   unsichtbare Klickbereich ragt also 50px je Seite hinaus.
+
+   Die Physik haelt die Avatare aber nur 80px auseinander (Kollisionsradius
+   35 + 35 + 10). Die Klickflaechen ueberlappen sich damit um bis zu 30px, und
+   weil alle Karten z-index 10 tragen, gewinnt die zuletzt gezeichnete: Man
+   klickt auf einen Avatar und oeffnet den Nachbarn.
+
+   LOESUNG: Die Karte selbst nimmt keine Zeiger mehr an, nur der Avatar. Die
+   Trefferflaeche entspricht damit dem, was man sieht. Ereignisse steigen vom
+   Avatar zur Karte auf, die vorhandenen Listener bleiben also unveraendert -
+   und ein Zug am Namen schwenkt jetzt die Ansicht, statt aus Versehen eine
+   fremde Karte zu greifen. */
 .floating-player-card {
     position: absolute;
     display: flex;
@@ -1458,6 +1474,39 @@ body.light-theme .media-card:hover {
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    pointer-events: none;
+}
+
+.floating-player-card .player-avatar {
+    pointer-events: auto;
+    position: relative;
+}
+
+/* Etwas grosszuegigere Trefferflaeche als das sichtbare Bild - 10px Ring
+   rundum, also 80px Durchmesser. Genau der Abstand, den die Kollision
+   garantiert: Zwei Trefferflaechen beruehren sich hoechstens, sie
+   ueberlappen nie. Hilft vor allem am Rand und auf dem Handy. */
+.floating-player-card .player-avatar::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+}
+
+/* Durch den Mannschaftsfilter ausgeblendete Spieler.
+   ---------------------------------------------------------------------------
+   Entscheidend ist die zweite Regel: Ohne sie faengt der Avatar einer
+   ausgeblendeten Karte weiterhin Klicks ab. pointer-events: none auf der Karte
+   genuegt nicht, weil ein Kind Zeiger wieder annehmen darf - und genau das tut
+   der Avatar. Der Klick landete dann auf einem unsichtbaren Spieler, dessen
+   Handler sofort aussteigt, und der sichtbare darunter blieb unerreichbar. */
+.floating-player-card.spieler-ausgeblendet {
+    opacity: 0.15;
+    filter: grayscale(100%);
+}
+
+.floating-player-card.spieler-ausgeblendet .player-avatar {
+    pointer-events: none;
 }
 
 .player-avatar {

@@ -75,7 +75,10 @@ const EVENTS_PAGE_STEP = 12;
 
 window.loadMoreUpcomingEvents = function() {
     currentUpcomingLimit += EVENTS_PAGE_STEP;
-    savedUpcomingLimit = currentUpcomingLimit;
+    // Nur ausserhalb einer Suche merken. Sonst wuerde tiefes Blaettern in den
+    // Treffern den Stand fuer den Gesamtbestand ueberschreiben - man kaeme
+    // nach dem Leeren der Suche an einer Stelle heraus, an der man nie war.
+    if (!searchTerm) savedUpcomingLimit = currentUpcomingLimit;
     renderEvents();
 };
 
@@ -111,7 +114,7 @@ window.toggleView = function(view) {
 
 window.loadMorePastEvents = function() {
     currentPastLimit += EVENTS_PAGE_STEP;
-    savedPastLimit = currentPastLimit;
+    if (!searchTerm) savedPastLimit = currentPastLimit;
     renderEvents();
 };
 
@@ -208,8 +211,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('events-search');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            searchTerm = e.target.value.toLowerCase().trim();
-            if (!searchTerm) {
+            const neuerBegriff = e.target.value.toLowerCase().trim();
+            if (neuerBegriff === searchTerm) return;
+            searchTerm = neuerBegriff;
+            // Eine neue Suche beginnt oben - sonst staende man mitten in einer
+            // frisch gefilterten Liste, weil der Nachladestand von vorher noch
+            // gilt. Beim Leeren kehrt dieser Stand zurueck.
+            if (searchTerm) {
+                currentUpcomingLimit = EVENTS_PAGE_STEP;
+                currentPastLimit = EVENTS_PAGE_STEP;
+            } else {
                 currentUpcomingLimit = savedUpcomingLimit;
                 currentPastLimit = savedPastLimit;
             }
@@ -615,16 +626,17 @@ function renderEvents() {
     const isSearching = Boolean(searchTerm);
     let html = '';
 
-    const visibleUpcoming = isSearching ? upcoming : upcoming.slice(0, currentUpcomingLimit);
+    // Auch Suchtreffer werden seitenweise angezeigt. Gesucht wird weiterhin im
+    // GESAMTEN Bestand - nur die Ausgabe ist begrenzt. Sonst wuerde ein
+    // haeufiges Wort bei wachsendem Archiv hunderte Kacheln auf einmal bauen.
+    const visibleUpcoming = upcoming.slice(0, currentUpcomingLimit);
 
     if (visibleUpcoming.length > 0) {
         html += visibleUpcoming.map(e => renderEventCard(e, false)).join('');
-        if (!isSearching && currentUpcomingLimit < upcoming.length) {
-            html += `
-            <div style="grid-column: 1 / -1; text-align: center; margin: 1.5rem 0;">
-                <button class="btn btn-secondary" onclick="loadMoreUpcomingEvents()">Weitere Termine</button>
-            </div>`;
-        }
+        html += nachladeBlock_(
+            visibleUpcoming.length, upcoming.length, 'loadMoreUpcomingEvents',
+            'Weitere Termine', isSearching ? 'Treffern' : 'Terminen'
+        );
     }
 
     if (past.length > 0) {
@@ -642,14 +654,13 @@ function renderEvents() {
         </div>`;
 
         if (showPast) {
-            const visiblePast = isSearching ? past : past.slice(0, currentPastLimit);
+            const visiblePast = past.slice(0, currentPastLimit);
             html += visiblePast.map(e => renderEventCard(e, true)).join('');
-            if (!isSearching && currentPastLimit < past.length) {
-                html += `
-                <div style="grid-column: 1 / -1; text-align: center; margin: 1.5rem 0;">
-                    <button class="btn btn-secondary" onclick="loadMorePastEvents()">Weitere vergangene Termine</button>
-                </div>`;
-            }
+            html += nachladeBlock_(
+                visiblePast.length, past.length, 'loadMorePastEvents',
+                'Weitere vergangene Termine',
+                isSearching ? 'Treffern' : 'vergangenen Terminen'
+            );
         }
     }
 
@@ -660,6 +671,33 @@ function renderEvents() {
     }
 
     container.innerHTML = html;
+}
+
+/**
+ * Nachladeknopf samt Zaehlzeile fuer die Kachelliste.
+ *
+ * Der Knopf allein laesst offen, wie viel noch kommt - "12 von 140 Terminen"
+ * beantwortet das. Ist alles sichtbar, erscheint die Zeile nur dann, wenn
+ * ueberhaupt einmal nachgeladen werden musste; bei acht Terminen waere sie
+ * blosses Rauschen.
+ */
+function nachladeBlock_(sichtbar, gesamt, fnName, knopfText, wort) {
+    const fehlend = gesamt - sichtbar;
+
+    if (fehlend > 0) {
+        return `
+        <div style="grid-column: 1 / -1; text-align: center; margin: 1.5rem 0;">
+            <button class="btn btn-secondary" onclick="${fnName}()">${knopfText}</button>
+            <div class="archiv-zaehler">${sichtbar} von ${gesamt} ${wort}</div>
+        </div>`;
+    }
+    if (gesamt > EVENTS_PAGE_STEP) {
+        return `
+        <div style="grid-column: 1 / -1; text-align: center; margin: 1.5rem 0;">
+            <div class="archiv-zaehler">Alle ${gesamt} ${wort} werden angezeigt</div>
+        </div>`;
+    }
+    return '';
 }
 
 window.togglePastEvents = function() {

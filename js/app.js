@@ -1241,7 +1241,7 @@ async function renderTeams() {
             ` : '';
 
             modalBody.innerHTML = `
-                <img src="${avatarUrl}" alt="${displayName}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent-color); object-fit: cover; margin-bottom: 1rem; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);">
+                <img src="${avatarUrl}" alt="${displayName}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent-color); object-fit: cover; margin-bottom: 1rem; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);" loading="lazy" decoding="async">
                 <h3 style="font-size: 2rem; color: var(--accent-color); margin-bottom: 0.5rem;">${displayName}</h3>
                 ${(p.rolle || p.title) ? `
                 <div style="display: flex; justify-content: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
@@ -1539,7 +1539,7 @@ async function renderTeams() {
 
                     return `
                                     <div class="glass-card player-list-card" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.25rem; cursor: pointer; transition: transform 0.2s, border-color 0.2s; border-radius: 12px; background: rgba(255,255,255,0.03);" onclick="openPlayerModalFromList('${player.id}')" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='var(--accent-color)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--glass-border)';">
-                                        <img src="${avatarUrl}" alt="${displayName}" style="width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover; flex-shrink: 0; box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);">
+                                        <img src="${avatarUrl}" alt="${displayName}" style="width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover; flex-shrink: 0; box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);" loading="lazy" decoding="async">
                                         <div style="flex: 1; min-width: 0;">
                                             <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.15rem;">${displayName}</div>
                                             ${(player.rolle || player.title) ? `
@@ -1641,6 +1641,43 @@ async function renderTeams() {
 }
 
 /**
+ * Verschluckt das eine Klick-Ereignis, das dem Loslassen folgt.
+ *
+ * ══ WARUM DAS NOETIG IST ══
+ * Das Spielerfenster wird beim pointerup geoeffnet. Unmittelbar danach sendet
+ * der Browser an derselben Bildschirmstelle noch ein gewoehnliches click -
+ * bei Beruehrung als Nachbildung einer Maus, mit der Maus ohnehin.
+ *
+ * Zu diesem Zeitpunkt liegt dort aber bereits das offene Fenster. In
+ * index.html steht:
+ *
+ *     <div class="modal-overlay" onclick="closePlayerModal()"></div>
+ *
+ * Der Nachklick trifft diesen Hintergrund und schliesst das Fenster im selben
+ * Moment wieder. Von aussen sieht es aus, als sei nichts geschehen.
+ *
+ * Ob es auffiel, hing allein von der Tippstelle ab: Der Fensterinhalt ist
+ * mittig und hoechstens 500px breit. Wer einen Avatar in der Mitte antippte,
+ * dessen Nachklick landete auf dem Inhalt - das Fenster blieb offen. Wer die
+ * oberen oder unteren Reihen antippte, traf den Hintergrund.
+ *
+ * Der Zuhoerer haengt in der Erfassungsphase, faengt das Ereignis also ab,
+ * bevor es den Hintergrund erreicht. Kommt kein Klick - etwa weil der Browser
+ * keinen nachbildet - raeumt der Zeitgeber ihn nach 400ms wieder weg.
+ */
+function schluckeNachklick_() {
+    const abfangen = function (ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        document.removeEventListener('click', abfangen, true);
+    };
+    document.addEventListener('click', abfangen, true);
+    setTimeout(function () {
+        document.removeEventListener('click', abfangen, true);
+    }, 400);
+}
+
+/**
  * Mittelpunkt des AVATARS einer schwebenden Karte.
  *
  * card.x/y bezeichnet die linke obere Ecke der KARTE. Die Karte ist ein
@@ -1687,6 +1724,9 @@ function initPhysicsEngine(cardsData, container, canvas) {
     let dragOffsetX = 0;
     let dragOffsetY = 0;
     let pointerDownTime = 0;
+    let pointerDownX = 0;      // Beginn der Beruehrung in Bildschirmkoordinaten
+    let pointerDownY = 0;
+    let pointerMaxDist = 0;    // groesste Entfernung davon waehrend der Beruehrung
 
     // Zoom & Pan State
     let scale = 1;
@@ -1725,13 +1765,32 @@ function initPhysicsEngine(cardsData, container, canvas) {
             draggedCard = card;
             card.isDragging = true;
             card.el.style.zIndex = '50';
-            try { card.el.setPointerCapture(e.pointerId); } catch (err) { }
+
+            // Den Zeiger auf dem AVATAR festhalten, nicht auf der Karte.
+            //
+            // Die Karte traegt pointer-events: none - das war noetig, damit der
+            // breite Namenszug keine Klicks der Nachbarn abfaengt. Ein Element,
+            // das keine Zeiger annimmt, taugt aber auch nicht als Ziel einer
+            // Zeigererfassung: Die folgenden Ereignisse werden dorthin
+            // umgeleitet und dort verworfen. Das pointerup kam nie an, und ohne
+            // pointerup laeuft releaseDrag nicht - also oeffnete sich kein
+            // Fenster. Mit der Maus faellt es kaum auf, weil dort keine
+            // stillschweigende Erfassung vorausgeht; auf Beruehrung schon.
+            //
+            // e.target ist der Avatar (oder sein Trefferring), der Zeiger
+            // annimmt - er ist das richtige Ziel.
+            card._erfassungsZiel = (e.target && e.target.setPointerCapture) ? e.target : card.el;
+            try { card._erfassungsZiel.setPointerCapture(e.pointerId); } catch (err) { }
 
             const rect = card.el.getBoundingClientRect();
             // Adjust offset by scale!
             dragOffsetX = (e.clientX - rect.left) / scale;
             dragOffsetY = (e.clientY - rect.top) / scale;
+
             pointerDownTime = Date.now();
+            pointerDownX = e.clientX;
+            pointerDownY = e.clientY;
+            pointerMaxDist = 0;
         });
     });
 
@@ -1744,6 +1803,13 @@ function initPhysicsEngine(cardsData, container, canvas) {
         }
 
         if (!draggedCard) return;
+
+        // Groesste Entfernung vom Beginn der Beruehrung merken - daran wird
+        // spaeter entschieden, ob getippt oder gezogen wurde.
+        const wegX = e.clientX - pointerDownX;
+        const wegY = e.clientY - pointerDownY;
+        const weg = Math.sqrt(wegX * wegX + wegY * wegY);
+        if (weg > pointerMaxDist) pointerMaxDist = weg;
 
         const containerRect = container.getBoundingClientRect();
         let logicalClientX = (e.clientX - containerRect.left - panX) / scale;
@@ -1769,14 +1835,32 @@ function initPhysicsEngine(cardsData, container, canvas) {
             if (e && e.pointerId) try { container.releasePointerCapture(e.pointerId); } catch (err) { }
         }
         if (draggedCard) {
-            if (e && e.pointerId) try { draggedCard.el.releasePointerCapture(e.pointerId); } catch (err) { }
+            const ziel = draggedCard._erfassungsZiel || draggedCard.el;
+            if (e && e.pointerId) try { ziel.releasePointerCapture(e.pointerId); } catch (err) { }
+            draggedCard._erfassungsZiel = null;
             draggedCard.isDragging = false;
             draggedCard.el.style.zIndex = '10';
 
-            if (Date.now() - pointerDownTime < 200) {
-                // Open Player Modal instead of expanding card
+            // Tippen oder Ziehen? Entschieden wird nach der BEWEGUNG, nicht
+            // nach der Dauer.
+            //
+            // Vorher galt allein "kuerzer als 200ms". Das ist fuer einen
+            // bewussten Tipper zu knapp: Wer auf einen 60px kleinen Avatar
+            // zielt, braucht regelmaessig 250 bis 400ms - und dann passierte
+            // gar nichts. Es wirkte, als seien einzelne Avatare kaputt, dabei
+            // hing es nur daran, wie lange man den Finger liegen liess.
+            //
+            // Jetzt zaehlt, ob der Zeiger sich bewegt hat. Unter 10px war es
+            // ein Tippen, auch wenn er eine Sekunde lag. Die 10px fangen das
+            // uebliche Zittern eines Fingers ab. Die Zeitgrenze bleibt nur als
+            // Schutz gegen langes Gedrueckthalten.
+            const gewandert = pointerMaxDist;
+            const gedauert = Date.now() - pointerDownTime;
+
+            if (gewandert < 10 && gedauert < 700) {
                 if (window.showPlayerModal) {
                     window.showPlayerModal(draggedCard.playerData);
+                    schluckeNachklick_();
                 }
             }
             draggedCard = null;
@@ -1785,6 +1869,16 @@ function initPhysicsEngine(cardsData, container, canvas) {
 
     container.addEventListener('pointerup', releaseDrag);
     container.addEventListener('pointercancel', releaseDrag);
+
+    // Zusaetzlich am Fenster - als Netz.
+    // Wird der Zeiger unterwegs erfasst, umgeleitet oder verliert der Container
+    // ihn (Finger ueber den Rand hinaus, Browser bricht die Geste ab), kommt
+    // pointerup dort nicht mehr an. Dann bliebe draggedCard haengen: Die Karte
+    // klebte am Finger und der naechste Tipp waere wirkungslos.
+    // releaseDrag darf mehrfach laufen - es setzt draggedCard auf null und
+    // prueft beim naechsten Mal darauf.
+    window.addEventListener('pointerup', releaseDrag);
+    window.addEventListener('pointercancel', releaseDrag);
 
     // Mouse Wheel Zoom
     container.addEventListener('wheel', (e) => {
@@ -1905,7 +1999,35 @@ function initPhysicsEngine(cardsData, container, canvas) {
                 card.vx *= 0.85;
                 card.vy *= 0.85;
 
-                // Stop bounding logic - allow zooming out/panning to infinity!
+                // ── Sanfte Grenze ──────────────────────────────────────────
+                // Der Container hat overflow: hidden. Was hinausragt, ist weder
+                // sichtbar noch antippbar - der abgeschnittene Teil nimmt keine
+                // Beruehrung mehr an.
+                //
+                // Zwei Wege fuehrten dorthin: Die Anfangsplatzierung rechnete
+                // mit x bis clientWidth - 100, unterstellte also 100px breite
+                // Karten. Tatsaechlich sind sie bis zu 159px breit, und der
+                // Avatar sitzt in ihrer MITTE - er landete damit bis zu 20px
+                // ausserhalb. Dazu kommt das Driften durch die Kollisionen.
+                //
+                // Statt einer harten Wand ein leises Zurueckziehen: 15% des
+                // Ueberstands je Bild. Wer eine Karte an den Rand zieht, darf
+                // das - sie rutscht danach nur so weit zurueck, dass ihre
+                // Trefferflaeche wieder vollstaendig im Bild liegt.
+                // Waehrend des Ziehens greift es nicht (siehe Bedingung oben).
+                const mitte = avatarMitte(card);
+                const rand = 40;                       // halbe Trefferflaeche
+                const bw = container.clientWidth;
+                const bh = container.clientHeight;
+
+                let zurueckX = 0, zurueckY = 0;
+                if (mitte.x < rand) zurueckX = rand - mitte.x;
+                else if (mitte.x > bw - rand) zurueckX = (bw - rand) - mitte.x;
+                if (mitte.y < rand) zurueckY = rand - mitte.y;
+                else if (mitte.y > bh - rand) zurueckY = (bh - rand) - mitte.y;
+
+                if (zurueckX) card.x += zurueckX * 0.15;
+                if (zurueckY) card.y += zurueckY * 0.15;
             }
 
             for (let j = i + 1; j < cardsData.length; j++) {

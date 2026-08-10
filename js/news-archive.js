@@ -84,7 +84,11 @@
 
     window.loadMoreNewsArchive = function () {
         currentNewsLimit += NEWS_PAGE_STEP;
-        savedNewsLimit = currentNewsLimit;
+        // Nur ausserhalb einer Suche merken. Sonst wuerde ein tiefes
+        // Durchblaettern von Suchtreffern den Stand fuer den Gesamtbestand
+        // ueberschreiben - man kaeme nach dem Leeren der Suche an einer
+        // Stelle heraus, an der man nie war.
+        if (!searchTerm) savedNewsLimit = currentNewsLimit;
         renderNews();
     };
 
@@ -139,10 +143,17 @@
         const searchInput = document.getElementById('news-search');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
-                searchTerm = e.target.value.toLowerCase().trim();
-                if (!searchTerm) {
-                    currentNewsLimit = savedNewsLimit;
-                }
+                const neuerBegriff = e.target.value.toLowerCase().trim();
+                if (neuerBegriff === searchTerm) return;
+                searchTerm = neuerBegriff;
+
+                // Eine neue Suche beginnt oben. Ohne das stuende man mitten in
+                // einer frisch gefilterten Liste, weil der Nachladestand von
+                // vorher noch gilt.
+                // Beim Leeren kehrt der vorherige Stand zurueck - wer sich
+                // durch 60 Beitraege geklickt hat, will nach einer Suche nicht
+                // wieder bei 12 anfangen.
+                currentNewsLimit = searchTerm ? NEWS_PAGE_STEP : savedNewsLimit;
                 renderNews();
             });
         }
@@ -272,7 +283,17 @@
         }
 
         const isSearching = Boolean(searchTerm);
-        const visibleNews = isSearching ? filteredNews : filteredNews.slice(0, currentNewsLimit);
+
+        // Auch Suchtreffer werden begrenzt.
+        //
+        // Vorher galt: Wird gesucht, zeige ALLES. Bei ein paar Dutzend
+        // Beitraegen faellt das nicht auf - bei einigen hundert schon. Ein
+        // haeufiges Wort wie "Runde" traefe fast jeden Spielbericht, und die
+        // Seite baute mehrere hundert Kacheln samt Bildern auf einmal auf.
+        //
+        // Gesucht wird weiterhin im GESAMTEN Bestand, nicht nur im geladenen
+        // Teil - nur die Anzeige der Treffer erfolgt seitenweise.
+        const visibleNews = filteredNews.slice(0, currentNewsLimit);
 
         container.innerHTML = visibleNews.map(item => {
             const dateObj = window.parseDate(item.date);
@@ -328,8 +349,18 @@
 
         const loadMoreContainer = document.getElementById('news-archive-load-more');
         if (loadMoreContainer) {
-            if (!isSearching && currentNewsLimit < filteredNews.length) {
-                loadMoreContainer.innerHTML = `<button class="btn btn-secondary" onclick="loadMoreNewsArchive()">Weitere News</button>`;
+            const fehlend = filteredNews.length - visibleNews.length;
+            // Bei einer Suche heissen sie Treffer, sonst Beitraege - das sagt
+            // nebenbei, ob die Zahl sich auf den Bestand oder auf die Suche bezieht.
+            const wort = isSearching ? 'Treffern' : 'Beiträgen';
+
+            if (fehlend > 0) {
+                loadMoreContainer.innerHTML =
+                    `<button class="btn btn-secondary" onclick="loadMoreNewsArchive()">Weitere News</button>` +
+                    `<div class="archiv-zaehler">${visibleNews.length} von ${filteredNews.length} ${wort}</div>`;
+            } else if (filteredNews.length > NEWS_PAGE_STEP) {
+                loadMoreContainer.innerHTML =
+                    `<div class="archiv-zaehler">Alle ${filteredNews.length} ${wort} werden angezeigt</div>`;
             } else {
                 loadMoreContainer.innerHTML = '';
             }

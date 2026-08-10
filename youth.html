@@ -16,67 +16,14 @@
     <meta property="og:image" content="https://res.cloudinary.com/i1wuvnct/image/upload/w_800,c_limit,f_auto,q_auto/v1784323180/Bilder/Logos/Schach-Rheinfelden_Banner_jjcvcl.png" />
     <meta property="og:site_name" content="Schach-Rheinfelden" />
 
-    <link rel="stylesheet" href="css/style.css?v=33">
+    <link rel="stylesheet" href="css/style.css?v=102">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-    <style>
-        .youth-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 2.5rem;
-            margin-bottom: 2rem;
-            display: flex;
-            gap: 2rem;
-            align-items: flex-start;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .youth-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.1);
-            border-color: var(--accent-color);
-        }
-        .youth-icon {
-            font-size: 3rem;
-            flex-shrink: 0;
-            background: rgba(212, 175, 55, 0.1);
-            width: 80px;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            border: 2px solid var(--accent-color);
-        }
-        .youth-content h2 {
-            color: var(--accent-color);
-            margin-bottom: 1rem;
-            font-size: 1.8rem;
-        }
-        .youth-content p {
-            font-size: 1.1rem;
-            line-height: 1.7;
-            color: var(--text-primary);
-            margin-bottom: 1rem;
-        }
-        .youth-content ul {
-            margin-top: 0.5rem;
-            margin-left: 1.5rem;
-            font-size: 1.1rem;
-            line-height: 1.7;
-        }
-        .youth-content li {
-            margin-bottom: 0.5rem;
-        }
-        @media (max-width: 768px) {
-            .youth-card {
-                flex-direction: column;
-                padding: 1.5rem;
-                gap: 1.5rem;
-            }
-        }
-    </style>
+    <!-- Die Gestaltung der Jugendkacheln steht vollstaendig in css/style.css.
+         Hier stand frueher ein zweiter Satz derselben Regeln - er kam nach dem
+         Stylesheet und ueberschrieb es dadurch stillschweigend, unter anderem
+         beim Innenabstand, an dem sich die randlosen Bilder ausrichten. -->
 </head>
 <body>
     <div id="top-banner" class="top-banner"></div>
@@ -163,18 +110,33 @@
                     const titleIdx = headers.indexOf('title');
                     const contentIdx = headers.indexOf('content');
                     const iconIdx = headers.indexOf('icon');
-                    
+                    // Optionale Spalte "image". Fehlt sie oder ist sie leer,
+                    // sieht die Kachel genau aus wie bisher - Bilder sind eine
+                    // Zugabe, keine Voraussetzung.
+                    const imageIdx = headers.indexOf('image');
+
                     for (let i = 1; i < rows.length; i++) {
                         const row = rows[i];
                         if (row.length < 3 || !row[titleIdx]) continue;
-                        
+
                         const title = row[titleIdx].trim();
                         const content = row[contentIdx] || '';
                         const icon = iconIdx >= 0 && row[iconIdx] ? row[iconIdx].trim() : '♟️';
-                        
+                        const image = imageIdx >= 0 && row[imageIdx] ? row[imageIdx].trim() : '';
+
                         const card = document.createElement('div');
-                        card.className = 'youth-card'; // Entfernt fade-in-up zur Sicherheit
+                        card.className = 'youth-card' + (image ? ' has-media' : '');
+
+                        // Der Alternativtext kommt aus dem Titel - damit steht
+                        // dort etwas Sinnvolles, ohne dass eine weitere Spalte
+                        // gepflegt werden muss.
+                        const altText = title.replace(/"/g, '&quot;');
+                        const mediaHTML = image
+                            ? `<img class="youth-media" src="${image}" alt="${altText}" loading="lazy" decoding="async">`
+                            : '';
+
                         card.innerHTML = `
+                            ${mediaHTML}
                             <div class="youth-icon">${icon}</div>
                             <div class="youth-content">
                                 <h2>${title}</h2>

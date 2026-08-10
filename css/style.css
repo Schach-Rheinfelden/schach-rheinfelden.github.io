@@ -3573,6 +3573,15 @@ body.light-theme .timeline-label {
         display: none !important;
     }
 }
+/* Zaehlanzeige unter dem Nachlade-Knopf der Archive: "24 von 140 Beiträgen".
+   Beantwortet, was der Knopf offenlaesst - wie viel noch kommt. */
+.archiv-zaehler {
+    margin-top: 0.7rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
 /* ===========================================================================
    Sichtbarer Tastaturfokus
    ===========================================================================
@@ -3639,10 +3648,14 @@ body.light-theme .timeline-label {
 }
 
 .youth-card {
+    /* Der Innenabstand steht als Variable, weil das Bild ihn genau zuruecknehmen
+       muss, um randlos zu sitzen. Zwei getrennte Zahlen wuerden beim naechsten
+       Feinschliff auseinanderlaufen - dann klaffte eine Fuge. */
+    --youth-pad: 1.75rem;
     display: flex;
     align-items: flex-start;
     gap: 1.25rem;
-    padding: 1.75rem;
+    padding: var(--youth-pad);
     background: var(--glass-bg);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
@@ -3781,6 +3794,93 @@ body.light-theme .youth-card:hover {
     text-decoration: underline;
 }
 
+/* ---------------------------------------------------------------------------
+   Optionale Bilder in den Kacheln (Spalte "image" in youth.csv)
+   ---------------------------------------------------------------------------
+   Warum Bilder IN den Kacheln und kein grosses Kopfbild ueber der Seite:
+
+   Die Jugendseite soll informieren - Trainingszeiten, Ligen, Schulen. Ein
+   Kopfbild schiebt auf dem Handy den gesamten Inhalt unter den Bildschirmrand,
+   und man scrollt an einer Stimmung vorbei, um an die Uhrzeit zu kommen.
+
+   Ein Bild je Abschnitt zeigt dagegen etwas Bestimmtes: Kinder am Brett beim
+   Training, eine Schulklasse bei den AGs, ein Pokal beim Turniersport. Das
+   traegt Information statt nur Atmosphaere - und es bleibt in der CSV
+   steuerbar, wie alles andere auch.
+
+   Ohne Bild sieht die Kachel unveraendert aus. Die Spalte darf fehlen.
+--------------------------------------------------------------------------- */
+.youth-card.has-media {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "media media"
+        "icon  content";
+    align-content: start;
+    /* Das Bild ragt per negativem Aussenabstand ueber den Innenabstand hinaus.
+       Ohne diese Zeile schoesse es an den gerundeten Ecken quadratisch ueber
+       den Rahmen hinaus - genau der Effekt, den man bei den Terminkacheln
+       nicht sieht. */
+    overflow: hidden;
+}
+
+/* Randlos wie bei den Terminkacheln: Das Bild nimmt den Innenabstand der
+   Kachel wieder zurueck und sitzt buendig auf Rahmen und Rundung.
+   Unten bleibt der normale Abstand zum Text stehen. */
+.youth-media {
+    grid-area: media;
+    /* Die Breite steht ausdruecklich da, statt sich auf das Strecken im Raster
+       zu verlassen: Bilder sind ersetzte Elemente und behalten dabei ihre
+       natuerliche Groesse - genau deshalb wurden sie vorher so hoch. */
+    width: calc(100% + var(--youth-pad) * 2);
+    /* Feste Hoehenspanne statt Seitenverhaeltnis. Ein 16:9-Streifen waere in
+       einer 560px breiten Kachel schon 315px hoch und schoebe den Text unter
+       den Bildschirmrand. Die Spanne waechst mit der Fensterbreite mit und
+       deckelt bei 240px - so bleiben alle Kacheln auf einer Linie, egal
+       welches Bildformat in der CSV steht. */
+    height: clamp(150px, 22vw, 240px);
+    object-fit: cover;
+    display: block;
+    margin: calc(var(--youth-pad) * -1) calc(var(--youth-pad) * -1) 1.25rem;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.youth-card.has-media .youth-icon { grid-area: icon; }
+.youth-card.has-media .youth-content { grid-area: content; }
+
+/* Die vollbreite Blickfang-Karte stellt das Bild daneben statt darueber.
+   Sie hat die Breite dafuer, und ein 16:9-Streifen ueber der ganzen Karte
+   waere ein Banner - das lenkt vom Text ab, statt ihn zu ergaenzen. */
+@media (min-width: 1000px) {
+    #youth-container .youth-card:first-child.has-media {
+        grid-template-columns: auto minmax(0, 1fr) 34%;
+        grid-template-areas: "icon content media";
+        align-items: start;
+    }
+
+    /* Steht das Bild seitlich, ist die randlose Kante die rechte. Statt eines
+       festen Seitenverhaeltnisses laeuft es ueber die volle Kachelhoehe mit -
+       sonst bliebe unter dem Bild ein leerer Streifen, sobald der Text laenger
+       ist als das 4:3-Feld. object-fit deckt zu, das Bild verzerrt nicht. */
+    #youth-container .youth-card:first-child .youth-media {
+        width: calc(100% + var(--youth-pad));
+        /* Hier bestimmt der Text die Hoehe, nicht das Bild: Es laeuft ueber die
+           volle Kachelhoehe mit. Damit gibt es keinen leeren Streifen darunter
+           und keinen Deckel, der eine Fuge an der unteren Ecke hinterliesse. */
+        height: auto;
+        align-self: stretch;
+        min-height: 240px;
+        margin: calc(var(--youth-pad) * -1) calc(var(--youth-pad) * -1) calc(var(--youth-pad) * -1) 0;
+        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    }
+
+    /* Mit Bild bleibt der Text einspaltig: Zwei Textspalten NEBEN einem Bild
+       waeren je rund 30 Zeichen breit - zu schmal zum Lesen. */
+    #youth-container .youth-card:first-child.has-media .youth-content {
+        column-count: 1;
+    }
+}
+
 /* Auf schmalen Bildschirmen eine Spalte - und das Symbol ueber den Text,
    damit dem Text die volle Breite bleibt. */
 @media (max-width: 900px) {
@@ -3791,9 +3891,21 @@ body.light-theme .youth-card:hover {
 
 @media (max-width: 560px) {
     .youth-card {
+        /* Nur die Variable aendern - das Bild rechnet seinen Ueberstand daraus
+           und bleibt dadurch auch hier buendig. */
+        --youth-pad: 1.4rem;
         flex-direction: column;
         gap: 1rem;
-        padding: 1.4rem;
+    }
+
+    /* Auf dem Handy auch mit Bild einspaltig: Symbol ueber den Text, damit dem
+       Text die volle Breite bleibt. */
+    .youth-card.has-media {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "media"
+            "icon"
+            "content";
     }
 
     .youth-content h2,

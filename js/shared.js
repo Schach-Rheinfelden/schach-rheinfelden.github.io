@@ -2005,7 +2005,7 @@ window.renderGalleryHTML = function (gallery, title = '') {
         const cleanUrl = window.formatImageUrl(item.url);
         return `
                     <div class="gallery-figure">
-                        <img src="${cleanUrl}" class="gallery-img" alt="${item.caption || 'Galerie Bild'}" onclick="window.open('${cleanUrl}', '_blank')">
+                        <img src="${cleanUrl}" class="gallery-img" alt="${item.caption || 'Galerie Bild'}" onclick="window.open('${cleanUrl}', '_blank')" loading="lazy" decoding="async">
                         ${item.caption ? `<div class="gallery-caption">${item.caption}</div>` : ''}
                     </div>
                 `;
@@ -2177,7 +2177,7 @@ window.renderModalHeaderImage = function (item, title) {
         const altText = (title || item.title || 'Vorschaubild').replace(/"/g, '&quot;');
         return `
             <div class="modal-hero-header" onclick="window.open('${imgUrl}', '_blank')" title="Bild vergrößern">
-                <img src="${imgUrl}" alt="${altText}">
+                <img src="${imgUrl}" alt="${altText}" loading="lazy" decoding="async">
             </div>
         `;
     }
@@ -2339,3 +2339,93 @@ window.istVergangenerTermin = function (event) {
     if (!ende || isNaN(ende)) return false;
     return ende < heute;
 };
+
+/* ===========================================================================
+   Tastaturbedienung für anklickbare Elemente
+   ===========================================================================
+   Im Projekt tragen 14 div-, article- und li-Elemente ein onclick: News- und
+   Terminkacheln, Spielerkarten, Turnier-Flipcards, Mediathek-Kacheln, die
+   Begegnungen im Liga-Center. Mit der Maus funktionieren sie, per Tastatur
+   waren sie nicht erreichbar - ein div bekommt von sich aus keinen Fokus.
+   Wer mit der Tastatur navigiert oder einen Screenreader nutzt, kam an keine
+   einzige Kachel.
+
+   Statt in sechs Dateien 14 Stellen einzeln zu ergaenzen, laeuft es hier
+   zentral: Ein Beobachter ruestet jedes neu gerenderte Element nach. Das
+   erfasst auch alles, was spaeter dazukommt - Nachladen per "weitere
+   anzeigen", Filterwechsel, neue Kacheln aus der CSV.
+   =========================================================================== */
+
+/** Elemente, die von sich aus fokussierbar sind - die bleiben unberuehrt. */
+const NATIV_BEDIENBAR = ['a', 'button', 'input', 'select', 'textarea', 'summary'];
+
+/**
+ * Sucht einen sprechenden Namen fuer das Element.
+ * Eine Ueberschrift ist besser als der ganze Kachelinhalt: "Willkommen auf
+ * unserer neuen Vereins-Webseite" statt Datum, Titel, Vorschautext und
+ * Schlagworten am Stueck.
+ */
+function findeBeschriftung_(el) {
+    const ueberschrift = el.querySelector('h1, h2, h3, h4, .news-title, .event-title, .player-name, .media-title');
+    const quelle = ueberschrift || el;
+    return String(quelle.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+}
+
+/**
+ * Macht anklickbare Elemente fokussierbar und benennt sie.
+ * @param {Element} [wurzel] Bereich, der durchsucht wird (Vorgabe: ganze Seite)
+ */
+window.macheKlickbarErreichbar = function (wurzel) {
+    const bereich = wurzel && wurzel.querySelectorAll ? wurzel : document;
+    const kandidaten = [];
+
+    if (bereich.matches && bereich.matches('[onclick]')) kandidaten.push(bereich);
+    bereich.querySelectorAll('[onclick]').forEach(function (el) { kandidaten.push(el); });
+
+    kandidaten.forEach(function (el) {
+        if (NATIV_BEDIENBAR.indexOf(el.tagName.toLowerCase()) !== -1) return;
+        if (el.hasAttribute('tabindex')) return;
+
+        el.setAttribute('tabindex', '0');
+        if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+        if (!el.hasAttribute('aria-label')) {
+            const name = findeBeschriftung_(el);
+            if (name) el.setAttribute('aria-label', name);
+        }
+    });
+};
+
+/* Enter und Leertaste loesen aus, was ein Klick ausloesen wuerde. */
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+
+    const el = e.target;
+    if (!el || !el.getAttribute) return;
+    if (el.getAttribute('role') !== 'button') return;
+    if (NATIV_BEDIENBAR.indexOf(el.tagName.toLowerCase()) !== -1) return;
+
+    // Innerhalb von Eingabefeldern haben beide Tasten eine eigene Bedeutung.
+    const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+    e.preventDefault();          // verhindert das Scrollen bei der Leertaste
+    el.click();
+});
+
+/* Neu gerenderte Elemente automatisch nachruesten.
+   Die Kacheln entstehen erst nach dem Laden der CSV-Dateien, teils spaeter
+   durch Filter oder Nachladen - ein einmaliger Durchlauf beim Seitenstart
+   wuerde sie verpassen. */
+document.addEventListener('DOMContentLoaded', function () {
+    window.macheKlickbarErreichbar();
+
+    if (typeof MutationObserver === 'undefined') return;
+    const beobachter = new MutationObserver(function (aenderungen) {
+        aenderungen.forEach(function (a) {
+            a.addedNodes.forEach(function (n) {
+                if (n.nodeType === 1) window.macheKlickbarErreichbar(n);
+            });
+        });
+    });
+    beobachter.observe(document.body, { childList: true, subtree: true });
+});

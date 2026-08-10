@@ -3573,3 +3573,231 @@ body.light-theme .timeline-label {
         display: none !important;
     }
 }
+/* ===========================================================================
+   Sichtbarer Tastaturfokus
+   ===========================================================================
+   Die anklickbaren Kacheln bekommen ueber shared.js tabindex und role. Damit
+   sind sie erreichbar - aber nur nuetzlich, wenn man auch SIEHT, wo man
+   gerade steht. :focus-visible zeigt den Rahmen nur bei Tastaturbedienung,
+   nicht beim Klicken mit der Maus.
+   =========================================================================== */
+[role="button"][tabindex]:focus-visible,
+.news-card:focus-visible,
+.event-card:focus-visible,
+.event-item:focus-visible,
+.media-card:focus-visible,
+.player-list-card:focus-visible,
+.flip-card:focus-visible,
+.youth-card:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 3px;
+    border-radius: var(--border-radius);
+}
+
+/* Bei den Turnierkarten sitzt der Rahmen sonst hinter der gedrehten
+   Vorderseite - deshalb etwas mehr Abstand und keine eigene Rundung. */
+.flip-card:focus-visible {
+    outline-offset: 5px;
+}
+
+/* ===========================================================================
+   Jugendseite (youth.html)
+   ===========================================================================
+   Die Klassen youth-card, youth-icon und youth-content wurden im JavaScript
+   von youth.html schon immer gesetzt - es gab dazu nur nie eine einzige
+   CSS-Regel. Die Seite zeigte fuenf nackte Bloecke mit einem Emoji davor.
+
+   Aufgebaut aus denselben Bausteinen wie News-, Turnier- und Terminkacheln:
+   Glasgrund, Goldrand beim Ueberfahren, gleiche Rundung. Damit gehoert die
+   Seite sichtbar zum Rest, statt wie ein fremdes Projekt zu wirken.
+
+   INHALT BLEIBT IN DER CSV. Auch der hervorgehobene erste Abschnitt kommt
+   ohne JavaScript aus: :first-child laesst die ERSTE Zeile aus youth.csv
+   ueber die volle Breite laufen. Wer die Reihenfolge in der Tabelle aendert,
+   aendert damit auch den Blickfang - ohne eine Zeile Code anzufassen.
+   =========================================================================== */
+
+#youth-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    /* stretch statt start: Karten einer Reihe werden gleich hoch. Mit "start"
+       endete "Jugend-Ligen" rund 65px hoeher als die Nachbarkarte - im Raster
+       sieht das ausgefranst aus. */
+    align-items: stretch;
+}
+
+/* Ladehinweis und Fehlermeldung ueber die ganze Breite. */
+#youth-container > .loading,
+#youth-container > p {
+    grid-column: 1 / -1;
+}
+
+/* Der erste Abschnitt aus der CSV ist der Blickfang. */
+#youth-container .youth-card:first-child {
+    grid-column: 1 / -1;
+}
+
+.youth-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.75rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--glass-highlight), 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: var(--transition);
+}
+
+.youth-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(212, 175, 55, 0.4);
+    box-shadow: var(--glass-highlight), 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 25px var(--gold-glow);
+}
+
+body.light-theme .youth-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .youth-card:hover {
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08), 0 0 25px rgba(212, 175, 55, 0.15);
+}
+
+/* Das Emoji aus der Spalte "icon" bekommt ein eigenes Feld, damit es als
+   Marke wirkt statt als loses Zeichen vor dem Text. */
+.youth-icon {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    line-height: 1;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 14px;
+}
+
+.youth-card:first-child .youth-icon {
+    width: 68px;
+    height: 68px;
+    font-size: 2.1rem;
+}
+
+.youth-content {
+    min-width: 0;              /* laesst lange Woerter umbrechen statt ueberlaufen */
+    flex: 1;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+/* Die vollbreite Blickfang-Karte zweispaltig setzen.
+   ---------------------------------------------------------------------------
+   Ueber die ganze Breite ergibt der Fliesstext rund 122 Zeichen pro Zeile.
+   Angenehm sind 45 bis 75 - darueber verliert das Auge beim Zeilenwechsel den
+   Anschluss und liest dieselbe Zeile zweimal.
+
+   Den Text einfach schmaler zu machen wuerde die halbe Karte leer lassen.
+   Zwei Spalten loesen beides auf einmal: rund 59 Zeichen je Zeile, und die
+   Breite wird genutzt. Die Ueberschrift laeuft ueber beide Spalten.
+
+   Erst ab 1000px - darunter ist die Karte ohnehin schmal genug. */
+@media (min-width: 1000px) {
+    #youth-container .youth-card:first-child .youth-content {
+        column-count: 2;
+        column-gap: 2.5rem;
+    }
+
+    #youth-container .youth-card:first-child .youth-content h2 {
+        column-span: all;
+    }
+
+    /* Aufzaehlungen und Absaetze nicht mitten im Element umbrechen lassen -
+       ein Listenpunkt, der ueber den Spaltenrand hinweg weitergeht, ist
+       schwerer zu lesen als einer, der in der naechsten Spalte neu beginnt. */
+    #youth-container .youth-card:first-child .youth-content li,
+    #youth-container .youth-card:first-child .youth-content p {
+        break-inside: avoid;
+    }
+}
+
+.youth-content h2 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.35rem;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+}
+
+.youth-card:first-child .youth-content h2 {
+    font-size: 1.7rem;
+}
+
+/* Feiner Goldstrich unter der Ueberschrift - dieselbe Geste wie bei den
+   Abschnittstiteln der Startseite. */
+.youth-content h2::after {
+    content: '';
+    display: block;
+    width: 42px;
+    height: 2px;
+    margin-top: 0.6rem;
+    background: var(--accent-color);
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+.youth-content p {
+    margin: 0 0 0.85rem 0;
+}
+
+.youth-content p:last-child {
+    margin-bottom: 0;
+}
+
+.youth-content ul {
+    margin: 0.5rem 0 0 0;
+    padding-left: 1.2rem;
+}
+
+.youth-content li {
+    margin-bottom: 0.4rem;
+}
+
+.youth-content li::marker {
+    color: var(--accent-color);
+}
+
+.youth-content strong {
+    color: var(--text-primary);
+}
+
+.youth-content a {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+/* Auf schmalen Bildschirmen eine Spalte - und das Symbol ueber den Text,
+   damit dem Text die volle Breite bleibt. */
+@media (max-width: 900px) {
+    #youth-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .youth-card {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.4rem;
+    }
+
+    .youth-content h2,
+    .youth-card:first-child .youth-content h2 {
+        font-size: 1.25rem;
+    }
+}

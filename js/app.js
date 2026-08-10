@@ -1640,6 +1640,34 @@ async function renderTeams() {
     }
 }
 
+/**
+ * Mittelpunkt des AVATARS einer schwebenden Karte.
+ *
+ * card.x/y bezeichnet die linke obere Ecke der KARTE. Die Karte ist ein
+ * Flex-Container mit zentriertem Avatar oben und Namen darunter - und sie ist
+ * so breit wie der NAME. Bei "Matthias Zimmermann" sind das 159px, der Avatar
+ * sitzt also bei x + 80.
+ *
+ * Der Code rechnete bisher pauschal mit x + 35. Bei kurzen Namen stimmte das
+ * ungefaehr, bei langen lag der Bezugspunkt bis zu 45px zu weit links - die
+ * Verbindungslinien endeten sichtbar neben dem Avatar statt dahinter.
+ * Senkrecht sass er 5px zu tief: Der Avatar ist 60px hoch und beginnt oben,
+ * seine Mitte liegt bei y + 30.
+ *
+ * Die Breite wird zwischengespeichert, weil offsetWidth den Browser zu einer
+ * Layoutberechnung zwingt - 60 Mal pro Sekunde fuer jede Karte waere teuer.
+ * Sie aendert sich ohnehin nur, wenn sich der Name aendert.
+ */
+function avatarMitte(card) {
+    if (!card._halbeBreite) {
+        const b = card.el ? card.el.offsetWidth : 0;
+        // Vor dem ersten Layout ist offsetWidth 0 - dann der alte Naeherungswert,
+        // beim naechsten Bild steht die echte Breite zur Verfuegung.
+        card._halbeBreite = b ? b / 2 : 35;
+    }
+    return { x: card.x + card._halbeBreite, y: card.y + 30 };
+}
+
 // Physik-Engine für fliegende Karten mit Zoom & Pan
 function initPhysicsEngine(cardsData, container, canvas) {
     if (!canvas) return;
@@ -1835,10 +1863,9 @@ function initPhysicsEngine(cardsData, container, canvas) {
             const card = activePlayers[i];
             const other = activePlayers[i + 1];
 
-            const cx1 = card.x + 35; // radius is roughly 35 (avatar is 60px diameter + gap)
-            const cy1 = card.y + 35;
-            const cx2 = other.x + 35;
-            const cy2 = other.y + 35;
+            const p1 = avatarMitte(card);
+            const p2 = avatarMitte(other);
+            const cx1 = p1.x, cy1 = p1.y, cx2 = p2.x, cy2 = p2.y;
 
             ctx.moveTo(cx1, cy1);
             ctx.lineTo(cx2, cy2);
@@ -1885,10 +1912,9 @@ function initPhysicsEngine(cardsData, container, canvas) {
                 const other = cardsData[j];
                 if (other.isHidden) continue;
 
-                const cx1 = card.x + 35;
-                const cy1 = card.y + 35;
-                const cx2 = other.x + 35;
-                const cy2 = other.y + 35;
+                const m1 = avatarMitte(card);
+                const m2 = avatarMitte(other);
+                const cx1 = m1.x, cy1 = m1.y, cx2 = m2.x, cy2 = m2.y;
                 const dx = cx2 - cx1;
                 const dy = cy2 - cy1;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1919,16 +1945,33 @@ function initPhysicsEngine(cardsData, container, canvas) {
             card.el.style.transform = `translate(${card.x}px, ${card.y}px)`;
 
             const matches = window.matchesPlayerFilter(card.playerData);
+
+            // Aussehen und Klickverhalten ueber eine Klasse statt ueber
+            // Inline-Styles.
+            //
+            // Zwei Gruende:
+            //
+            // 1. Ein Inline-Style schlaegt jede Regel im Stylesheet. Das frühere
+            //    style.pointerEvents = 'auto' machte die GANZE Karte wieder
+            //    anklickbar - also auch den bis zu 159px breiten Namen, der ueber
+            //    dem Nachbarn liegt. Die Einschraenkung auf den Avatar im CSS war
+            //    damit bei jedem Bild wieder aufgehoben.
+            //
+            // 2. pointer-events: none auf der Karte reicht nicht: Ein Kind darf
+            //    Zeiger wieder annehmen, und genau das tut der Avatar. Eine
+            //    ausgeblendete Karte fing so weiterhin Klicks ab - der Handler
+            //    stieg wegen "if (card.isHidden) return" sofort aus, und der
+            //    sichtbare Spieler darunter bekam nichts mit.
+            card.el.classList.toggle('spieler-ausgeblendet', !matches);
+            card.isHidden = !matches;
+
+            // Ausgeblendete nach hinten, damit ein sichtbarer Spieler immer
+            // OBEN liegt. Sichtbare Karten bleiben unangetastet, sonst wuerde
+            // das Hervorholen beim Ziehen (z-index 50) jeden Frame ueberschrieben.
             if (!matches) {
-                card.el.style.opacity = '0.15';
-                card.el.style.filter = 'grayscale(100%)';
-                card.el.style.pointerEvents = 'none';
-                card.isHidden = true;
-            } else {
-                card.el.style.opacity = '1';
-                card.el.style.filter = 'none';
-                card.el.style.pointerEvents = 'auto';
-                card.isHidden = false;
+                card.el.style.zIndex = '1';
+            } else if (card.el.style.zIndex === '1') {
+                card.el.style.zIndex = '10';
             }
         });
 

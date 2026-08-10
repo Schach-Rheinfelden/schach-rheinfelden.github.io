@@ -273,7 +273,7 @@ function openMedia(id) {
             <div style="padding: 0.5rem; text-align: center;">
                 <h2 style="color: var(--accent-color); margin-bottom: 0.5rem; font-size: 1.6rem; margin-top: 0;">${item.title}</h2>
                 ${item.description ? `<p style="color: var(--text-primary); margin-bottom: 1rem; font-size: 1rem;">${window.formatTextContent(item.description)}</p>` : ''}
-                <img src="${item.url}" alt="${item.title}" style="max-width: 100%; max-height: 65vh; border-radius: 8px; border: 1px solid var(--glass-border); object-fit: contain;">
+                <img src="${item.url}" alt="${item.title}" style="max-width: 100%; max-height: 65vh; border-radius: 8px; border: 1px solid var(--glass-border); object-fit: contain;" loading="lazy" decoding="async">
             </div>
         `;
         modal.classList.remove('hidden');
@@ -357,7 +357,7 @@ function renderMedia() {
         
         let thumbHTML = '';
         if (item.thumbnail && item.thumbnail.trim() !== '') {
-            thumbHTML = `<img src="${item.thumbnail}" class="media-thumbnail" alt="${item.title}" onerror="this.outerHTML='<div class=\\'media-thumbnail\\'>${platformLabel}</div>'">`;
+            thumbHTML = `<img src="${item.thumbnail}" class="media-thumbnail" alt="${item.title}" onerror="this.outerHTML='<div class=\\'media-thumbnail\\' loading="lazy" decoding="async">${platformLabel}</div>'">`;
         } else {
             thumbHTML = `<div class="media-thumbnail">${platformLabel.split(' ')[0]}</div>`;
         }

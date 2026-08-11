@@ -357,7 +357,7 @@ function renderMedia() {
         
         let thumbHTML = '';
         if (item.thumbnail && item.thumbnail.trim() !== '') {
-            thumbHTML = `<img src="${item.thumbnail}" class="media-thumbnail" alt="${item.title}" onerror="this.outerHTML='<div class=\\'media-thumbnail\\' loading="lazy" decoding="async">${platformLabel}</div>'">`;
+            thumbHTML = `<img src="${item.thumbnail}" class="media-thumbnail" alt="${item.title}" loading="lazy" decoding="async" onerror="this.outerHTML='&lt;div class=&quot;media-thumbnail&quot;&gt;${platformLabel}&lt;/div&gt;'">`;
         } else {
             thumbHTML = `<div class="media-thumbnail">${platformLabel.split(' ')[0]}</div>`;
         }

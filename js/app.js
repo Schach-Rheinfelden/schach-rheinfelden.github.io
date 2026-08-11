@@ -1593,6 +1593,37 @@ async function renderTeams() {
         const world = container.querySelector('#physics-world');
 
         const cardsData = [];
+
+        // ══ Spielfeld statt Bildausschnitt ══════════════════════════════════
+        //
+        // Bisher lagen alle Avatare im sichtbaren Kasten - 600px hoch, auf dem
+        // Handy aber nur rund 360px breit. Die Physik haelt je zwei Avatare
+        // 80px auseinander; ein Avatar braucht damit rund 5500px² Flaeche.
+        // Auf dem Handy stehen 216'000px² zur Verfuegung, also rechnerisch
+        // Platz fuer knapp 40 Avatare bei LUECKENLOSER Packung. In der Praxis
+        // war das Feld schon ab etwa der Haelfte voll: Die Avatare lagen
+        // aneinander, und zog man einen heraus, schob ihn die weiche Grenze
+        // sofort wieder in die Menge zurueck. Genau das war nicht mehr
+        // aufloesbar - anders als am Desktop, wo dieselbe Zahl auf der
+        // dreifachen Breite liegt.
+        //
+        // Jetzt bekommt das Feld eine eigene Groesse, die mit der Anzahl
+        // waechst und vom Bildschirm unabhaengig ist. Der sichtbare Kasten ist
+        // nur noch ein Fenster darauf - verschieben und zoomen gab es schon,
+        // es hatte bloss nie etwas zu zeigen ausserhalb des Randes.
+        const sichtBreite = container.clientWidth || 600;
+        const sichtHoehe = container.clientHeight || 600;
+        // 80px Mindestabstand ergeben 6400px²; der Faktor 1.7 ist die Luft, die
+        // es braucht, damit sich die Avatare nicht dauernd gegenseitig
+        // anstossen, sondern ruhig liegen bleiben.
+        const platzProSpieler = 80 * 80 * 1.7;
+        const flaeche = Math.max(sichtBreite * sichtHoehe, allPlayers.length * platzProSpieler);
+        // Seitenverhaeltnis des Fensters beibehalten - so entsteht kein
+        // schlauchfoermiges Feld, das man nur in eine Richtung durchsuchen kann.
+        const weltBreite = Math.round(Math.sqrt(flaeche * (sichtBreite / sichtHoehe)));
+        const weltHoehe = Math.round(flaeche / weltBreite);
+        const welt = { breite: weltBreite, hoehe: weltHoehe };
+
         const svgStr = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#e2e8f0" /><circle cx="50" cy="38" r="18" fill="#94a3b8" /><path d="M -20 120 C -20 60, 120 60, 120 120 Z" fill="#94a3b8" /></svg>';
         const mysteryAvatar = `data:image/svg+xml;utf8,${encodeURIComponent(svgStr)}`;
 
@@ -1622,8 +1653,11 @@ async function renderTeams() {
                 teamId: player.teamId,
                 playerData: player, // save full player data for modal
                 el: el,
-                x: Math.random() * (container.clientWidth - 100),
-                y: Math.random() * (container.clientHeight - 100),
+                // Startplatz im ganzen Feld, nicht nur im sichtbaren Ausschnitt.
+                // Der Rand von 90px haelt auch die breiteste Karte samt
+                // Namenszug vollstaendig innerhalb der Flaeche.
+                x: 90 + Math.random() * Math.max(1, weltBreite - 180),
+                y: 60 + Math.random() * Math.max(1, weltHoehe - 120),
                 vx: 0,
                 vy: 0,
                 radius: 35,
@@ -1632,7 +1666,7 @@ async function renderTeams() {
             });
         });
 
-        initPhysicsEngine(cardsData, container, canvas);
+        initPhysicsEngine(cardsData, container, canvas, welt);
 
     } catch (e) {
         console.error("Could not load teams", e);
@@ -1706,12 +1740,16 @@ function avatarMitte(card) {
 }
 
 // Physik-Engine für fliegende Karten mit Zoom & Pan
-function initPhysicsEngine(cardsData, container, canvas) {
+function initPhysicsEngine(cardsData, container, canvas, welt) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let width = container.clientWidth;
     let height = container.clientHeight;
     const world = container.querySelector('#physics-world');
+
+    // Ohne Angabe entspricht das Feld dem Fenster - so verhaelt sich die
+    // Funktion wie frueher, falls sie irgendwo anders aufgerufen wird.
+    const feld = welt || { breite: width, hoehe: height };
 
     window.addEventListener('resize', () => {
         width = container.clientWidth;
@@ -1739,6 +1777,65 @@ function initPhysicsEngine(cardsData, container, canvas) {
     function applyTransform() {
         if (world) world.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
+
+    // ══ Anfangsansicht ══════════════════════════════════════════════════════
+    // Das Feld ist jetzt oft groesser als das Fenster. Ohne diese Zeilen saehe
+    // man beim Oeffnen nur die linke obere Ecke davon und hielte den Rest fuer
+    // verschwunden. Deshalb wird beim Start so weit herausgezoomt, dass alles
+    // hineinpasst - und mittig gestellt.
+    //
+    // Nach unten bei 0.7 gedeckelt: Das haelt den Avatar bei 42px und damit
+    // gerade noch in der Groesse, die man mit dem Finger sicher trifft. Alles
+    // hineinzuzwaengen waere die schlechtere Wahl - dann saehe man zwar jeden,
+    // koennte aber keinen mehr antippen. Bleibt das Feld groesser als das
+    // Fenster, schiebt man es; Ziehen am Hintergrund und die Zoomknoepfe gab
+    // es schon, sie hatten bloss nie etwas zu zeigen.
+    // Nach oben nie ueber 1, sonst wuerde am Desktop unnoetig vergroessert.
+    /**
+     * Ansicht auf alle sichtbaren Karten einpassen.
+     *
+     * Beim Start gibt es noch nichts zu messen - dann dient die berechnete
+     * Feldgroesse als Bezug. Spaeter zaehlt, wo die Karten TATSAECHLICH liegen:
+     * Weil es keine Grenze mehr gibt, darf man sie beliebig weit auseinander
+     * ziehen, und genau dann soll der Knopf ⤢ auch dorthin zurueckfinden.
+     *
+     * mindest deckelt das Herauszoomen. Beim Start liegt es bei 0.7, damit die
+     * Avatare mit rund 42px antippbar bleiben; beim Knopf tiefer, denn wer ihn
+     * drueckt, will bewusst die Uebersicht und nicht die Trefferflaeche.
+     */
+    function passeAnsichtEin(mindest, nachInhalt) {
+        // War der Kasten beim Aufbau noch ausgeblendet, sind Breite und Hoehe
+        // null. Dann liesse sich nichts einpassen - lieber unveraendert lassen
+        // als auf einen unsinnigen Wert stellen.
+        if (!width || !height) return;
+
+        let links = 0, oben = 0, rechts = feld.breite, unten = feld.hoehe;
+
+        if (nachInhalt) {
+            const sichtbare = cardsData.filter(c => !c.isHidden);
+            if (sichtbare.length) {
+                links = Infinity; oben = Infinity; rechts = -Infinity; unten = -Infinity;
+                sichtbare.forEach(c => {
+                    const m = avatarMitte(c);
+                    // 60px Puffer: halbe Kartenbreite plus der Namenszug
+                    // darunter, damit nichts am Rand angeschnitten wird.
+                    if (m.x - 60 < links) links = m.x - 60;
+                    if (m.y - 60 < oben) oben = m.y - 60;
+                    if (m.x + 60 > rechts) rechts = m.x + 60;
+                    if (m.y + 90 > unten) unten = m.y + 90;
+                });
+            }
+        }
+
+        const inhaltBreite = Math.max(1, rechts - links);
+        const inhaltHoehe = Math.max(1, unten - oben);
+        const passung = Math.min(width / inhaltBreite, height / inhaltHoehe);
+        scale = Math.min(1, Math.max(mindest, passung));
+        panX = (width - inhaltBreite * scale) / 2 - links * scale;
+        panY = (height - inhaltHoehe * scale) / 2 - oben * scale;
+        applyTransform();
+    }
+    passeAnsichtEin(0.7, false);
 
     function zoomAt(x, y, newScale) {
         newScale = Math.max(0.3, Math.min(newScale, 3));
@@ -1928,6 +2025,13 @@ function initPhysicsEngine(cardsData, container, canvas) {
     document.getElementById('zoom-out-btn')?.addEventListener('click', () => {
         zoomAt(container.clientWidth / 2, container.clientHeight / 2, scale / 1.2);
     });
+    document.getElementById('zoom-fit-btn')?.addEventListener('click', () => {
+        width = container.clientWidth;
+        height = container.clientHeight;
+        // 0.25 statt 0.7: Wer diesen Knopf drueckt, will alle sehen - notfalls
+        // klein. Zum Antippen zoomt man danach wieder hinein.
+        passeAnsichtEin(0.25, true);
+    });
 
     // Listener wurde entfernt, window.teamConnected übernimmt das.
 
@@ -1999,35 +2103,23 @@ function initPhysicsEngine(cardsData, container, canvas) {
                 card.vx *= 0.85;
                 card.vy *= 0.85;
 
-                // ── Sanfte Grenze ──────────────────────────────────────────
-                // Der Container hat overflow: hidden. Was hinausragt, ist weder
-                // sichtbar noch antippbar - der abgeschnittene Teil nimmt keine
-                // Beruehrung mehr an.
+                // ── Keine Grenze mehr ──────────────────────────────────────
+                // Hier zog eine weiche Grenze jede Karte in den sichtbaren
+                // Kasten zurueck. Das war noetig, solange es nichts ausserhalb
+                // gab: Der Container hat overflow: hidden, was hinausragte, war
+                // weder zu sehen noch anzutippen.
                 //
-                // Zwei Wege fuehrten dorthin: Die Anfangsplatzierung rechnete
-                // mit x bis clientWidth - 100, unterstellte also 100px breite
-                // Karten. Tatsaechlich sind sie bis zu 159px breit, und der
-                // Avatar sitzt in ihrer MITTE - er landete damit bis zu 20px
-                // ausserhalb. Dazu kommt das Driften durch die Kollisionen.
+                // Mit Verschieben und Zoomen ist "ausserhalb" aber kein
+                // Sackgassenzustand mehr, sondern nur ein anderer Ausschnitt.
+                // Die Grenze verhinderte damit nichts Schlimmes, sondern nur,
+                // dass eine bewusst zur Seite gelegte Karte dort liegen bleibt.
                 //
-                // Statt einer harten Wand ein leises Zurueckziehen: 15% des
-                // Ueberstands je Bild. Wer eine Karte an den Rand zieht, darf
-                // das - sie rutscht danach nur so weit zurueck, dass ihre
-                // Trefferflaeche wieder vollstaendig im Bild liegt.
-                // Waehrend des Ziehens greift es nicht (siehe Bedingung oben).
-                const mitte = avatarMitte(card);
-                const rand = 40;                       // halbe Trefferflaeche
-                const bw = container.clientWidth;
-                const bh = container.clientHeight;
-
-                let zurueckX = 0, zurueckY = 0;
-                if (mitte.x < rand) zurueckX = rand - mitte.x;
-                else if (mitte.x > bw - rand) zurueckX = (bw - rand) - mitte.x;
-                if (mitte.y < rand) zurueckY = rand - mitte.y;
-                else if (mitte.y > bh - rand) zurueckY = (bh - rand) - mitte.y;
-
-                if (zurueckX) card.x += zurueckX * 0.15;
-                if (zurueckY) card.y += zurueckY * 0.15;
+                // Ohne sie laeuft nichts davon: Die einzigen Kraefte sind das
+                // Zusammenziehen der verbundenen Mannschaften nach innen und das
+                // Abstossen bei Ueberlappung nach aussen. Sobald sich niemand
+                // mehr ueberlappt, wirkt keine Kraft, und die Reibung von 15%
+                // je Bild bringt den Rest zum Stehen. Der Knopf ⤢ passt die
+                // Ansicht auf alle Karten an - verlieren kann man also keine.
             }
 
             for (let j = i + 1; j < cardsData.length; j++) {

@@ -806,7 +806,14 @@ window.stripHtml = function (html, optionen) {
         text = text
             .replace(/[^\S\n]+/g, ' ')
             .replace(/[^\S\n]*\n[^\S\n]*/g, '\n')
-            .replace(/\n{3,}/g, '\n\n')
+            // Genau EIN Umbruch je Blockgrenze.
+            //
+            // Jeder Block liefert zwei: einen vor dem oeffnenden Tag, einen
+            // nach dem schliessenden. Ein Absatz waere damit von einem
+            // Listeneintrag nicht zu unterscheiden - beide kaemen auf zwei.
+            // Statt eine Trennung vorzutaeuschen, die es nicht gibt, wird
+            // einheitlich auf einen zusammengezogen.
+            .replace(/\n{2,}/g, '\n')
             .replace(/[^\S\n]*\u00b7[^\S\n]*(\u00b7[^\S\n]*)+/g, ' \u00b7 ')
             // Trenner am Zeilenanfang oder -ende haengen in der Luft: Die
             // letzte Tabellenzelle einer Zeile hat keinen Nachbarn mehr.
@@ -2130,6 +2137,695 @@ window.getEventCardColorStyles = function (colorRaw) {
     };
 };
 window.getCardColorStyles = window.getEventCardColorStyles;
+
+/* ===========================================================================
+   Termin als Bild
+   ===========================================================================
+   Erzeugt aus einem Termin eine Bilddatei im Aussehen des Detailfensters -
+   zum Weitergeben in WhatsApp oder zum Ausdrucken fuers Brett im Vereinslokal.
+
+   ══ WARUM GEZEICHNET UND NICHT ABFOTOGRAFIERT ══
+   Naheliegend waere, das geoeffnete Fenster mit einer Bibliothek wie
+   html2canvas abzulichten. Dagegen sprechen drei Dinge:
+
+   1. Das Fenster ist gescrollt und hoechstens bildschirmhoch. Ein langer
+      Termintext waere abgeschnitten - genau der Teil, den man weitergeben will.
+   2. backdrop-filter, color-mix und Verlaeufe geben solche Bibliotheken nur
+      naeherungsweise wieder. Das Ergebnis saehe knapp daneben aus.
+   3. Es waere eine Fremdbibliothek von einem fremden Server fuer eine Funktion,
+      die ein paar hundert Zeilen Zeichenbefehle sind.
+
+   Gezeichnet wird stattdessen direkt - dadurch bestimmt der INHALT die Hoehe,
+   nicht der Bildschirm, und das Ergebnis ist bei jeder Geraetegroesse gleich.
+
+   ══ BREITE 1080 ══
+   Das ist die Breite, auf die WhatsApp und Telegram Bilder herunterrechnen.
+   Wer mehr liefert, verschenkt die Schaerfe an deren Kompression.
+--------------------------------------------------------------------------- */
+
+const TERMINBILD = {
+    breite: 1080,
+    rand: 72,
+    gold: '#d4af37',                     // --accent-color, in beiden Themen gleich
+
+    dunkel: {
+        grund: '#0b1220',                // --surface-color
+        grundTief: '#050810',            // --bg-color
+        text: '#f8fafc',                 // --text-primary
+        textLeise: '#94a3b8',            // --text-secondary
+        linie: 'rgba(255, 255, 255, 0.08)',
+        // Schlagwoerter exakt wie .tag-badge im Stylesheet
+        tagGrund: 'rgba(255, 255, 255, 0.12)',
+        tagRand: 'rgba(255, 255, 255, 0.12)',
+        tagText: '#d4af37'               // var(--accent-color)
+    },
+    hell: {
+        grund: '#ffffff',                // --surface-color (hell)
+        grundTief: '#fdfbf7',            // --bg-color (warmes Creme)
+        text: '#0f172a',                 // --text-primary (hell)
+        textLeise: '#475569',            // --text-secondary (hell)
+        linie: 'rgba(0, 0, 0, 0.10)',
+        // body.light-theme .tag-badge: gelber Chip mit braunem Text,
+        // ausdruecklich NICHT die Akzentfarbe
+        tagGrund: '#fef08a',
+        tagRand: '#fef08a',
+        tagText: '#854d0e'
+    }
+};
+
+/**
+ * Beliebige CSS-Farbangabe zu {r,g,b}.
+ *
+ * Umweg ueber die Zeichenflaeche, weil aus der CSV auch "tomato" oder
+ * "hsl(...)" kommen kann - der Browser rechnet das selbst in eine
+ * Hex-Schreibweise um, wenn man fillStyle setzt und wieder ausliest.
+ */
+function terminbildFarbe_(wert) {
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = wert;
+    const s = ctx.fillStyle;
+    if (/^#[0-9a-f]{6}$/i.test(s)) {
+        return { r: parseInt(s.substr(1, 2), 16), g: parseInt(s.substr(3, 2), 16), b: parseInt(s.substr(5, 2), 16) };
+    }
+    const m = /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(s);
+    return m ? { r: +m[1], g: +m[2], b: +m[3] } : { r: 212, g: 175, b: 55 };
+}
+
+/* Anmerkung zur Akzentfarbe im hellen Thema:
+   Hier stand kurzzeitig eine Automatik, die das Gold auf hellem Grund
+   abdunkelte, bis der Kontrast rechnerisch 4.5:1 erreichte. Rechnerisch
+   richtig, gestalterisch falsch - aus dem Gold wurde ein stumpfes Ocker.
+   Die Kachel und das Detailfenster verwenden auf Weiss ebenfalls das volle
+   Gold; das Bild soll aussehen wie sie, nicht wie ein Kompromiss. */
+
+/**
+ * Bricht Text auf eine Hoechstbreite um und liefert die Zeilen.
+ * Beruecksichtigt bereits vorhandene Zeilenumbrueche im Text.
+ */
+function terminbildZeilen_(ctx, text, maxBreite) {
+    const zeilen = [];
+    String(text).split('\n').forEach(absatz => {
+        if (!absatz.trim()) { zeilen.push(''); return; }
+        let aktuell = '';
+        absatz.split(/\s+/).forEach(wort => {
+            const versuch = aktuell ? aktuell + ' ' + wort : wort;
+            if (ctx.measureText(versuch).width <= maxBreite || !aktuell) {
+                aktuell = versuch;
+            } else {
+                zeilen.push(aktuell);
+                aktuell = wort;
+            }
+        });
+        if (aktuell) zeilen.push(aktuell);
+    });
+    return zeilen;
+}
+
+/**
+ * Zerlegt den Termintext in Abschnitte mit Auszeichnung.
+ *
+ * ══ WARUM NICHT EINFACH stripHtml ══
+ * Reiner Text wirft genau das weg, was den Text lesbar macht: Im Fenster stehen
+ * "Turniermodus:", "Zeitplan:", "Preisfonds:" fett, der Verweis auf die
+ * Ausschreibung in Gold, und zwischen den Abschnitten ist Luft. Im Bild stand
+ * davon nichts mehr - ein grauer Block, in dem man die Gliederung suchen musste.
+ *
+ * Deshalb wird der Baum durchlaufen und in Abschnitte zerlegt, die jeweils aus
+ * "Laeufen" bestehen: zusammenhaengende Stuecke mit gleicher Auszeichnung.
+ * Fett, kursiv, Verweis und Ueberschrift bleiben damit erhalten.
+ */
+function terminbildBloecke_(html) {
+    const wurzel = document.createElement('div');
+    wurzel.innerHTML = html || '';
+
+    const bloecke = [];
+    let aktuell = null;
+
+    function neuerBlock(typ, einzug) {
+        aktuell = { typ: typ || 'absatz', einzug: einzug || 0, runs: [] };
+        bloecke.push(aktuell);
+    }
+    function schreibe(t, stil) {
+        if (!t) return;
+        if (!aktuell) neuerBlock('absatz', 0);
+        aktuell.runs.push({
+            t: t,
+            fett: !!stil.fett, kursiv: !!stil.kursiv,
+            akzent: !!stil.akzent, leise: !!stil.leise
+        });
+    }
+
+    const BLOCK = /^(p|div|h[1-6]|li|blockquote|figure|figcaption|section|article|tr)$/;
+    const SAMMEL = /^(ul|ol|table|thead|tbody|tfoot)$/;
+
+    function gehe(knoten, stil, einzug) {
+        Array.prototype.forEach.call(knoten.childNodes, function (k) {
+            if (k.nodeType === 3) {
+                const t = k.nodeValue.replace(/\s+/g, ' ');
+                if (t.trim() || (aktuell && aktuell.runs.length)) schreibe(t, stil);
+                return;
+            }
+            if (k.nodeType !== 1) return;
+            const tag = k.tagName.toLowerCase();
+
+            if (tag === 'br') { neuerBlock(aktuell ? aktuell.typ : 'absatz', einzug); return; }
+
+            // Bilder, Tabellenbilder und Videos lassen sich hier nicht abbilden -
+            // an ihrer Stelle steht ein Hinweis, wie in der Kachelvorschau.
+            if (/^(img|picture|svg|video|iframe|embed|object)$/.test(tag)) {
+                neuerBlock('absatz', einzug);
+                schreibe(/^(video|iframe|embed|object)$/.test(tag)
+                    ? '▶️ Video – auf der Website'
+                    : '🖼️ Bild – auf der Website', { leise: true, kursiv: true });
+                aktuell = null;
+                return;
+            }
+
+            const neuerStil = {
+                fett: stil.fett || tag === 'strong' || tag === 'b' || tag === 'th' || /^h[1-6]$/.test(tag),
+                kursiv: stil.kursiv || tag === 'em' || tag === 'i',
+                akzent: stil.akzent || tag === 'a',
+                leise: stil.leise || tag === 'small'
+            };
+
+            if (SAMMEL.test(tag)) { gehe(k, neuerStil, einzug); aktuell = null; return; }
+
+            if (BLOCK.test(tag)) {
+                const eigenerEinzug = tag === 'li' ? einzug + 34 : einzug;
+                neuerBlock(/^h[1-6]$/.test(tag) ? 'ueberschrift'
+                    : (tag === 'li' ? 'punkt' : 'absatz'), eigenerEinzug);
+                // Listenpunkt in der Textfarbe: Das Fenster setzt fuer
+                // ::marker keine eigene Farbe, dort ist er ebenfalls neutral.
+                if (tag === 'li') schreibe('• ', {});
+                gehe(k, neuerStil, eigenerEinzug);
+                aktuell = null;
+                return;
+            }
+
+            // Tabellenzellen durch Mittelpunkt trennen, sonst kleben die Werte.
+            if (tag === 'td' || tag === 'th') {
+                if (aktuell && aktuell.runs.length) schreibe(' · ', { leise: true });
+                gehe(k, neuerStil, einzug);
+                return;
+            }
+
+            gehe(k, neuerStil, einzug);
+        });
+    }
+
+    gehe(wurzel, {}, 0);
+    return bloecke.filter(b => b.runs.some(r => r.t.trim()));
+}
+
+/** Schriftangabe fuer einen Lauf. */
+function terminbildSchrift_(run, groesse) {
+    return (run.kursiv ? 'italic ' : '') + (run.fett ? '700' : '400')
+        + ' ' + groesse + 'px Outfit, sans-serif';
+}
+
+/**
+ * Bricht die Abschnitte auf die verfuegbare Breite um.
+ *
+ * Gemessen wird je Lauf mit dessen eigener Schrift - fetter Text ist breiter
+ * als normaler, und mit einer Einheitsmessung liefe die letzte Zeile ueber.
+ */
+function terminbildSatz_(mess, bloecke, maxBreite) {
+    return bloecke.map(function (block) {
+        const groesse = block.typ === 'ueberschrift' ? 34 : 30;
+        const zeilenHoehe = Math.round(groesse * 1.45);
+        const breite = maxBreite - block.einzug;
+
+        const zeilen = [];
+        let zeile = [], x = 0;
+
+        block.runs.forEach(function (run) {
+            mess.font = terminbildSchrift_(run, groesse);
+            // Leerraum mit abspalten, damit er beim Zeichnen erhalten bleibt.
+            run.t.split(/(\s+)/).forEach(function (teil) {
+                if (!teil) return;
+                const b = mess.measureText(teil).width;
+                if (teil.trim() && x + b > breite && zeile.length) {
+                    zeilen.push(zeile); zeile = []; x = 0;
+                }
+                if (!zeile.length && !teil.trim()) return;  // fuehrender Leerraum
+                zeile.push({ t: teil, run: run, b: b });
+                x += b;
+            });
+        });
+        if (zeile.length) zeilen.push(zeile);
+
+        return {
+            typ: block.typ, einzug: block.einzug,
+            groesse: groesse, zeilenHoehe: zeilenHoehe, zeilen: zeilen,
+            // Luft VOR dem Abschnitt: Ueberschriften brauchen am meisten,
+            // Aufzaehlungspunkte am wenigsten - sie gehoeren zusammen.
+            abstand: block.typ === 'ueberschrift' ? 26 : (block.typ === 'punkt' ? 4 : 16)
+        };
+    });
+}
+
+/** Rechteck mit runden Ecken - Path2D.roundRect gibt es nicht ueberall. */
+function terminbildRundeck_(ctx, x, y, b, h, r) {
+    const rad = Math.min(r, b / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + b, y, x + b, y + h, rad);
+    ctx.arcTo(x + b, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad);
+    ctx.arcTo(x, y, x + b, y, rad);
+    ctx.closePath();
+}
+
+/**
+ * Laedt das Kopfbild - oder liefert null.
+ *
+ * ══ WARUM UEBER fetch UND NICHT UEBER <img crossorigin> ══
+ * Der naheliegende Weg - ein Image-Objekt mit crossOrigin='anonymous' - hat
+ * eine Falle: Dieselbe Bildadresse wurde von der Seite bereits OHNE CORS
+ * geladen (Kopfbild im Fenster, Hintergrund der Kachel). Mehrere Browser,
+ * Safari voran, liefern aus dem Zwischenspeicher genau diese Fassung zurueck,
+ * obwohl CORS angefordert war. Die Zeichenflaeche gilt dann als verunreinigt,
+ * und toBlob scheitert mit einem Sicherheitsfehler - der Export brach also
+ * ausgerechnet bei Terminen MIT Bild ab.
+ *
+ * Ueber fetch geholt und als blob:-Adresse eingesetzt, ist das Bild formal
+ * gleicher Herkunft. Die Flaeche bleibt damit in jedem Fall sauber.
+ *
+ * Jeder Fehlschlag endet still bei null: Lieber ein Bild ohne Foto als keins.
+ */
+async function terminbildFoto_(url) {
+    if (!url) return null;
+    const quelle = window.formatImageUrl ? window.formatImageUrl(url) : url;
+
+    try {
+        const antwort = await Promise.race([
+            fetch(quelle, { mode: 'cors', credentials: 'omit' }),
+            // Ein haengender Bildserver darf den Export nicht aufhalten.
+            new Promise((_, abbruch) => setTimeout(() => abbruch(new Error('Zeitueberschreitung')), 4000))
+        ]);
+        if (!antwort || !antwort.ok) return null;
+
+        const objektUrl = URL.createObjectURL(await antwort.blob());
+        try {
+            return await new Promise((fertig, fehler) => {
+                const bild = new Image();
+                bild.onload = () => { bild._objektUrl = objektUrl; fertig(bild); };
+                bild.onerror = fehler;
+                bild.src = objektUrl;
+            });
+        } catch (e) {
+            URL.revokeObjectURL(objektUrl);
+            return null;
+        }
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Zeichnet den Termin und liefert die Zeichenflaeche.
+ *
+ * Der Ablauf ist zweistufig: Erst wird alles vermessen und die Gesamthoehe
+ * bestimmt, dann gezeichnet. Andersherum muesste die Flaeche nachtraeglich
+ * vergroessert werden - und das loescht ihren Inhalt.
+ */
+window.zeichneTerminBild = async function (event, optionen) {
+    const opt = optionen || {};
+
+    // Das Bild folgt dem eingestellten Thema. Wer hell liest, teilt sonst ein
+    // tiefschwarzes Bild - und druckt es im Zweifel auch so aus.
+    const hell = opt.hell !== undefined
+        ? opt.hell
+        : !!(document.body && document.body.classList.contains('light-theme'));
+
+    const K = Object.assign({}, TERMINBILD, hell ? TERMINBILD.hell : TERMINBILD.dunkel);
+    const inhaltsBreite = K.breite - K.rand * 2;
+
+    // Auf die Schriften warten. Ohne das zeichnet die Flaeche in der
+    // Ersatzschrift, weil sie - anders als das Seitenlayout - nicht neu
+    // gezeichnet wird, sobald die echte eintrifft.
+    // Mit Zeitgrenze: Bleibt die Schriftzusage aus, ist ein Bild in der
+    // Ersatzschrift immer noch besser als keines.
+    if (document.fonts && document.fonts.ready) {
+        try {
+            await Promise.race([
+                document.fonts.ready,
+                new Promise(f => setTimeout(f, 2500))
+            ]);
+        } catch (e) { /* dann eben ohne */ }
+    }
+
+    const mess = document.createElement('canvas').getContext('2d');
+
+    // ══ WELCHE FARBE WO ══ (so, wie es das Detailfenster handhabt)
+    //
+    // akzent  - eigene Terminfarbe aus der CSV, sonst Gold. Faerbt die Kopfzeile
+    //           und den Streifen oben. Entspricht accentCol im Fenster.
+    // K.gold  - immer Gold, unabhaengig vom Termin. Faerbt Verweise im Text,
+    //           weil formatTextContent dort fest var(--accent-color) setzt.
+    // K.tag*  - eigene Farben je Thema fuer die Schlagwoerter, ebenfalls
+    //           unabhaengig vom Termin: .tag-badge im Stylesheet kennt die
+    //           Terminfarbe nicht.
+    //
+    // Fehlt die Spalte oder steht dort "-", liefert parseEventColor null und
+    // alles faellt aufs Gold zurueck - genau wie im Fenster.
+    const eigeneFarbe = (window.parseEventColor
+        && window.parseEventColor(event.color || event.akzentfarbe || event.accentColor)) || null;
+    const akzent = eigeneFarbe || K.gold;
+
+    const kopfzeile = (window.formatEventMetaHeader ? window.formatEventMetaHeader(event) : event.date)
+        + (event.author ? ' | ' + event.author : '');
+    const titel = String(event.title || '');
+    const tags = event.category ? String(event.category).split(',').map(s => s.trim()).filter(Boolean) : [];
+    const ort = event.location ? String(event.location) : '';
+    const bloecke = event.content
+        ? terminbildBloecke_(window.formatTextContent(event.content))
+        : [];
+
+    const foto = opt.ohneFoto ? null : await terminbildFoto_(event.image);
+    const fotoHoehe = foto ? Math.round(K.breite * 0.42) : 0;
+
+    // ── Vermessen ───────────────────────────────────────────────────────────
+    mess.font = '600 26px Outfit, sans-serif';
+    const kopfZeilen = terminbildZeilen_(mess, kopfzeile.toUpperCase(), inhaltsBreite);
+
+    mess.font = '700 60px "Playfair Display", serif';
+    const titelZeilen = terminbildZeilen_(mess, titel, inhaltsBreite);
+
+    mess.font = '400 30px Outfit, sans-serif';
+    const ortZeilen = ort ? terminbildZeilen_(mess, '📍 ' + ort, inhaltsBreite) : [];
+
+    let satz = terminbildSatz_(mess, bloecke, inhaltsBreite);
+
+    // Obergrenze fuer sehr lange Termintexte.
+    //
+    // Ohne sie entstuende bei einer ausfuehrlichen Ausschreibung ein mehrere
+    // tausend Pixel hohes Bild. WhatsApp und Telegram zeigen davon in der
+    // Vorschau nur den obersten Streifen, und ausdrucken laesst es sich auch
+    // nicht mehr. Wo gekuerzt wurde, steht es da - und die Adresse in der
+    // Fusszeile fuehrt zum vollstaendigen Text.
+    const MAX_ZEILEN = 40;
+    let bisher = 0, gekuerzt = false;
+    for (let i = 0; i < satz.length; i++) {
+        if (bisher + satz[i].zeilen.length > MAX_ZEILEN) {
+            satz[i].zeilen = satz[i].zeilen.slice(0, Math.max(1, MAX_ZEILEN - bisher));
+            satz = satz.slice(0, i + 1);
+            gekuerzt = true;
+            break;
+        }
+        bisher += satz[i].zeilen.length;
+    }
+    if (gekuerzt) {
+        satz.push({
+            typ: 'absatz', einzug: 0, groesse: 30, zeilenHoehe: 44, abstand: 16,
+            zeilen: [[{ t: '… weiter auf der Website', b: 0, run: { leise: true, kursiv: true } }]]
+        });
+    }
+
+    // Schlagwoerter auf Reihen verteilen. Frueher wurde einreihig gezeichnet
+    // und alles, was nicht mehr passte, verschwand stumm - bei einem Termin
+    // mit fuenf Schlagwoertern fehlten also welche, ohne dass man es merkte.
+    mess.font = '600 24px Outfit, sans-serif';
+    const tagReihen = [];
+    tags.forEach(rohTag => {
+        // Mit Etikett davor, wie im Fenster: <span class="tag-badge">🏷️ …</span>
+        const tag = '🏷️ ' + rohTag;
+        const b = mess.measureText(tag).width + 42;
+        const letzte = tagReihen[tagReihen.length - 1];
+        if (letzte && letzte.breite + 12 + b <= inhaltsBreite) {
+            letzte.eintraege.push({ tag: tag, b: b });
+            letzte.breite += 12 + b;
+        } else {
+            tagReihen.push({ eintraege: [{ tag: tag, b: b }], breite: b });
+        }
+    });
+
+    let hoehe = fotoHoehe + K.rand;
+    hoehe += kopfZeilen.length * 36 + 18;
+    hoehe += titelZeilen.length * 74 + 24;
+    if (tagReihen.length) hoehe += tagReihen.length * 56 + 6;
+    if (ortZeilen.length) hoehe += ortZeilen.length * 42 + 14;
+    satz.forEach(a => { hoehe += a.abstand + a.zeilen.length * a.zeilenHoehe; });
+    // Trennlinie (40) + Fusszeile (52) + unterer Rand. Der untere Rand ist
+    // damit genauso gross wie der seitliche - sonst haengt das Bild unten
+    // sichtbar durch.
+    hoehe += 40 + 52 + K.rand;
+
+    // ── Zeichnen ────────────────────────────────────────────────────────────
+    const canvas = document.createElement('canvas');
+    canvas.width = K.breite;
+    canvas.height = Math.round(hoehe);
+    const ctx = canvas.getContext('2d');
+
+    const verlauf = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    verlauf.addColorStop(0, K.grund);
+    verlauf.addColorStop(1, K.grundTief);
+    ctx.fillStyle = verlauf;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let y = 0;
+
+    if (foto) {
+        // Zuschneiden statt verzerren: der Ausschnitt kommt aus der Mitte.
+        const seiteZiel = K.breite / fotoHoehe;
+        const seiteBild = foto.naturalWidth / foto.naturalHeight;
+        let sb = foto.naturalWidth, sh = foto.naturalHeight, sx = 0, sy = 0;
+        if (seiteBild > seiteZiel) { sb = sh * seiteZiel; sx = (foto.naturalWidth - sb) / 2; }
+        else { sh = sb / seiteZiel; sy = (foto.naturalHeight - sh) / 2; }
+        ctx.drawImage(foto, sx, sy, sb, sh, 0, 0, K.breite, fotoHoehe);
+
+        // Weicher Uebergang zum Grund, damit die Kante nicht schneidet.
+        // Die durchsichtige Seite muss dieselbe Farbe haben wie die deckende,
+        // sonst laeuft der Verlauf im hellen Thema durch ein schmutziges Grau -
+        // Browser mischen in RGB, und Weiss nach durchsichtigem Schwarz ergibt
+        // genau das.
+        const g = terminbildFarbe_(K.grund);
+        const schatten = ctx.createLinearGradient(0, fotoHoehe - 160, 0, fotoHoehe);
+        schatten.addColorStop(0, 'rgba(' + g.r + ', ' + g.g + ', ' + g.b + ', 0)');
+        schatten.addColorStop(1, K.grund);
+        ctx.fillStyle = schatten;
+        ctx.fillRect(0, fotoHoehe - 160, K.breite, 160);
+        y = fotoHoehe;
+    }
+
+    // Farbstreifen oben - NUR bei eigener Terminfarbe.
+    //
+    // Er bildet den farbigen Rand des Detailfensters nach, und der entsteht
+    // dort ebenfalls nur dann:
+    //     modalContentEl.style.borderTop = parsedColor ? `4px solid …` : '';
+    //
+    // Vorher zeichnete das Bild den Streifen immer und griff ohne Terminfarbe
+    // aufs Gold zurueck. Damit behauptete es eine Zuordnung, die es nicht gibt:
+    // Der Streifen kennzeichnet die Art des Termins, und ein Termin ohne Farbe
+    // ist eben keiner Art zugeordnet.
+    if (eigeneFarbe) {
+        ctx.fillStyle = eigeneFarbe;
+        ctx.fillRect(0, y, K.breite, 6);
+    }
+
+    y += K.rand;
+
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = akzent;
+    ctx.font = '600 26px Outfit, sans-serif';
+    kopfZeilen.forEach(z => { y += 28; ctx.fillText(z, K.rand, y); y += 8; });
+    y += 18;
+
+    ctx.fillStyle = K.text;
+    ctx.font = '700 60px "Playfair Display", serif';
+    titelZeilen.forEach(z => { y += 62; ctx.fillText(z, K.rand, y); y += 12; });
+    y += 24;
+
+    if (tagReihen.length) {
+        // Gefuellter Chip mit leichter Rundung - .tag-badge hat 6px Radius bei
+        // 0.8rem Schrift; hier ist die Schrift knapp doppelt so gross, also 11.
+        ctx.font = '600 24px Outfit, sans-serif';
+        ctx.lineWidth = 2;
+        tagReihen.forEach(reihe => {
+            let x = K.rand;
+            reihe.eintraege.forEach(e => {
+                terminbildRundeck_(ctx, x, y, e.b, 44, 11);
+                ctx.fillStyle = K.tagGrund;
+                ctx.fill();
+                ctx.strokeStyle = K.tagRand;
+                ctx.stroke();
+                ctx.fillStyle = K.tagText;
+                ctx.fillText(e.tag, x + 21, y + 30);
+                x += e.b + 14;
+            });
+            y += 56;
+        });
+        y += 6;
+    }
+
+    if (ortZeilen.length) {
+        ctx.fillStyle = K.textLeise;
+        ctx.font = '400 30px Outfit, sans-serif';
+        ortZeilen.forEach(z => { y += 34; ctx.fillText(z, K.rand, y); y += 8; });
+        y += 14;
+    }
+
+    // Fliesstext mit Auszeichnung: Jeder Lauf bekommt seine eigene Schrift und
+    // Farbe, gezeichnet wird von links nach rechts mit fortlaufendem Versatz.
+    satz.forEach(abschnitt => {
+        y += abschnitt.abstand;
+        abschnitt.zeilen.forEach(zeile => {
+            y += abschnitt.zeilenHoehe;
+            let x = K.rand + abschnitt.einzug;
+            zeile.forEach(stueck => {
+                const run = stueck.run || {};
+                ctx.font = terminbildSchrift_(run, abschnitt.groesse);
+                // Verweise immer in Gold, nicht in der Terminfarbe:
+                // formatTextContent setzt dort fest var(--accent-color).
+                ctx.fillStyle = run.akzent ? K.gold : (run.leise ? K.textLeise : K.text);
+                ctx.fillText(stueck.t, x, y);
+                x += stueck.b || ctx.measureText(stueck.t).width;
+            });
+        });
+    });
+
+    y += 40;
+    ctx.strokeStyle = K.linie;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(K.rand, y);
+    ctx.lineTo(K.breite - K.rand, y);
+    ctx.stroke();
+
+    // Fusszeile: Verein links, Herkunft rechts. Ein weitergereichtes Bild
+    // verliert sonst jeden Hinweis darauf, woher es stammt.
+    //
+    // Beide Haelften in der gedaempften Textfarbe - sie gehoeren zusammen und
+    // sind eine Signatur, kein Inhalt. Der Name bleibt fett und etwas groesser,
+    // damit die Zeile trotz gleicher Farbe eine Richtung hat.
+    const info = window.globalInfoData || {};
+    y += 52;
+    ctx.fillStyle = K.textLeise;
+    ctx.font = '700 30px Outfit, sans-serif';
+    ctx.fillText('♞ ' + (info.clubName || 'Schach Rheinfelden'), K.rand, y);
+
+    ctx.fillStyle = K.textLeise;
+    ctx.font = '400 24px Outfit, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(location.host || 'schach-rheinfelden.github.io', K.breite - K.rand, y);
+    ctx.textAlign = 'left';
+
+    // Die blob:-Adresse wird nicht mehr gebraucht - sonst bliebe das Bild bis
+    // zum Seitenwechsel im Speicher.
+    if (foto && foto._objektUrl) URL.revokeObjectURL(foto._objektUrl);
+
+    return canvas;
+};
+
+/**
+ * Termin als Bild weitergeben.
+ *
+ * Auf dem Handy oeffnet sich die Teilen-Auswahl mit dem Bild als Anhang, am
+ * Rechner wird es heruntergeladen. Die Teilen-Auswahl wird nur versucht, wenn
+ * das Geraet Dateien auch wirklich annimmt - canShare mit der fertigen Datei
+ * ist die einzige verlaessliche Auskunft darueber.
+ */
+function terminbildHerunterladen_(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Erst freigeben, wenn der Browser den Download begonnen hat.
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/** Zeichenflaeche zu PNG. toBlob kann werfen, deshalb im Versuch. */
+function terminbildBlob_(canvas) {
+    return new Promise((fertig, fehler) => {
+        try {
+            canvas.toBlob(b => b ? fertig(b) : fehler(new Error('Leeres Bild')), 'image/png');
+        } catch (e) {
+            fehler(e);
+        }
+    });
+}
+
+window.teileTerminAlsBild = async function (id) {
+    // ══ WOHER DER TERMIN KOMMT ══
+    // Massgeblich ist der Termin, den das Fenster gerade anzeigt - er wird
+    // beim Oeffnen unter window.offenerTermin abgelegt.
+    //
+    // Vorher wurde stattdessen die Terminliste durchsucht. Auf der Startseite
+    // ging das gut, im Terminarchiv nie: Dort liegt der gesamte Code in einer
+    // Funktionshuelle - "(function() { ... })()" -, und damit ist die Variable
+    // globalEventsData von aussen unsichtbar. Die Suche lief ins Leere, und
+    // der Knopf tat nichts. Der abgelegte Termin umgeht die Frage vollstaendig:
+    // Es kann nur einen geben, naemlich den angezeigten.
+    let event = window.offenerTermin;
+
+    if (!event || (id !== undefined && String(event.id) !== String(id))) {
+        const daten = window.globalEventsData
+            || (typeof globalEventsData !== 'undefined' ? globalEventsData : []);
+        event = (daten || []).find(e => String(e.id) === String(id)) || event;
+    }
+
+    if (!event) {
+        console.warn('Termin nicht gefunden:', id);
+        return;
+    }
+
+    const knopf = document.getElementById('termin-bild-btn');
+    const vorher = knopf ? knopf.innerHTML : '';
+    if (knopf) { knopf.disabled = true; knopf.textContent = 'Erstelle Bild …'; }
+
+    try {
+        let blob;
+        try {
+            blob = await terminbildBlob_(await window.zeichneTerminBild(event));
+        } catch (e) {
+            // Zweiter Versuch ohne Foto. Wenn ueberhaupt etwas scheitert, dann
+            // das Bild - Schrift und Formen koennen die Flaeche nicht
+            // verunreinigen. Ein Termin ohne Foto ist besser als eine
+            // Fehlermeldung.
+            console.warn('Bild ohne Foto, weil das Foto scheiterte:', e);
+            blob = await terminbildBlob_(await window.zeichneTerminBild(event, { ohneFoto: true }));
+        }
+
+        const name = (String(event.title || 'Termin')
+            .replace(/[^\wäöüÄÖÜß\- ]+/g, '')
+            .trim()
+            .replace(/\s+/g, '_') || 'Termin') + '.png';
+
+        // ── Teilen, sonst herunterladen ─────────────────────────────────────
+        // navigator.share verlangt eine frische Nutzerhandlung. Zwischen dem
+        // Tippen und diesem Punkt liegen aber das Laden der Schriften und des
+        // Fotos - in Safari ist die Handlung dann bereits "verbraucht", und
+        // share lehnt mit NotAllowedError ab. Frueher endete das in einer
+        // Fehlermeldung, obwohl das Bild fertig vorlag.
+        //
+        // Jetzt ist der Download der Auffangweg: Abgelehnt wird nur, was der
+        // Nutzer selbst abgebrochen hat (AbortError).
+        let datei = null;
+        try {
+            datei = new File([blob], name, { type: 'image/png' });
+        } catch (e) { /* File-Konstruktor fehlt in aelteren Browsern */ }
+
+        if (datei && navigator.canShare && navigator.canShare({ files: [datei] })) {
+            try {
+                await navigator.share({ files: [datei], title: event.title });
+                return;
+            } catch (e) {
+                if (e && e.name === 'AbortError') return;
+                console.warn('Teilen nicht moeglich, lade herunter:', e);
+            }
+        }
+        terminbildHerunterladen_(blob, name);
+    } catch (e) {
+        console.error('Termin als Bild fehlgeschlagen', e);
+        alert('Das Bild konnte nicht erstellt werden.');
+    } finally {
+        if (knopf) { knopf.disabled = false; knopf.innerHTML = vorher; }
+    }
+};
 
 window.generateICSFromEvents = function (events, filename) {
     function formatYMD(d) {

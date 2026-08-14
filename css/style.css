@@ -1360,6 +1360,37 @@ body.light-theme .media-card:hover {
     white-space: nowrap;
 }
 
+/* Knopfleiste am Fuss des Detailfensters (Termin speichern / Als Bild).
+   ---------------------------------------------------------------------------
+   Nebeneinander, solange beide Beschriftungen ohne Umbruch hineinpassen -
+   darunter untereinander. Der Umbruch entsteht von selbst ueber flex-wrap mit
+   einer Mindestbreite; eine Bildschirmabfrage waere hier die schlechtere Wahl,
+   weil es auf die Breite des FENSTERS ankommt, nicht auf die des Geraets. */
+.modal-aktionen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+.modal-aktionen .btn {
+    flex: 1 1 200px;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+/* Waehrend das Bild entsteht - bei einem grossen Kopfbild dauert das einen
+   Moment. Ohne sichtbare Rueckmeldung tippt man ein zweites Mal. */
+.modal-aktionen .btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
 /* Team Cards & HTML5 Roster Animation */
 .team-card {
     background: var(--glass-bg);

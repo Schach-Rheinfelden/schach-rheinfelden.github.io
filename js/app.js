@@ -675,7 +675,17 @@ function renderNews() {
 
         const hasImage = item.image && item.image.trim() !== "";
         const isBackground = String(item.bildAlsHintergrund || '').trim().toLowerCase();
-        const asBg = (isBackground === 'ja' || isBackground === 'true' || isBackground === '1' || isBackground === 'yes');
+        // Der Schalter greift nur, wenn es auch ein Bild GIBT.
+        //
+        // Ohne diese Bedingung bekam eine Kachel mit gesetztem Schalter, aber
+        // leerer Spalte "image", beide Klassen gleichzeitig: image-bg-card UND
+        // no-image-card. Die erste legt einen 200px hohen Platzhalter fuer das
+        // Bild an (::before), die zweite laesst den Text 14 statt 3 Zeilen
+        // fuellen, um denselben Raum einzunehmen. Beides zusammen ergibt eine
+        // Kachel, die 200px Luft fuer ein Bild reserviert, das nie kommt -
+        // dazu weisse Schrift und keinen Rahmen, beides nur ueber einem Foto
+        // sinnvoll.
+        const asBg = hasImage && (isBackground === 'ja' || isBackground === 'true' || isBackground === '1' || isBackground === 'yes');
 
         if (hasImage) {
             if (asBg) {

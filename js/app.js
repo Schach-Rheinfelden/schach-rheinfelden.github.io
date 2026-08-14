@@ -918,7 +918,8 @@ function loadMoreEvents() {
 
 
 function downloadSingleEvent(id) {
-    const event = globalEventsData.find(e => e.id === id);
+    // Typtolerant: Aus dem Detailfenster kommt die ID als Zeichenkette.
+    const event = globalEventsData.find(e => String(e.id) === String(id));
     if (event) {
         generateICS([event], event.title.replace(/\s+/g, '_') + '.ics');
     }
@@ -2626,8 +2627,12 @@ function closeNewsModal() {
 }
 
 window.openEventModal = function (id) {
-    const event = globalEventsData.find(e => e.id === id);
+    // Typtolerant: Aus dem Fenster selbst kommt die ID als Zeichenkette.
+    const event = globalEventsData.find(e => String(e.id) === String(id));
     if (!event) return;
+
+    // Fuer Funktionen ausserhalb dieser Datei hinterlegen (siehe events-archive.js).
+    window.offenerTermin = event;
 
     const modalBody = document.getElementById('event-modal-body');
 
@@ -2686,10 +2691,14 @@ window.openEventModal = function (id) {
         ${event.content ? `<div class="news-text" style="font-size: 1.1rem; line-height: 1.6;">${window.formatTextContent(event.content)}</div>` : ''}
         ${galleryHTML}
         
-        <div style="margin-top: 2rem;">
-            <button class="btn btn-secondary" style="padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; justify-content: center; width: 100%; border-color: var(--accent-color); color: var(--accent-color);" onclick="downloadSingleEvent(${event.id})">
+        <div class="modal-aktionen">
+            <button class="btn btn-secondary" onclick="downloadSingleEvent('${String(event.id).replace(/'/g, "\\'")}')">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 Termin speichern
+            </button>
+            <button id="termin-bild-btn" class="btn btn-secondary" onclick="window.teileTerminAlsBild('${String(event.id).replace(/'/g, "\\'")}')">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Als Bild
             </button>
         </div>
     `;
@@ -2701,6 +2710,7 @@ window.openEventModal = function (id) {
 window.closeEventModal = function () {
     document.getElementById('event-modal').classList.add('hidden');
     document.body.style.overflow = '';
+    window.offenerTermin = null;
     clearModalUrlParams();
 };
 

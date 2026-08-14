@@ -748,21 +748,89 @@ window.formatTextContent = function (text) {
     return formattedText.replace(/\r?\n/g, '<br>');
 };
 
-window.stripHtml = function (html) {
+/**
+ * HTML zu reinem Text.
+ *
+ * @param {string} html
+ * @param {{absaetze?: boolean}} [optionen]
+ *        absaetze: true  -> Blockelemente hinterlassen einen Zeilenumbruch,
+ *                           die Gliederung des Textes bleibt also erhalten.
+ *        absaetze: false -> alles wird zu einer Zeile (Voreinstellung, fuer
+ *                           Kurzinfos, Meta-Beschreibungen und Aehnliches).
+ *
+ * \u2550\u2550 WARUM DIE UNTERSCHEIDUNG \u2550\u2550
+ * Bisher wurde jedes Element - ob Absatz oder <strong> mitten im Satz - durch
+ * ein Leerzeichen ersetzt. Fuer eine einzeilige Kurzinfo ist das richtig. In
+ * der News-Kachel entstand daraus aber ein Fliesstext ohne Gliederung: Auf
+ * "...um 14:00 Uhr statt." folgte unmittelbar "Wichtigste Eckdaten", darauf
+ * ohne Absetzung die drei Aufzaehlungspunkte. Im Detailfenster stehen genau
+ * diese Teile als eigene Absaetze und Listeneintraege - die Vorschau warf die
+ * Struktur weg, die der Artikel hat.
+ *
+ * Die Elemente sind deshalb jetzt nach ihrer Art getrennt: Bloecke brechen um,
+ * Inline-Elemente (strong, em, a, span ...) trennen nur mit Leerzeichen. Vorher
+ * lagen em/i/small/label faelschlich in der Blockgruppe.
+ */
+window.stripHtml = function (html, optionen) {
     if (!html) return '';
+    const absaetze = !!(optionen && optionen.absaetze);
+    const umbruch = absaetze ? '\n' : ' ';
     const tmp = document.createElement("DIV");
-    // Preserve spacing for block elements AND inline elements like span/strong/b/a to avoid glued words.
-    // Tabellenzellen/-zeilen ebenfalls trennen, sonst kleben Werte zusammen ("18000 - 1188Az").
+
+    // Tabellenzellen trennen mit Mittelpunkt, sonst kleben Werte zusammen
+    // ("18000 - 1188Az"). Zeilen brechen um wie andere Bloecke auch.
     tmp.innerHTML = html
+        // Auch VOR einem oeffnenden Blockelement trennen.
+        //
+        // Sonst haengt alles zusammen, was nicht selbst in einem Block steht.
+        // Eine Tabelle direkt zwischen zwei Absaetzen ist der typische Fall:
+        // </p> brachte den Umbruch davor, <p> davor aber keinen dahinter - der
+        // Tabellenhinweis klebte am folgenden Absatz.
+        //
+        // Der Umbruch wird VOR das Tag gesetzt, nicht anstelle: Wird das Tag
+        // entfernt, verliert der Parser die Struktur, und Zellen ohne Tabelle
+        // fallen aus dem Baum. table/tr stehen bewusst nicht in der Liste -
+        // Text zwischen Tabellenzeilen wuerde der Parser nach vorn verschieben.
+        .replace(/<(p|div|li|h[1-6]|ul|ol|blockquote|figure|section|article)\b/gi, umbruch + '<$1')
         .replace(/<\/(td|th)>/gi, ' \u00b7 ')
-        .replace(/<\/(tr|thead|tbody|table|caption)>/gi, ' ')
-        .replace(/<\/(figure|figcaption|blockquote|dd|dt|section|article|header|footer|tfoot|em|i|small|label)>/gi, ' ')
-        .replace(/<br\s*[\/]?>|<\/(p|div|li|h[1-6]|span|strong|b|a)>/gi, ' ');
-    return (tmp.textContent || tmp.innerText || "")
-        .trim()
-        .replace(/\s+/g, ' ')
-        .replace(/\s*\u00b7\s*(\u00b7\s*)+/g, ' \u00b7 ')
+        .replace(/<\/(tr|thead|tbody|table|caption)>/gi, umbruch)
+        .replace(/<\/(figure|figcaption|blockquote|dd|dt|section|article|header|footer|tfoot)>/gi, umbruch)
+        .replace(/<br\s*[\/]?>|<\/(p|div|li|h[1-6])>/gi, umbruch)
+        .replace(/<\/(em|i|small|label|span|strong|b|a)>/gi, ' ');
+
+    let text = (tmp.textContent || tmp.innerText || "");
+
+    if (absaetze) {
+        // Leerraum glaetten, aber Zeilenumbrueche stehen lassen. \s wuerde sie
+        // mitnehmen - deshalb "alles ausser Zeilenumbruch".
+        text = text
+            .replace(/[^\S\n]+/g, ' ')
+            .replace(/[^\S\n]*\n[^\S\n]*/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .replace(/[^\S\n]*\u00b7[^\S\n]*(\u00b7[^\S\n]*)+/g, ' \u00b7 ')
+            // Trenner am Zeilenanfang oder -ende haengen in der Luft: Die
+            // letzte Tabellenzelle einer Zeile hat keinen Nachbarn mehr.
+            .replace(/[^\S\n]*\u00b7[^\S\n]*(?=\n)/g, '')
+            .replace(/(^|\n)[^\S\n]*\u00b7[^\S\n]*/g, '$1');
+    } else {
+        text = text
+            .replace(/\s+/g, ' ')
+            .replace(/\s*\u00b7\s*(\u00b7\s*)+/g, ' \u00b7 ');
+    }
+
+    return text
         .replace(/^\s*\u00b7\s*|\s*\u00b7\s*$/g, '')
+        // \u2500\u2500 Leerzeichen aus dem Entfernen der Elemente wieder einsammeln \u2500\u2500
+        // Jedes schliessende Inline-Element hinterlaesst eines. Endet es
+        // unmittelbar vor einem Satzzeichen, entsteht "vorverlegt ."; endet es
+        // vor einem angehaengten Wortteil, entsteht "SMM -Wettkampf". Beides
+        // stand schon vorher so in den Kacheln.
+        // Der Gedankenstrich mit Leerzeichen ("Rhy 1 \u2013 Riehen 5") bleibt
+        // unangetastet: Die Regel greift nur beim kurzen Bindestrich, der
+        // direkt an einem Wort klebt.
+        .replace(/[^\S\n]+([,.;:!?\u00bb)\]])/g, '$1')
+        .replace(/([\u00ab(\[])[^\S\n]+/g, '$1')
+        .replace(/[^\S\n]+-(?=[^\s\-])/g, '-')
         .trim();
 };
 
@@ -809,7 +877,10 @@ window.getPreviewText = function (content, options) {
     // damit eine vorhandene Bildunterschrift als Text erhalten bleibt.
     tmp.querySelectorAll('img, picture, svg').forEach(el => replaceWithMarker(el, M_IMAGE));
 
-    const plain = window.stripHtml(tmp.innerHTML);
+    // Mit Gliederung: Absaetze, Ueberschriften und Aufzaehlungspunkte behalten
+    // ihre Trennung. Sie wird am Ende zu <br> - die Kachel zeigt damit
+    // dieselbe Struktur wie der Artikel, nur gekuerzt.
+    const plain = window.stripHtml(tmp.innerHTML, { absaetze: true });
 
     // Fliesstext escapen, da das Ergebnis als HTML eingesetzt wird
     const esc = (s) => String(s)
@@ -821,22 +892,34 @@ window.getPreviewText = function (content, options) {
 
     // Mehrere gleiche Platzhalter direkt hintereinander zu einem zusammenfassen.
     // Bei Bildern zusaetzlich merken, ob es mehrere waren (-> "Bilder").
+    // Die Muster verlangen ausdruecklich einen ZWEITEN Platzhalter, bevor sie
+    // zugreifen. Vorher genuegte bei Tabelle und Video schon einer, und das
+    // angehaengte \s* schluckte den Zeilenumbruch dahinter: Aus
+    //     Die Ergebnisse: / [Tabelle] / Damit steht Rhy 1 auf Rang 3.
+    // wurde "[Tabelle] Damit steht Rhy 1 auf Rang 3." in einer Zeile. Solange
+    // die Vorschau einzeilig war, fiel das nicht auf.
     let multipleImages = false;
     text = text.replace(
-        /(?:@@PLATZHALTERBILD@@(?:\s*\u00b7?\s*)?){2,}/g,
+        /@@PLATZHALTERBILD@@(?:[\s\u00b7]*@@PLATZHALTERBILD@@)+/g,
         () => { multipleImages = true; return M_IMAGE; }
     );
-    text = text.replace(/(?:@@PLATZHALTERTABELLE@@(?:\s*\u00b7?\s*)?)+/g, M_TABLE);
-    text = text.replace(/(?:@@PLATZHALTERVIDEO@@(?:\s*\u00b7?\s*)?)+/g, M_VIDEO);
+    text = text.replace(/@@PLATZHALTERTABELLE@@(?:[\s\u00b7]*@@PLATZHALTERTABELLE@@)+/g, M_TABLE);
+    text = text.replace(/@@PLATZHALTERVIDEO@@(?:[\s\u00b7]*@@PLATZHALTERVIDEO@@)+/g, M_VIDEO);
 
-    // Leerraum glaetten, bevor die Hinweise eingesetzt werden
-    text = text.replace(/\s+/g, ' ').trim();
+    // Leerraum glaetten, bevor die Hinweise eingesetzt werden - Umbrueche
+    // ueberleben, sie sind ab hier bedeutungstragend.
+    text = text
+        .replace(/[^\S\n]+/g, ' ')
+        .replace(/[^\S\n]*\n[^\S\n]*/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 
-    // Platzhalter sauber vom umgebenden Text abtrennen
+    // Platzhalter sauber vom umgebenden Text abtrennen. Steht einer am
+    // Zeilenanfang, bleibt er dort - deshalb kein \s, das den Umbruch fraesse.
     [M_TABLE, M_IMAGE, M_VIDEO].forEach(m => {
-        text = text.replace(new RegExp('\\s*' + m + '\\s*', 'g'), ' ' + m + ' ');
+        text = text.replace(new RegExp('[^\\S\\n]*' + m + '[^\\S\\n]*', 'g'), ' ' + m + ' ');
     });
-    text = text.trim();
+    text = text.replace(/[^\S\n]*\n[^\S\n]*/g, '\n').trim();
 
     // Bild-Hinweis passend zur Anzahl waehlen. Steht ohnehin eine
     // Galerie-Spalte am Beitrag, wird von "Bildergalerie" gesprochen.
@@ -855,7 +938,15 @@ window.getPreviewText = function (content, options) {
         html = html ? `${html} ${HINT_GALLERY}` : HINT_GALLERY;
     }
 
-    return html.trim();
+    // Umbrueche zuletzt zu <br> - jede Grenze bekommt genau einen.
+    //
+    // Absatzgrenzen bewusst NICHT staerker abgesetzt: Die Kachel zeigt je nach
+    // Ansicht 3 bis 14 Zeilen. Eine davon als Leerzeile zu opfern, kostet mehr
+    // Inhalt als die feinere Gliederung wert ist. Ein zusaetzliches Element mit
+    // halber Zeilenhoehe waere die Alternative gewesen - es sitzt hier aber in
+    // einem -webkit-box mit Zeilenbegrenzung, und dort verhalten sich fremde
+    // Blockelemente unzuverlaessig.
+    return html.trim().replace(/\n+/g, '<br>');
 };
 
 window.formatImageUrl = function (imgUrl) {

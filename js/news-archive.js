@@ -307,7 +307,10 @@
 
             const hasImage = item.image && item.image.trim() !== "";
             const isBackground = String(item.bildAlsHintergrund || '').trim().toLowerCase();
-            const asBg = (isBackground === 'ja' || isBackground === 'true' || isBackground === '1' || isBackground === 'yes');
+            // Nur mit vorhandenem Bild - sonst bekaeme die Kachel den 200px
+            // hohen Platzhalter fuer ein Bild, das es nicht gibt, zusaetzlich
+            // zur Behandlung als bildlose Kachel. Siehe app.js.
+            const asBg = hasImage && (isBackground === 'ja' || isBackground === 'true' || isBackground === '1' || isBackground === 'yes');
 
             if (hasImage) {
                 if (asBg) {

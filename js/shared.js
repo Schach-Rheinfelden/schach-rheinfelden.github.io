@@ -1642,9 +1642,23 @@ async function initDynamicMenu() {
         {
             category: 'Aktuelles',
             sortierung: 10,
+            // News und Termine fuehren ins jeweilige Archiv, nicht auf den
+            // Abschnitt der Startseite.
+            //
+            // Dort stehen nur die naechsten zwoelf Eintraege; wer ueber das
+            // Menue "Termine" waehlt, sucht aber meist etwas Bestimmtes und
+            // braucht Suche, Filter, Zeitraum und die Zeitachse. Der Umweg
+            // ueber die Startseite kostete dann einen zusaetzlichen Klick auf
+            // "Weitere Termine".
+            //
+            // Die beiden Knoepfe im Kopfbild bleiben bewusst bei #news und
+            // #events: Wer gerade oben auf der Startseite steht, will nach
+            // unten scrollen, nicht die Seite wechseln.
+            //
+            // Trainingszeiten haben keine eigene Seite und bleiben ein Sprung.
             items: [
-                { title: 'News', href: prefix + '#news', sortierung: 10 },
-                { title: 'Termine', href: prefix + '#events', sortierung: 20 },
+                { title: 'News', href: 'news-archive.html', sortierung: 10 },
+                { title: 'Termine', href: 'events-archive.html', sortierung: 20 },
                 { title: 'Trainingszeiten', href: prefix + '#training', sortierung: 30 }
             ]
         },
@@ -2095,15 +2109,18 @@ window.renderGalleryHTML = function (gallery, title = '') {
     const items = window.parseGalleryString(gallery);
     if (!items || items.length === 0) return '';
 
+    // data-betrachter kennzeichnet den Behaelter fuer den Bildbetrachter weiter
+    // unten. Er sammelt beim Klick alle Bilder DARIN ein - dadurch kennt er die
+    // Nachbarn, ohne dass die Galerie ihm eine Liste uebergeben muesste.
     return `
         <div class="news-gallery-container" style="margin-top: 1.5rem;">
             ${title ? `<h3 style="color: var(--accent-color); margin-bottom: 1rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">🖼️ ${title}</h3>` : ''}
-            <div class="news-gallery">
+            <div class="news-gallery" data-betrachter>
                 ${items.map(item => {
         const cleanUrl = window.formatImageUrl(item.url);
         return `
                     <div class="gallery-figure">
-                        <img src="${cleanUrl}" class="gallery-img" alt="${item.caption || 'Galerie Bild'}" onclick="window.open('${cleanUrl}', '_blank')" loading="lazy" decoding="async">
+                        <img src="${cleanUrl}" class="gallery-img" alt="${item.caption || 'Galerie Bild'}" tabindex="0" role="button" loading="lazy" decoding="async">
                         ${item.caption ? `<div class="gallery-caption">${item.caption}</div>` : ''}
                     </div>
                 `;
@@ -2112,6 +2129,196 @@ window.renderGalleryHTML = function (gallery, title = '') {
         </div>
     `;
 };
+
+/* ===========================================================================
+   Bildbetrachter
+   ===========================================================================
+   Ein Klick auf ein Galeriebild oeffnete bisher die nackte Bildadresse in einem
+   neuen Reiter. Dabei ging dreierlei verloren: die Bildunterschrift, der
+   Zusammenhang zu den uebrigen Bildern - und der Weg zurueck, denn man landete
+   ausserhalb der Seite.
+
+   Der Betrachter zeigt stattdessen das Bild im Zusammenhang: mit Unterschrift,
+   Zaehler und Schritten vorwaerts wie rueckwaerts.
+
+   ══ WARUM ÜBER DELEGATION ══
+   Der Zuhoerer haengt EINMAL am Dokument und fragt beim Klick, ob das Ziel in
+   einem Behaelter mit data-betrachter liegt. Damit wirkt er auch auf Inhalte,
+   die es beim Laden der Seite noch gar nicht gab - Galerien entstehen erst beim
+   Oeffnen eines Fensters. Die Alternative waere gewesen, nach jedem Aufbau
+   erneut Zuhoerer anzuhaengen; genau so entstehen doppelte Handler.
+   =========================================================================== */
+
+let bbBilder = [];
+let bbIndex = 0;
+let bbVorherFokus = null;
+let bbVorherOverflow = '';
+
+function bbElement_() {
+    let el = document.getElementById('bild-betrachter');
+    if (el) return el;
+
+    el = document.createElement('div');
+    el.id = 'bild-betrachter';
+    el.className = 'bild-betrachter hidden';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'Bildansicht');
+    el.innerHTML = `
+        <button type="button" class="bb-knopf bb-schliessen" aria-label="Schliessen">&times;</button>
+        <button type="button" class="bb-knopf bb-zurueck" aria-label="Vorheriges Bild">&#8249;</button>
+        <div class="bb-buehne">
+            <img class="bb-bild" alt="">
+            <div class="bb-text"></div>
+        </div>
+        <button type="button" class="bb-knopf bb-vor" aria-label="Nächstes Bild">&#8250;</button>
+        <div class="bb-zaehler"></div>
+    `;
+    document.body.appendChild(el);
+
+    el.querySelector('.bb-schliessen').addEventListener('click', window.schliesseBildBetrachter);
+    el.querySelector('.bb-zurueck').addEventListener('click', () => bbSpringe_(-1));
+    el.querySelector('.bb-vor').addEventListener('click', () => bbSpringe_(1));
+
+    // Klick auf den Hintergrund schliesst, Klick auf Bild oder Text nicht.
+    el.addEventListener('click', function (ev) {
+        if (ev.target === el || ev.target.classList.contains('bb-buehne')) {
+            window.schliesseBildBetrachter();
+        }
+    });
+
+    // Wischen auf dem Handy. Ausgewertet wird erst beim Loslassen und nur ab
+    // 50px - darunter war es ein Tippen, und ein Tippen soll nicht blaettern.
+    let startX = null;
+    el.addEventListener('pointerdown', e => { startX = e.clientX; });
+    el.addEventListener('pointerup', function (e) {
+        if (startX === null) return;
+        const weg = e.clientX - startX;
+        startX = null;
+        if (Math.abs(weg) > 50) bbSpringe_(weg < 0 ? 1 : -1);
+    });
+
+    return el;
+}
+
+function bbZeige_() {
+    const el = bbElement_();
+    const bild = bbBilder[bbIndex];
+    if (!bild) return;
+
+    const img = el.querySelector('.bb-bild');
+    img.src = bild.url;
+    img.alt = bild.caption || 'Bild';
+
+    const text = el.querySelector('.bb-text');
+    text.textContent = bild.caption || '';
+    text.style.display = bild.caption ? '' : 'none';
+
+    const mehrere = bbBilder.length > 1;
+    el.querySelector('.bb-zurueck').style.display = mehrere ? '' : 'none';
+    el.querySelector('.bb-vor').style.display = mehrere ? '' : 'none';
+
+    const zaehler = el.querySelector('.bb-zaehler');
+    zaehler.textContent = mehrere ? (bbIndex + 1) + ' / ' + bbBilder.length : '';
+    zaehler.style.display = mehrere ? '' : 'none';
+
+    // Nachbarn vorladen, damit das Blaettern nicht ruckelt.
+    [bbIndex - 1, bbIndex + 1].forEach(function (i) {
+        const nachbar = bbBilder[(i + bbBilder.length) % bbBilder.length];
+        if (nachbar && nachbar.url !== bild.url) { const v = new Image(); v.src = nachbar.url; }
+    });
+}
+
+function bbSpringe_(schritt) {
+    if (bbBilder.length < 2) return;
+    bbIndex = (bbIndex + schritt + bbBilder.length) % bbBilder.length;
+    bbZeige_();
+}
+
+window.oeffneBildBetrachter = function (bilder, index) {
+    if (!bilder || !bilder.length) return;
+    bbBilder = bilder;
+    bbIndex = Math.max(0, Math.min(index || 0, bilder.length - 1));
+
+    const el = bbElement_();
+    bbZeige_();
+    el.classList.remove('hidden');
+
+    // Den vorherigen Zustand merken statt ihn zu erraten: Galerien stehen meist
+    // in einem Fenster, das die Seite bereits festgestellt hat. Wuerde beim
+    // Schliessen pauschal '' gesetzt, koennte man hinter dem offenen Fenster
+    // wieder scrollen.
+    bbVorherFokus = document.activeElement;
+    bbVorherOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    el.querySelector('.bb-schliessen').focus();
+};
+
+window.schliesseBildBetrachter = function () {
+    const el = document.getElementById('bild-betrachter');
+    if (!el || el.classList.contains('hidden')) return;
+    el.classList.add('hidden');
+    el.querySelector('.bb-bild').removeAttribute('src');
+    document.body.style.overflow = bbVorherOverflow;
+    if (bbVorherFokus && bbVorherFokus.focus) bbVorherFokus.focus();
+    bbBilder = [];
+};
+
+/* Ein Zuhoerer fuer alle Galerien - auch fuer die, die es noch nicht gibt. */
+document.addEventListener('click', function (ev) {
+    const ziel = ev.target.closest && ev.target.closest('img, [data-bild]');
+    if (!ziel) return;
+    const behaelter = ziel.closest('[data-betrachter]');
+    if (!behaelter) return;
+
+    ev.preventDefault();
+    // Verhindert, dass der Klick zusaetzlich die Kachel darunter oeffnet.
+    ev.stopPropagation();
+
+    const knoten = Array.prototype.slice.call(behaelter.querySelectorAll('img, [data-bild]'));
+
+    // Beim Sammeln gleich mitzaehlen, welche Stelle das angeklickte Bild in der
+    // FERTIGEN Liste einnimmt. Wuerde der Index erst hinterher ueber die
+    // Ausgangsliste bestimmt, zeigte der Betrachter das falsche Bild, sobald ein
+    // Knoten ohne Adresse aussortiert wurde.
+    const bilder = [];
+    let start = 0;
+    knoten.forEach(function (k) {
+        const figur = k.closest && k.closest('.gallery-figure');
+        const unterschriftEl = figur && figur.querySelector('.gallery-caption');
+        const unterschrift = k.getAttribute('data-text')
+            || (unterschriftEl && unterschriftEl.textContent.trim())
+            || k.getAttribute('alt')
+            || '';
+        const url = k.getAttribute('data-bild') || k.currentSrc || k.src;
+        if (!url) return;
+        if (k === ziel) start = bilder.length;
+        bilder.push({
+            url: url,
+            // "Galerie Bild" ist der Platzhalter aus renderGalleryHTML und
+            // keine echte Unterschrift - er soll nicht im Betrachter stehen.
+            caption: unterschrift === 'Galerie Bild' ? '' : unterschrift
+        });
+    });
+
+    if (bilder.length) window.oeffneBildBetrachter(bilder, start);
+});
+
+document.addEventListener('keydown', function (e) {
+    const el = document.getElementById('bild-betrachter');
+    if (!el || el.classList.contains('hidden')) return;
+    if (e.key !== 'Escape' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+    e.preventDefault();
+    // Der Betrachter liegt ganz oben - solange er offen ist, gehoeren ihm diese
+    // Tasten allein. stopImmediatePropagation, weil die uebrigen Zuhoerer
+    // ebenfalls am Dokument haengen und ein blosses stopPropagation sie dort
+    // nicht erreichen wuerde: Sonst schloesse Escape nebenbei das Kartenfenster.
+    e.stopImmediatePropagation();
+
+    if (e.key === 'Escape') window.schliesseBildBetrachter();
+    else bbSpringe_(e.key === 'ArrowLeft' ? -1 : 1);
+});
 
 window.parseEventColor = function (colorRaw) {
     if (!colorRaw) return null;
@@ -2963,8 +3170,8 @@ window.renderModalHeaderImage = function (item, title) {
         const imgUrl = String(item.image).trim();
         const altText = (title || item.title || 'Vorschaubild').replace(/"/g, '&quot;');
         return `
-            <div class="modal-hero-header" onclick="window.open('${imgUrl}', '_blank')" title="Bild vergrößern">
-                <img src="${imgUrl}" alt="${altText}" loading="lazy" decoding="async">
+            <div class="modal-hero-header" data-betrachter title="Bild vergrößern">
+                <img src="${imgUrl}" alt="${altText}" tabindex="0" role="button" loading="lazy" decoding="async">
             </div>
         `;
     }

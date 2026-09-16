@@ -761,8 +761,12 @@ function renderGallery() {
         return;
     }
 
+    // data-betrachter am Behaelter, data-bild am einzelnen Feld: Die Kacheln
+    // tragen das Bild als Hintergrund, es gibt also kein <img>, aus dem sich
+    // die Adresse ablesen liesse.
+    container.setAttribute('data-betrachter', '');
     container.innerHTML = allImages.slice(0, 8).map(img => `
-        <div class="gallery-item fade-in-up" onclick="window.open('${img}', '_blank')">
+        <div class="gallery-item fade-in-up" data-bild="${img}" tabindex="0" role="button" aria-label="Bild ansehen">
             <div style="background-image: url('${img}')"></div>
         </div>
     `).join('');

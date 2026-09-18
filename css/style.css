@@ -3396,30 +3396,79 @@ body.light-theme .timeline-line {
     margin-top: 0;
 }
 
+/* Kein eigener Rollbereich für die Liste.
+   ---------------------------------------------------------------------------
+   Hier stand kurz ein max-height mit overflow-y. Das Argument war, die
+   Zeitachse solle im Bild bleiben - es trägt aber nicht: Die Achse steht
+   OBERHALB der Liste und ist ohnehin weg, sobald man nach unten liest. Geblieben
+   wären zwei ineinander verschachtelte Rollbereiche, und die sind auf dem Handy
+   eine Zumutung: Man wischt und weiss nicht, was sich gleich bewegt.
+
+   Die Liste wächst also mit, und die Seite scrollt wie überall sonst. */
+
+/* Der Knopf "Alle" - Ausgangslage und Weg zurueck.
+   Statt eines Farbpunkts ein Verlauf aus mehreren Farben: Er steht fuer
+   "alle Farben zusammen" und laesst sich nicht mit einer echten verwechseln. */
+.timeline-legend-item.alle .alle-dot {
+    background: conic-gradient(#d4af37, #4dabf7, #51cf66, #ff6b6b, #d4af37);
+}
+
+
+/* Die Zeile ist ein Behaelter mit zwei Zielen: dem Knopf fuer den Termin und
+   dem Verweis auf die Karte. Sie selbst nimmt keine Klicks entgegen.
+
+   Der linke Rand traegt die Terminfarbe - gesetzt als Inline-Stil beim
+   Aufbau. Frueher stand dort ein Farbpunkt; der brauchte eine eigene Spalte
+   und musste auf dem Handy freigestellt werden, weil er sonst allein in der
+   ersten Zeile sass. Der Rand war ohnehin da, kostet keinen Platz und fasst
+   die zwei Zeilen eines Eintrags sichtbar zusammen. */
 .timeline-legend-row {
     display: flex;
     align-items: baseline;
     gap: 0.9rem;
     width: 100%;
     text-align: left;
-    padding: 0.45rem 0.8rem;
+    padding: 0.15rem 0.8rem;
     background: transparent;
     border: none;
-    border-left: 2px solid var(--glass-border);
+    border-left: 3px solid var(--glass-border);
     border-radius: 0 6px 6px 0;
-    cursor: pointer;
     font-family: inherit;
     font-size: 0.88rem;
     color: var(--text-secondary);
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s;
 }
 
+/* Beim Ueberfahren aendert sich der Hintergrund, nicht der Rand: Der traegt
+   die Farbe des Termins und soll sie behalten. Bei Terminen ohne eigene Farbe
+   greift die Randregel trotzdem - dort steht kein Inline-Stil im Weg. */
 .timeline-legend-row:hover,
-.timeline-legend-row:focus-visible {
+.timeline-legend-row:focus-within {
     background: var(--table-bg, rgba(0, 0, 0, 0.05));
     border-left-color: var(--accent-color);
     color: var(--text-primary);
-    outline: none;
+}
+
+/* Datum und Titel - oeffnet den Termin. */
+.timeline-legend-row-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.3rem 0;
+    background: none;
+    border: none;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.timeline-legend-row-main:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .timeline-legend-row-date {
@@ -3428,6 +3477,33 @@ body.light-theme .timeline-line {
     font-size: 0.78rem;
     color: var(--accent-color);
     font-weight: 600;
+}
+
+/* Vergangene Termine in der Farbliste.
+   ---------------------------------------------------------------------------
+   Dieselbe Daempfung wie bei den Kacheln (0.55 und leicht entsaettigt), damit
+   ein vergangener Termin ueberall gleich aussieht - in der Kachel, im Fenster,
+   im Balken und hier.
+
+   Nicht so stark wie der Balken selbst (0.42): Der Balken ist wenige Pixel
+   gross und darf verblassen, eine Textzeile muss lesbar bleiben. Beim
+   Ueberfahren kehrt die volle Darstellung zurueck - wer hinsieht, will lesen.
+
+   Das Datum wird zusaetzlich neutral: Gold heisst auf dieser Seite "steht
+   noch bevor". Bei einem vergangenen Termin waere das eine falsche Zusage. */
+.timeline-legend-row.ist-vergangen {
+    opacity: 0.55;
+    filter: saturate(0.7);
+}
+
+.timeline-legend-row.ist-vergangen .timeline-legend-row-date {
+    color: var(--text-secondary);
+}
+
+.timeline-legend-row.ist-vergangen:hover,
+.timeline-legend-row.ist-vergangen:focus-visible {
+    opacity: 1;
+    filter: none;
 }
 
 /* Hervorhebung in der Zeitachse.
@@ -3463,17 +3539,206 @@ body.light-theme .timeline-line {
     opacity: 1;
 }
 
+/* Der Titel nimmt den freien Platz und schiebt den Ort nach rechts.
+   min-width: 0 ist die Bedingung dafuer, dass er ueberhaupt kuerzen DARF -
+   ohne das behaelt ein Flex-Element seine Inhaltsbreite und draengt den Ort
+   aus der Zeile. */
 .timeline-legend-row-title {
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-@media (max-width: 560px) {
+/* Ort rechts - fuehrt zur Karte.
+   ---------------------------------------------------------------------------
+   Gedaempft und schmaler: Er beantwortet eine Nebenfrage. Wer die Liste
+   ueberfliegt, sucht nach Datum und Titel; der Ort entscheidet erst danach,
+   ob man hinfaehrt. Deshalb darf er auch als Erstes gekuerzt werden. */
+.timeline-legend-row-ort {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 42%;
+    padding: 0.3rem 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    opacity: 0.85;
+    transition: color 0.15s, opacity 0.15s;
+}
+
+.timeline-legend-row-ort .ort-nadel {
+    flex-shrink: 0;
+}
+
+.timeline-legend-row-ort .ort-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Kurzfassung (nur der Name vor dem ersten Komma) bleibt am Bildschirm
+   verborgen - dort ist Platz für die volle Adresse. */
+.timeline-legend-row-ort .ort-kurz {
+    display: none;
+}
+
+/* Nur der echte Verweis reagiert. Ein Ort ohne hinterlegte Adresse bleibt
+   Text - sonst sähe er aus wie etwas, das sich anklicken lässt.
+
+   Unterstrichen wird ausdrücklich nur der TEXT, nicht der ganze Verweis. Eine
+   Unterstreichung am <a> wird vom Elternelement gezeichnet und läuft deshalb
+   auch unter der Nadel durch - Kindelemente können sie nicht abwählen. */
+a.timeline-legend-row-ort:hover,
+a.timeline-legend-row-ort:focus-visible {
+    color: var(--accent-color);
+    opacity: 1;
+}
+
+a.timeline-legend-row-ort:hover .ort-text {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+a.timeline-legend-row-ort:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Die Liste auf dem Handy
+   ---------------------------------------------------------------------------
+   Nebeneinander ist hier nichts mehr zu machen: Datum, Titel und eine Adresse
+   wie "Alfa Business Center, Weidenweg 15, 4310 Rheinfelden" nebeneinander
+   ergäben drei abgeschnittene Fragmente.
+
+   Deshalb untereinander - und mit zwei Aenderungen, die am Bildschirm nicht
+   auffallen, am Finger aber sehr:
+
+   1. Datum und Titel tauschen die Gewichtung. Der Titel wird zur Hauptzeile in
+      voller Textfarbe, das Datum darüber zur kleinen Kopfzeile. Beim Lesen von
+      oben nach unten sucht man den Titel, nicht das Datum.
+   2. Der Kartenverweis bekommt eine eigene, ausreichend hohe Trefferflaeche.
+      Auf dem Bildschirm sind die beiden Ziele durch ihre Lage getrennt, auf
+      dem Handy liegen sie uebereinander - ohne Abstand trifft man staendig
+      den falschen.
+--------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+    .timeline-legend-list {
+        gap: 4px;
+    }
+
+    /* Zwei Zeilen statt drei Bloecke.
+       -----------------------------------------------------------------------
+       Zuvor stand jeder Eintrag als Datum, Titel und darunter ein Ortsfeld -
+       drei uebereinander gestapelte Bloecke je Termin. Bei acht Terminen war
+       die Liste damit laenger als der Bildschirm hoch ist, und der Vorteil
+       einer Uebersicht war dahin.
+
+       Jetzt teilen sich Datum und Ort die erste Zeile: Beide sind Beiwerk,
+       beide kurz. Der Titel steht darunter und bekommt die volle Breite. */
     .timeline-legend-row {
+        position: relative;
         flex-direction: column;
-        gap: 0.15rem;
+        align-items: stretch;
+        gap: 0;
+        padding: 0.3rem 0.6rem;
+    }
+
+    .timeline-legend-row-main {
+        flex-direction: column;
         align-items: flex-start;
+        gap: 0;
+        padding: 0;
+    }
+
+    /* Die Datumszeile bekommt die Hoehe des Ortsfeldes - der sitzt rechts
+       daneben und wuerde sonst in die Titelzeile hinunterragen. */
+    .timeline-legend-row-date {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        min-height: 1.85rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.4px;
+    }
+
+    /* Der Titel ist die Hauptzeile: Wer von oben nach unten liest, sucht ihn,
+       nicht das Datum. Umbrechen darf er - die Breite ist da, und abgeschnitten
+       waere ein Termin schlechter zu erkennen als zweizeilig. */
+    .timeline-legend-row-title {
+        white-space: normal;
+        overflow: visible;
+        padding-bottom: 0.35rem;
+        font-size: 0.95rem;
+        line-height: 1.3;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    /* Statt der vollen Adresse nur der Name des Ortes. */
+    .timeline-legend-row-ort .ort-voll {
+        display: none;
+    }
+
+    .timeline-legend-row-ort .ort-kurz {
+        display: inline;
+    }
+
+    /* Der Ort sitzt rechts in der Datumszeile.
+       -----------------------------------------------------------------------
+       Herausgeloest aus dem Textfluss, weil er sonst eine eigene Zeile
+       beanspruchte. Die Breite ist gedeckelt, damit er dem Datum links nicht
+       ins Gehege kommt - 7rem reichen fuer "SO 20 SEP" mit Luft. */
+    .timeline-legend-row-ort {
+        position: absolute;
+        top: 0.3rem;
+        right: 0.5rem;
+        max-width: calc(100% - 7rem);
+        min-height: 0;
+        align-items: center;
+        gap: 0.3rem;
+        margin: 0;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        background: var(--table-bg, rgba(0, 0, 0, 0.05));
+        border: 1px solid var(--glass-border);
+        font-size: 0.78rem;
+        line-height: 1.2;
+    }
+
+    a.timeline-legend-row-ort {
+        color: var(--accent-color);
+        opacity: 1;
+    }
+
+    /* Auf Beruehrung gibt es kein "darueberfahren" - eine Unterstreichung beim
+       Antippen waere ein Aufblitzen ohne Aussage. Das Feld faerbt sich. */
+    a.timeline-legend-row-ort:hover .ort-text {
+        text-decoration: none;
+    }
+
+    a.timeline-legend-row-ort:active {
+        background: var(--gold-soft, rgba(212, 175, 55, 0.14));
+        border-color: var(--accent-color);
+    }
+
+    /* Ohne Karte kein Feld: Es gibt nichts anzutippen. */
+    .timeline-legend-row-ort.ohne-karte {
+        background: none;
+        border-color: transparent;
+        padding-right: 0;
+    }
+
+    /* Vergangene Termine: Das Gold des Kartenverweises wuerde die Daempfung
+       sonst ueberstrahlen - auf dem Handy ist es die einzige Farbe der Zeile. */
+    .timeline-legend-row.ist-vergangen a.timeline-legend-row-ort {
+        color: var(--text-secondary);
     }
 }
 

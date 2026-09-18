@@ -1183,7 +1183,7 @@ function renderTimeline(events) {
         // verteilt sich die Aufweitung gleichmaessig auf beide Seiten, der
         // Mittelpunkt bleibt zeitlich korrekt und die Reihenfolge stimmt.
         html += `
-            <div class="timeline-event-range ${shapeCls} ${positionCls}" id="${nodeId}" data-farbe="${escapeAttr(item.colorKey)}" data-event-id="${escapeAttr(evt.id)}" style="left: ${centerPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
+            <div class="timeline-event-range ${shapeCls} ${positionCls}" id="${nodeId}" data-farbe="${escapeAttr(item.colorKey)}" data-event-id="${escapeAttr(evt.id)}" data-ort="${escapeAttr(evt.location || '')}" data-ort-url="${escapeAttr(ortAdresse_(evt))}" style="left: ${centerPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
                 <div class="timeline-label">
                     <div class="timeline-date">${dateStr}</div>
                     <div class="timeline-title">${evt.title}</div>
@@ -1253,19 +1253,43 @@ function renderTimelineLegende_(colorOrder, colorGroups, farbAnzeige) {
   const legende = getLegendeContainer_();
   if (!legende) return;
 
-  // Eine einzige Farbe braucht keine Legende - sie erklaert nichts.
-  if (!colorOrder || colorOrder.length < 2) {
+  const alleKnoten = anzahlBalken_();
+
+  // Ohne Balken gibt es weder etwas zu erklaeren noch etwas aufzulisten.
+  if (!alleKnoten) {
     legende.innerHTML = '';
     legende.classList.add('hidden');
     return;
   }
   legende.classList.remove('hidden');
 
-  // Die Reihenfolge spiegelt die Spuren: unten im Stapel, unten in der Liste.
-  const reihen = colorOrder.slice().reverse();
+  // Eine einzige Farbe erklaert nichts - dann entfallen die Farbknoepfe, die
+  // Liste darunter bleibt aber. Sie ist der eigentliche Nutzen: eine Zeitachse
+  // zeigt WANN etwas liegt, die Liste zeigt WAS es ist.
+  const mitFarben = colorOrder && colorOrder.length >= 2;
 
-  let html = '<div class="timeline-legend-hint">Farben dieser Auswahl — klicken zeigt alle Termine einer Farbe</div>' +
-             '<div class="timeline-legend-items">';
+  let html = '<div class="timeline-legend-hint">' +
+    (mitFarben
+      ? 'Alle ' + alleKnoten + ' Termine dieser Ansicht — über die Farben lässt sich die Liste eingrenzen'
+      : 'Alle ' + alleKnoten + ' Termine dieser Ansicht') +
+    '</div>';
+
+  if (mitFarben) {
+    html += '<div class="timeline-legend-items">';
+
+    // "Alle" steht voran und ist die Ausgangslage. Ohne diesen Knopf käme man
+    // nach dem Eingrenzen nur zurueck, indem man dieselbe Farbe ein zweites
+    // Mal traefe - das muss man erst einmal wissen.
+    html += '<button type="button" class="timeline-legend-item alle active" data-farbe="" ' +
+            'aria-pressed="true" onclick="window.zeigeAlleTermine()">' +
+              '<span class="timeline-legend-dot alle-dot"></span>' +
+              '<span class="timeline-legend-text">Alle</span>' +
+              '<span class="timeline-legend-count">' + alleKnoten + '</span>' +
+            '</button>';
+  }
+
+  // Die Reihenfolge spiegelt die Spuren: unten im Stapel, unten in der Liste.
+  const reihen = mitFarben ? colorOrder.slice().reverse() : [];
 
   reihen.forEach(function (key) {
     const items = colorGroups[key] || [];
@@ -1292,9 +1316,175 @@ function renderTimelineLegende_(colorOrder, colorGroups, farbAnzeige) {
       '</button>';
   });
 
-  html += '</div><div class="timeline-legend-list" id="timeline-legend-list"></div>';
+  if (mitFarben) html += '</div>';
+  html += '<div class="timeline-legend-list" id="timeline-legend-list"></div>';
   legende.innerHTML = html;
+
+  // Ausgangslage: alles aufgelistet. Frueher blieb hier leer, bis jemand auf
+  // eine Farbe klickte - und dass es diese Liste ueberhaupt gibt, erfuhr man
+  // nur durch Zufall.
+  zeichneLegendeListe_(null);
 }
+
+/**
+ * Adresse zum Ort eines Termins.
+ *
+ * Steht in der Spalte "locationUrl" etwas, gilt das - dort kann eine genaue
+ * Karte, ein Raumplan oder die Seite des Veranstalters hinterlegt sein.
+ * Sonst wird aus dem Ortstext eine Google-Maps-Suche gebaut. Dieselbe Form
+ * verwendet auch das Kartenfenster der Startseite, damit ein Ort ueberall
+ * denselben Weg nimmt.
+ *
+ * Ohne Ort gibt es nichts zu verlinken - dann bleibt die Adresse leer, und die
+ * Liste zeigt statt eines Verweises reinen Text.
+ */
+function ortAdresse_(evt) {
+  const eigene = String((evt && evt.locationUrl) || '').trim();
+  if (eigene) return eigene;
+
+  const ort = String((evt && evt.location) || '').trim();
+  if (!ort) return '';
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(ort);
+}
+
+/** Zaehlt die Balken, die gerade in der Zeitachse stehen. */
+function anzahlBalken_() {
+  const container = document.getElementById('events-timeline-container');
+  return container ? container.querySelectorAll('.timeline-event-range').length : 0;
+}
+
+/**
+ * Fuellt die Liste unter der Zeitachse.
+ *
+ * @param {string|null} farbe null = alle Termine, sonst nur die dieser Farbe.
+ *
+ * Gelesen wird aus dem DOM, nicht aus den Termindaten: Die Balken stehen genau
+ * fuer das, was die Achse gerade zeigt - nach Filter, Suche und Rueckblick.
+ * Eine zweite Auswahl aus den Rohdaten koennte davon abweichen, und dann
+ * stuenden in der Liste Termine, die oben gar nicht zu sehen sind.
+ */
+function zeichneLegendeListe_(farbe) {
+  const container = document.getElementById('events-timeline-container');
+  const liste = document.getElementById('timeline-legend-list');
+  if (!container || !liste) return;
+
+  const knoten = Array.prototype.slice.call(
+    container.querySelectorAll('.timeline-event-range')
+  ).filter(function (n) {
+    return farbe === null || n.getAttribute('data-farbe') === farbe;
+  });
+
+  const eintraege = knoten.map(function (n) {
+    const label = n.getAttribute('aria-label') || '';
+    const trenn = label.lastIndexOf(', ');
+    return {
+      titel: trenn > 0 ? label.slice(0, trenn) : label,
+      datum: trenn > 0 ? label.slice(trenn + 2) : '',
+      links: parseFloat(n.style.left) || 0,
+      nodeId: n.id,
+      eventId: n.getAttribute('data-event-id') || '',
+      farbe: n.getAttribute('data-farbe') || '',
+      // Der Ort steht am Balken, damit die Liste ihn nicht aus den Termindaten
+      // nachschlagen muss. Sonst gaebe es zwei Quellen fuer dieselbe Zeile.
+      ort: n.getAttribute('data-ort') || '',
+      ortUrl: n.getAttribute('data-ort-url') || '',
+      // Vom Balken abgelesen statt neu berechnet: Er traegt die Klasse
+      // bereits, und so kann die Liste gar nicht anders urteilen als die
+      // Zeitachse darueber. Eine zweite Datumsrechnung waere eine zweite
+      // Wahrheit - und irgendwann wichen die beiden voneinander ab.
+      vergangen: n.classList.contains('ist-vergangen')
+    };
+  }).sort(function (a, b) { return a.links - b.links; });
+
+  // Klick oeffnet das Terminfenster - dieselbe Wirkung wie ein Klick auf den
+  // Balken. Beim Ueberfahren pulsiert der zugehoerige Balken, damit man den
+  // Zusammenhang zwischen Liste und Zeitachse sieht, ohne klicken zu muessen.
+  // ══ WARUM DIE ZEILE KEIN EINZELNER KNOPF MEHR IST ══
+  // Sie enthaelt jetzt ZWEI Ziele: Titel und Datum oeffnen den Termin, der Ort
+  // fuehrt zur Karte. Ein <a> in einem <button> ist ungueltiges HTML - und der
+  // Browser entscheidet dann selbst, was ein Klick bedeutet.
+  //
+  // Deshalb ist die Zeile nur noch ein Behaelter. Darin ein Knopf fuer den
+  // Termin und ein Verweis fuer den Ort. Beide sind einzeln mit der Tastatur
+  // erreichbar, und die Hervorhebung des Balkens haengt am Behaelter - egal,
+  // ueber welchem Teil die Maus steht.
+  liste.innerHTML = eintraege.map(function (e) {
+    const ziel = escapeAttr(e.nodeId);
+
+    // ══ FARBE AM LINKEN RAND STATT ALS PUNKT ══
+    // Der Punkt brauchte eine eigene Spalte, und auf dem Handy musste er
+    // freigestellt werden, weil er sonst allein in der ersten Zeile sass.
+    // Der Rand ist ohnehin da - er traegt die Farbe, ohne Platz zu kosten,
+    // und fasst die zwei Zeilen eines Eintrags sichtbar zusammen.
+    const randFarbe = e.farbe
+      ? ' style="border-left-color: ' + escapeAttr(e.farbe) + '"'
+      : '';
+
+    // Ort mit Nadel davor - dieselbe Kennzeichnung wie im Detailfenster.
+    // Ohne Adresse bleibt es Text: ein Verweis, der nirgends hinfuehrt, ist
+    // schlimmer als gar keiner.
+    //
+    // ══ ZWEI FASSUNGEN DES ORTES ══
+    // "Gambrinus, Friedrichstrasse 6, 79618 Rheinfelden, Deutschland" ist auf
+    // dem Handy laenger als der Titel des Termins - die Nebensache wuerde zur
+    // Hauptsache. Der Teil vor dem ersten Komma ist praktisch immer der Name
+    // des Ortes, und der genuegt zum Wiedererkennen; die volle Adresse steht
+    // im Detailfenster und hinter dem Verweis.
+    //
+    // Beide Fassungen stehen im Markup, sichtbar wird je eine ueber die
+    // Bildschirmbreite. Die Alternative - in JavaScript nach Fensterbreite
+    // entscheiden - waere beim Drehen des Geraets sofort falsch.
+    let ortHtml = '';
+    if (e.ort) {
+      const kurz = e.ort.split(',')[0].trim();
+      const text = (kurz && kurz !== e.ort)
+        ? '<span class="ort-text ort-voll">' + e.ort + '</span>' +
+          '<span class="ort-text ort-kurz">' + kurz + '</span>'
+        : '<span class="ort-text">' + e.ort + '</span>';
+      const inhalt = '<span class="ort-nadel" aria-hidden="true">📍</span>' + text;
+
+      ortHtml = e.ortUrl
+        ? '<a class="timeline-legend-row-ort" href="' + escapeAttr(e.ortUrl) + '" ' +
+          'target="_blank" rel="noopener noreferrer" ' +
+          'title="' + escapeAttr(e.ort) + ' auf der Karte öffnen">' + inhalt + '</a>'
+        : '<span class="timeline-legend-row-ort ohne-karte" ' +
+          'title="' + escapeAttr(e.ort) + '">' + inhalt + '</span>';
+    }
+
+    return '<div class="timeline-legend-row' + (e.vergangen ? ' ist-vergangen' : '') + '"' +
+           randFarbe + ' ' +
+           'onmouseenter="window.zeigeBalken(\'' + ziel + '\', true)" ' +
+           'onmouseleave="window.zeigeBalken(\'' + ziel + '\', false)">' +
+           '<button type="button" class="timeline-legend-row-main" ' +
+           'onclick="window.openEventModal(\'' + escapeJsAttr_(e.eventId) + '\')" ' +
+           'onfocus="window.zeigeBalken(\'' + ziel + '\', true)" ' +
+           'onblur="window.zeigeBalken(\'' + ziel + '\', false)">' +
+             '<span class="timeline-legend-row-date">' + e.datum + '</span>' +
+             '<span class="timeline-legend-row-title">' + e.titel + '</span>' +
+           '</button>' +
+           ortHtml +
+           '</div>';
+  }).join('');
+}
+
+/** Zurueck zur Gesamtliste: Hervorhebung aufheben, alles auflisten. */
+window.zeigeAlleTermine = function () {
+  const container = document.getElementById('events-timeline-container');
+  const legende = document.getElementById('events-timeline-legend');
+  if (!container || !legende) return;
+
+  legende.querySelectorAll('.timeline-legend-item').forEach(function (b) {
+    const istAlle = b.classList.contains('alle');
+    b.classList.toggle('active', istAlle);
+    b.setAttribute('aria-pressed', istAlle ? 'true' : 'false');
+  });
+  container.querySelectorAll('.timeline-event-range').forEach(function (n) {
+    n.classList.remove('dimmed', 'hervorgehoben');
+  });
+  container.classList.remove('has-focus');
+
+  zeichneLegendeListe_(null);
+};
 
 /**
  * Eine Farbe hervorheben - oder die Hervorhebung wieder aufheben.
@@ -1304,11 +1494,16 @@ function renderTimelineLegende_(colorOrder, colorGroups, farbAnzeige) {
 window.toggleTimelineFarbe = function (farbe) {
   const container = document.getElementById('events-timeline-container');
   const legende = document.getElementById('events-timeline-legend');
-  const liste = document.getElementById('timeline-legend-list');
   if (!container || !legende) return;
 
   const aktiv = legende.querySelector('.timeline-legend-item.active');
-  const schonAktiv = aktiv && aktiv.getAttribute('data-farbe') === farbe;
+  const schonAktiv = aktiv && !aktiv.classList.contains('alle')
+                   && aktiv.getAttribute('data-farbe') === farbe;
+
+  // Dieselbe Farbe ein zweites Mal hebt die Eingrenzung auf. Das war schon
+  // immer so und bleibt - nur endet es jetzt nicht mehr in einer leeren
+  // Flaeche, sondern bei der Gesamtliste.
+  if (schonAktiv) { window.zeigeAlleTermine(); return; }
 
   legende.querySelectorAll('.timeline-legend-item').forEach(function (b) {
     b.classList.remove('active');
@@ -1318,55 +1513,15 @@ window.toggleTimelineFarbe = function (farbe) {
     n.classList.remove('dimmed', 'hervorgehoben');
   });
 
-  if (schonAktiv) {
-    container.classList.remove('has-focus');
-    if (liste) liste.innerHTML = '';
-    return;
-  }
-
   const knopf = legende.querySelector('.timeline-legend-item[data-farbe="' + CSS.escape(farbe) + '"]');
   if (knopf) { knopf.classList.add('active'); knopf.setAttribute('aria-pressed', 'true'); }
   container.classList.add('has-focus');
 
-  const treffer = [];
   container.querySelectorAll('.timeline-event-range').forEach(function (n) {
-    if (n.getAttribute('data-farbe') === farbe) {
-      n.classList.add('hervorgehoben');
-      treffer.push(n);
-    } else {
-      n.classList.add('dimmed');
-    }
+    n.classList.add(n.getAttribute('data-farbe') === farbe ? 'hervorgehoben' : 'dimmed');
   });
 
-  // Auflistung: chronologisch, damit die Reihe als Abfolge lesbar wird.
-  if (liste) {
-    const eintraege = treffer.map(function (n) {
-      const label = n.getAttribute('aria-label') || '';
-      const trenn = label.lastIndexOf(', ');
-      return {
-        titel: trenn > 0 ? label.slice(0, trenn) : label,
-        datum: trenn > 0 ? label.slice(trenn + 2) : '',
-        links: parseFloat(n.style.left) || 0,
-        nodeId: n.id,
-        eventId: n.getAttribute('data-event-id') || ''
-      };
-    }).sort(function (a, b) { return a.links - b.links; });
-
-    // Klick oeffnet das Terminfenster - dieselbe Wirkung wie ein Klick auf den
-    // Balken. Beim Ueberfahren pulsiert der zugehoerige Balken, damit man den
-    // Zusammenhang zwischen Liste und Zeitachse sieht, ohne klicken zu muessen.
-    liste.innerHTML = eintraege.map(function (e) {
-      const ziel = escapeAttr(e.nodeId);
-      return '<button type="button" class="timeline-legend-row" ' +
-             'onclick="window.openEventModal(\'' + escapeJsAttr_(e.eventId) + '\')" ' +
-             'onmouseenter="window.zeigeBalken(\'' + ziel + '\', true)" ' +
-             'onmouseleave="window.zeigeBalken(\'' + ziel + '\', false)" ' +
-             'onfocus="window.zeigeBalken(\'' + ziel + '\', true)" ' +
-             'onblur="window.zeigeBalken(\'' + ziel + '\', false)">' +
-             '<span class="timeline-legend-row-date">' + e.datum + '</span>' +
-             '<span class="timeline-legend-row-title">' + e.titel + '</span></button>';
-    }).join('');
-  }
+  zeichneLegendeListe_(farbe);
 };
 
 /**

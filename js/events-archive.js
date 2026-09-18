@@ -516,19 +516,36 @@ function renderEvents() {
       }
 
     if (dateFrom || dateTo) {
+        // ══ ES ZAEHLT DIE UEBERSCHNEIDUNG, NICHT DER BEGINN ══
+        // Ein Termin gehoert in den gewaehlten Zeitraum, sobald er ihn
+        // BERUEHRT - nicht erst, wenn er darin anfaengt.
+        //
+        // Vorher wurde allein das Startdatum geprueft. Eine Sommerpause vom
+        // 01.04. bis 30.09. verschwand damit, sobald man "Von" auf den 01.09.
+        // setzte: Ihr Beginn lag vor dem Filter, obwohl sie an diesem Tag noch
+        // lief. Wer wissen will, was im September ansteht, bekam ausgerechnet
+        // den Termin nicht zu sehen, der den ganzen Monat belegt.
+        //
+        // Die Regel lautet jetzt: Ende >= Von UND Beginn <= Bis. Eintaegige
+        // Termine verhalten sich dabei unveraendert, denn bei ihnen ist das
+        // Ende gleich dem Beginn.
         filteredEvents = filteredEvents.filter(item => {
-            const itemDate = window.parseDateSortable(item.date);
-            itemDate.setHours(0,0,0,0);
-            
+            const start = window.parseDateSortable(item.date);
+            start.setHours(0, 0, 0, 0);
+
+            const endeRoh = window.getEventEndDate ? window.getEventEndDate(item) : null;
+            const ende = endeRoh ? new Date(endeRoh) : new Date(start);
+            ende.setHours(0, 0, 0, 0);
+
             if (dateFrom) {
-                const fromDate = new Date(dateFrom);
-                fromDate.setHours(0,0,0,0);
-                if (itemDate < fromDate) return false;
+                const von = new Date(dateFrom);
+                von.setHours(0, 0, 0, 0);
+                if (ende < von) return false;
             }
             if (dateTo) {
-                const toDate = new Date(dateTo);
-                toDate.setHours(0,0,0,0);
-                if (itemDate > toDate) return false;
+                const bis = new Date(dateTo);
+                bis.setHours(0, 0, 0, 0);
+                if (start > bis) return false;
             }
             return true;
         });
@@ -553,6 +570,7 @@ function renderEvents() {
         if (gridContainer) gridContainer.innerHTML = '<p class="loading">Keine Termine gefunden.</p>';
         if (timelineContainer) timelineContainer.innerHTML = '';
         if (legendContainer) legendContainer.classList.add('hidden');
+        versteckeAchsenLeiste_();
         return;
     }
 
@@ -564,9 +582,10 @@ function renderEvents() {
     } else {
         if (gridContainer) gridContainer.classList.remove('hidden');
         if (timelineContainer) timelineContainer.classList.add('hidden');
-        // Die Legende gehoert zur Zeitachse - in der Kachelansicht hat sie
-        // nichts zu erklaeren.
+        // Legende und Achsenhinweis gehoeren zur Zeitachse - in der
+        // Kachelansicht haben sie nichts zu erklaeren.
         if (legendContainer) legendContainer.classList.add('hidden');
+        versteckeAchsenLeiste_();
     }
 
     const today = new Date();
@@ -764,45 +783,97 @@ function renderTimeline(events) {
 
     // 2. Determine bounds (Start / End)
     //
-    // ══ WARUM DER RUECKBLICK BEGRENZT IST ══
-    // Ohne Begrenzung waechst die Achse mit jedem alten Termin nach links, und
-    // "Heute" wandert immer weiter nach rechts - allein deshalb, weil das
-    // Archiv laenger wird. Der Blick nach vorn, um den es meistens geht, wird
-    // dabei immer schmaler.
+    // ══ EINE HARTE GRENZE: HEUTE ══
+    // Die Achse beginnt bei heute. Alles davor ist vergangen und kommt nur
+    // dazu, wenn man den Schalter "Vergangene anzeigen" drueckt - denselben,
+    // der auch im Raster die vergangenen Kacheln einblendet.
     //
-    // Deshalb beginnt die Achse ohne Datumsfilter stets RUECKBLICK_MONATE vor
-    // heute. Aeltere Termine erscheinen dann nicht in der Zeitachse - in der
-    // Kachelansicht und im Archiv sind sie weiterhin da.
+    // Frueher lag hier ein weicher Rueckblick von einem Monat. Der sollte
+    // verhindern, dass die Achse mit dem Archiv mitwaechst und der Blick nach
+    // vorn immer schmaler wird. Das Problem loest der Schalter aber besser:
+    // Zugeklappt reicht die Achse ueberhaupt nicht in die Vergangenheit,
+    // aufgeklappt so weit, wie die Auswahl es hergibt - und beides hat man
+    // selbst in der Hand.
     //
-    // Setzt du "Von" und "Bis", zaehlt ausschliesslich dein Filter. Dann darfst
-    // du beliebig weit zurueckschauen und "Heute" wandert entsprechend.
-    const RUECKBLICK_MONATE = 1;
+    // Der Monat war ausserdem eine dritte Antwort auf dieselbe Frage: Das
+    // Raster verbarg Vergangenes vollstaendig, die Achse zeigte einen Monat
+    // davon, und wer nach einer Kategorie ohne kuenftige Termine filterte,
+    // sah eine Achse, die nur aus Vergangenem bestand. Jetzt gibt es eine
+    // Grenze, und sie liegt zwischen heute und gestern.
+    //
+    // Setzt du "Von" und "Bis", zaehlt ausschliesslich dein Filter.
+
+    // Spaetestes Ende ueber ALLE Termine der Auswahl, nicht nur der letzte
+    // Startzeitpunkt: Ein frueh beginnender Mehrtagestermin kann laenger
+    // laufen als ein spaeter beginnender kurzer.
+    const letztesEnde = validEvents.reduce((max, e) => {
+        const ende = window.getEventEndDate ? window.getEventEndDate(e) : window.parseDateSortable(e.date);
+        const t = ende ? ende.getTime() : window.parseDateSortable(e.date).getTime();
+        return t > max ? t : max;
+    }, window.parseDateSortable(validEvents[validEvents.length - 1].date).getTime());
+
+    const erstesStart = validEvents.reduce((min, e) => {
+        const t = window.parseDateSortable(e.date).getTime();
+        return t < min ? t : min;
+    }, window.parseDateSortable(validEvents[0].date).getTime());
+
+    // Vorbei ist ein Termin erst, wenn sein ENDE hinter uns liegt - ein
+    // laufendes Mehrtagesturnier gehoert zum Kommenden.
+    let vergangene = 0;
+    validEvents.forEach(e => {
+        const ende = window.getEventEndDate ? window.getEventEndDate(e) : window.parseDateSortable(e.date);
+        const t = ende ? ende.getTime() : window.parseDateSortable(e.date).getTime();
+        if (t < heuteZeit) vergangene++;
+    });
+
+    const hatDatumsfilter = !!(dateFrom || dateTo);
 
     let minDate, maxDate;
-    if (dateFrom && dateTo) {
-        minDate = new Date(dateFrom).getTime();
-        maxDate = new Date(dateTo).getTime();
+
+    if (hatDatumsfilter) {
+        // ══ DER DATUMSFILTER BESTIMMT DEN RAHMEN ══
+        // Ist er gesetzt, gilt ausschliesslich er - auch wenn dabei ein
+        // Zeitraum weit in der Vergangenheit entsteht. Genau dafuer ist er da.
+        //
+        // Frueher verlangte diese Stelle BEIDE Felder. Wer nur "Von" setzte,
+        // bekam den gewohnten Rueckblick zu sehen, waehrend die Kachelansicht
+        // daneben korrekt filterte - die beiden Ansichten zeigten dann
+        // Verschiedenes. Fehlt eine Seite, folgt sie jetzt den Daten.
+        minDate = dateFrom ? new Date(dateFrom).setHours(0, 0, 0, 0) : erstesStart;
+        maxDate = dateTo ? new Date(dateTo).setHours(0, 0, 0, 0) : letztesEnde;
     } else {
-        const rueckblick = new Date(heute);
-        rueckblick.setMonth(rueckblick.getMonth() - RUECKBLICK_MONATE);
-        minDate = rueckblick.getTime();
+        // Ohne Datumsfilter: erst das Kommende, Vergangenes auf Wunsch.
+        //
+        // Aufgeklappt reicht die Achse bis zum ersten Termin der Auswahl -
+        // nicht bis zu einem festen Datum. So bestimmt die Auswahl selbst, wie
+        // weit zurueckgeschaut wird: Bei "SMM" sind das Wochen, bei "Alle"
+        // eben das ganze Archiv.
+        //
+        // Math.min gegen heute, damit die Achse auch dann noch einen Zeitraum
+        // umfasst, wenn saemtliche Termine der Auswahl in der Zukunft liegen -
+        // sonst faengt sie erst beim ersten davon an und der Heute-Marker
+        // faellt heraus.
+        minDate = pastEventsExpanded ? Math.min(erstesStart, heuteZeit) : heuteZeit;
 
-        // Ende ueber ALLE Termine, nicht nur ueber den letzten Startzeitpunkt:
-        // Ein frueh beginnender Mehrtagestermin kann laenger laufen als ein
-        // spaeter beginnender kurzer.
-        maxDate = validEvents.reduce((max, e) => {
-            const ende = window.getEventEndDate ? window.getEventEndDate(e) : window.parseDateSortable(e.date);
-            const t = ende ? ende.getTime() : window.parseDateSortable(e.date).getTime();
-            return t > max ? t : max;
-        }, window.parseDateSortable(validEvents[validEvents.length - 1].date).getTime());
-
-        // Liegt alles vor dem Rueckblick, waere die Achse leer - dann doch
-        // wieder den Daten folgen.
-        if (maxDate <= minDate) {
-            minDate = window.parseDateSortable(validEvents[0].date).getTime();
-        }
+        // Bis mindestens heute, damit der Heute-Marker im Bild liegt.
+        maxDate = Math.max(letztesEnde, heuteZeit);
     }
-    
+
+    // ══ SICHTGRENZE UND ZEICHENGRENZE SIND NICHT DASSELBE ══
+    // Gleich bekommt die Achse links und rechts ein Polster, damit ein Balken
+    // am Rand nicht abgeschnitten wirkt. Dieses Polster verschiebt aber auch
+    // minDate - und danach wurde entschieden, welche Termine gezeigt werden.
+    //
+    // Bei zugeklapptem Schalter beginnt die Achse bei heute; 5% von einem
+    // dreiviertel Jahr sind gut zwei Wochen. Damit rutschte die Grenze auf
+    // Anfang September zurueck, und genau die vergangenen Termine tauchten
+    // wieder auf, die der Schalter ausblenden sollte.
+    //
+    // Deshalb hier die Grenzen festhalten, BEVOR gepolstert wird. Das Polster
+    // wirkt nur noch auf die Darstellung, nicht auf die Auswahl.
+    const grenzeAnfang = minDate;
+    const grenzeEnde = maxDate;
+
     // If only one event or range is 0, pad it
     if (maxDate <= minDate) {
         minDate -= 86400000 * 7; // -1 week
@@ -842,8 +913,9 @@ function renderTimeline(events) {
             isRange = false;
         }
 
-        // If the event starts after maxDate or ends before minDate, skip
-        if (time > maxDate || (isRange && endTime < minDate) || (!isRange && time < minDate)) {
+        // Ausserhalb der Sichtgrenze? Dann nicht zeichnen.
+        // Geprueft wird gegen die UNGEPOLSTERTEN Werte - siehe oben.
+        if (time > grenzeEnde || (isRange && endTime < grenzeAnfang) || (!isRange && time < grenzeAnfang)) {
             return;
         }
         
@@ -856,10 +928,23 @@ function renderTimeline(events) {
             endPercent = ((adjustedEndTime - minDate) / totalDuration) * 100;
         }
         
-        // Clamp bounds
+        // ══ ABGESCHNITTENE BALKEN KENNZEICHNEN ══
+        // Ein Termin kann aus der Achse herausragen - etwa eine Sommerpause
+        // ueber ein halbes Jahr, von der nur noch die letzten Wochen
+        // bevorstehen. Sein Balken wird dann auf den Rand geklemmt.
+        //
+        // Ohne Kennzeichen liest man ihn falsch: Er sieht aus wie ein kurzer
+        // Termin, der am Achsenanfang beginnt. Gerade bei einem Balken, dessen
+        // ganzer Sinn die DAUER ist, waere das die falsche Auskunft.
+        //
+        // Deshalb bekommt er eine Klasse und damit eine glatte, angeschnittene
+        // Kante - dieselbe Geste wie in Balkenplaenen: Hier geht es weiter.
+        const gekapptLinks = startPercent < 0;
+        const gekapptRechts = endPercent > 100;
+
         if (startPercent < 0) startPercent = 0;
         if (endPercent > 100) endPercent = 100;
-        
+
         let widthPercent = endPercent - startPercent;
 
         const isPoint = !isRange || widthPercent <= 0;
@@ -888,10 +973,33 @@ function renderTimeline(events) {
             widthPercent: renderWidth,                 // fuer die Darstellung
             // Vorbei ist ein Termin erst, wenn sein ENDE hinter uns liegt -
             // ein laufendes Mehrtagesturnier gehoert nicht ins Verblasste.
-            vergangen: (isRange && endTime ? endTime : time) < heuteZeit
+            vergangen: (isRange && endTime ? endTime : time) < heuteZeit,
+            gekapptLinks: gekapptLinks,
+            gekapptRechts: gekapptRechts
         });
     });
     
+    // ══ NICHTS IM ZEITRAUM ══
+    // Eine Achse ohne einen einzigen Balken sieht aus wie ein Fehler. Sie
+    // entsteht, wenn eine Kategorie ausschliesslich Termine enthaelt, die vor
+    // dem Rueckblick liegen - etwa eine Turnierserie, die im Fruehjahr endete.
+    // Statt eines leeren Rasters eine Erklaerung samt Weg nach vorn.
+    if (timelineItems.length === 0) {
+        container.innerHTML = '';
+        container.style.minHeight = '';
+        zeigeAchsenLeiste_({
+            vergangene: vergangene,
+            hatDatumsfilter: hatDatumsfilter,
+            text: hatDatumsfilter
+                ? 'Im gewählten Zeitraum liegt kein Termin dieser Auswahl.'
+                : (vergangene
+                    ? 'Kein kommender Termin in dieser Auswahl — alles davon liegt hinter uns.'
+                    : 'Kein Termin dieser Auswahl.')
+        });
+        renderTimelineLegende_([], {}, null);
+        return;
+    }
+
     // 4. Color Swimlanes & Pyramid Sorting
     
     // Determine color for each item
@@ -1166,13 +1274,24 @@ function renderTimeline(events) {
         if (centerPercent < 15) positionCls = 'align-right';
         else if (centerPercent > 85) positionCls = 'align-left';
 
+        // Der Zusatz steht NICHT im aria-label: Das wird auch fuer die Liste
+        // unter der Achse ausgelesen, und dort waere "reicht ueber den Rand
+        // hinaus" sinnlos - die Liste hat keinen Rand. Er gehoert an den
+        // Balken selbst, als Titel beim Ueberfahren.
         const ariaLabel = escapeAttr(`${evt.title}, ${String(dateStr).trim()}`);
+        const kappHinweis = (item.gekapptLinks || item.gekapptRechts)
+            ? ' title="' + escapeAttr(String(dateStr).trim() +
+                ' — reicht über den dargestellten Zeitraum hinaus') + '"'
+            : '';
 
         // Mehrtaegige Termine bekommen eine eigene Klasse und darueber eine
         // groessere Mindestbreite. Ohne sie schrumpft ein dreitaegiger Termin
         // auf schmalen Displays unter die gemeinsame Mindestbreite von 8px und
         // ist von einem eintaegigen Punkt nicht mehr zu unterscheiden.
-        const shapeCls = (item.isRange ? 'is-range' : 'is-point') + (item.vergangen ? ' ist-vergangen' : '');
+        const shapeCls = (item.isRange ? 'is-range' : 'is-point')
+            + (item.vergangen ? ' ist-vergangen' : '')
+            + (item.gekapptLinks ? ' gekappt-links' : '')
+            + (item.gekapptRechts ? ' gekappt-rechts' : '');
 
         // Positioniert wird ueber die MITTE des Zeitraums, nicht ueber die
         // linke Kante (das CSS zieht das Element mit translateX(-50%) zurueck).
@@ -1183,7 +1302,7 @@ function renderTimeline(events) {
         // verteilt sich die Aufweitung gleichmaessig auf beide Seiten, der
         // Mittelpunkt bleibt zeitlich korrekt und die Reihenfolge stimmt.
         html += `
-            <div class="timeline-event-range ${shapeCls} ${positionCls}" id="${nodeId}" data-farbe="${escapeAttr(item.colorKey)}" data-event-id="${escapeAttr(evt.id)}" data-ort="${escapeAttr(evt.location || '')}" data-ort-url="${escapeAttr(ortAdresse_(evt))}" style="left: ${centerPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}">
+            <div class="timeline-event-range ${shapeCls} ${positionCls}" id="${nodeId}" data-farbe="${escapeAttr(item.colorKey)}" data-event-id="${escapeAttr(evt.id)}" data-ort="${escapeAttr(evt.location || '')}" data-ort-url="${escapeAttr(ortAdresse_(evt))}" style="left: ${centerPercent}%; width: ${item.widthPercent}%; top: calc(75% + ${offsetPx}px); background-color: ${parsedColor};" onclick="${onClickFn}" tabindex="0" role="button" aria-label="${ariaLabel}"${kappHinweis}>
                 <div class="timeline-label">
                     <div class="timeline-date">${dateStr}</div>
                     <div class="timeline-title">${evt.title}</div>
@@ -1213,7 +1332,72 @@ function renderTimeline(events) {
 
     container.innerHTML = html;
 
+    zeigeAchsenLeiste_({
+        vergangene: vergangene,
+        hatDatumsfilter: hatDatumsfilter,
+        text: ''
+    });
+
     renderTimelineLegende_(colorOrder, colorGroups, farbAnzeige);
+}
+
+/**
+ * Leiste ueber der Zeitachse: Schalter fuer Vergangenes, dazu Hinweise.
+ *
+ * ══ WARUM DERSELBE SCHALTER WIE IM RASTER ══
+ * Er schaltet pastEventsExpanded um - dieselbe Variable, an der auch die
+ * Rasteransicht haengt. Damit koennen die beiden Ansichten gar nicht mehr
+ * auseinanderlaufen: Wer im Raster Vergangenes einblendet und dann zur Achse
+ * wechselt, findet es dort ebenfalls eingeblendet.
+ *
+ * Steht ueber der Achse und nicht darunter: Der Schalter bestimmt, was man
+ * gleich sieht. Unterhalb gelesen waere die Ueberraschung schon passiert.
+ *
+ * @param {Object} o
+ *   o.vergangene      Anzahl vergangener Termine der Auswahl
+ *   o.hatDatumsfilter Dann gilt der Filter, der Schalter entfaellt
+ *   o.text            Zusaetzliche Meldung, etwa bei leerer Achse
+ */
+function zeigeAchsenLeiste_(o) {
+  const container = document.getElementById('events-timeline-container');
+  if (!container) return;
+  const bezug = container.closest('.events-timeline-scroll') || container;
+
+  const zeigeSchalter = !o.hatDatumsfilter && (o.vergangene > 0 || pastEventsExpanded);
+
+  const hinweise = [];
+  if (o.text) hinweise.push(o.text);
+
+  let leiste = document.getElementById('events-timeline-note');
+  if (!leiste) {
+    if (!zeigeSchalter && !hinweise.length) return;   // nichts zu zeigen
+    leiste = document.createElement('div');
+    leiste.id = 'events-timeline-note';
+    leiste.className = 'timeline-note';
+    bezug.parentNode.insertBefore(leiste, bezug);
+  }
+
+  let html = '';
+  if (zeigeSchalter) {
+    const beschriftung = pastEventsExpanded
+      ? 'Vergangene ausblenden'
+      : 'Vergangene anzeigen' + (o.vergangene ? ' (' + o.vergangene + ')' : '');
+    html += '<button type="button" class="timeline-past-btn' + (pastEventsExpanded ? ' an' : '') + '" '
+          + 'onclick="window.togglePastEvents()" aria-pressed="' + (pastEventsExpanded ? 'true' : 'false') + '">'
+          + '<span aria-hidden="true">🕓</span> ' + beschriftung + '</button>';
+  }
+  if (hinweise.length) {
+    html += '<span class="timeline-note-text">' + hinweise.join(' ') + '</span>';
+  }
+
+  leiste.innerHTML = html;
+  leiste.classList.toggle('hidden', !html);
+}
+
+/** Blendet die Leiste aus - etwa in der Rasteransicht. */
+function versteckeAchsenLeiste_() {
+  const leiste = document.getElementById('events-timeline-note');
+  if (leiste) { leiste.innerHTML = ''; leiste.classList.add('hidden'); }
 }
 
 /* ===========================================================================

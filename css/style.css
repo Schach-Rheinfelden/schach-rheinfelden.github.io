@@ -3300,6 +3300,49 @@ body.light-theme .timeline-line {
     filter: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Abgeschnittene Balken
+   ---------------------------------------------------------------------------
+   Ein Termin kann weiter reichen als die Achse - eine Sommerpause über ein
+   halbes Jahr etwa, von der nur noch die letzten Wochen bevorstehen. Sein
+   Balken wird dann auf den Rand geklemmt.
+
+   Ohne Kennzeichen liest man ihn falsch: Er sähe aus wie ein kurzer Termin,
+   der am Achsenanfang beginnt. Bei einem Balken, dessen ganzer Sinn die DAUER
+   ist, wäre das die falsche Auskunft.
+
+   Die Schnittkante wird deshalb gerade statt rund, und eine feine Schraffur
+   darauf sagt: Hier geht es weiter. Dieselbe Geste wie in Balkenplänen.
+--------------------------------------------------------------------------- */
+.timeline-event-range.gekappt-links {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    background-image: repeating-linear-gradient(115deg,
+        rgba(0, 0, 0, 0.45) 0 2px, rgba(255, 255, 255, 0.25) 2px 4px);
+    background-repeat: no-repeat;
+    background-size: 10px 100%;
+    background-position: left center;
+}
+
+.timeline-event-range.gekappt-rechts {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    background-image: repeating-linear-gradient(115deg,
+        rgba(0, 0, 0, 0.45) 0 2px, rgba(255, 255, 255, 0.25) 2px 4px);
+    background-repeat: no-repeat;
+    background-size: 10px 100%;
+    background-position: right center;
+}
+
+/* Beidseitig abgeschnitten: Der Termin umspannt die ganze Achse. */
+.timeline-event-range.gekappt-links.gekappt-rechts {
+    background-position: left center, right center;
+    background-size: 10px 100%, 10px 100%;
+    background-image:
+        repeating-linear-gradient(115deg, rgba(0, 0, 0, 0.45) 0 2px, rgba(255, 255, 255, 0.25) 2px 4px),
+        repeating-linear-gradient(115deg, rgba(0, 0, 0, 0.45) 0 2px, rgba(255, 255, 255, 0.25) 2px 4px);
+}
+
 /* In der Zeitachse etwas kraeftiger gedaempft: Die Balken sind klein und
    stehen dicht beieinander, da traegt schon ein geringer Unterschied. */
 .timeline-event-range.ist-vergangen {
@@ -3394,6 +3437,68 @@ body.light-theme .timeline-line {
 
 .timeline-legend-list:empty {
     margin-top: 0;
+}
+
+/* Hinweis über der Zeitachse.
+   ---------------------------------------------------------------------------
+   Erscheint nur, wenn die Achse etwas anderes zeigt als erwartet - etwa weil
+   die gefilterte Auswahl ausschliesslich Vergangenes enthält und der Rückblick
+   deshalb ausgeweitet wurde. In allen anderen Fällen ist er nicht da: Ein
+   Hinweis, der immer steht, wird nach dem zweiten Mal nicht mehr gelesen. */
+.timeline-note {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.timeline-note:empty,
+.timeline-note.hidden {
+    display: none;
+}
+
+.timeline-note-text {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+/* Der Schalter für Vergangenes.
+   ---------------------------------------------------------------------------
+   Sichtbar als Schalter gestaltet, nicht als Hinweis: Er verändert, was man
+   sieht, und muss deshalb aussehen wie etwas, das man drücken kann. Im
+   eingeschalteten Zustand golden hinterlegt — dann ist auf einen Blick klar,
+   warum die Achse weiter zurückreicht als sonst. */
+.timeline-past-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.1rem;
+    border-radius: 50px;
+    border: 1px solid var(--glass-border);
+    background: var(--surface-color);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.timeline-past-btn:hover,
+.timeline-past-btn:focus-visible {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    outline: none;
+}
+
+.timeline-past-btn.an {
+    background: var(--gold-soft, rgba(212, 175, 55, 0.14));
+    border-color: var(--accent-color);
+    color: var(--accent-color);
 }
 
 /* Kein eigener Rollbereich für die Liste.

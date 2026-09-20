@@ -332,7 +332,7 @@
                 : (window.stripHtml ? window.stripHtml(window.formatTextContent(item.content)) : "");
 
             const tagsHTML = item.category
-                ? `<div style="margin-top: 1rem; padding-top: 0; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" ${asBg ? 'style="text-shadow: none !important;"' : ''}>🏷️ ${tag.trim()}</span>`).join('')}</div>`
+                ? `<div style="margin-top: 1rem; padding-top: 0; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" role="button" tabindex="0" ${asBg ? 'style="text-shadow: none !important;"' : ''}>🏷️ ${tag.trim()}</span>`).join('')}</div>`
                 : '';
 
             return `
@@ -383,7 +383,7 @@
         let tagsHTML = '';
         if (article.category) {
             const tags = article.category.split(',').map(s => s.trim());
-            tagsHTML = `<div style="margin-top: 1rem; margin-bottom: 1.5rem;">${tags.map(tag => `<span class="tag-badge">🏷️ ${tag}</span>`).join('')}</div>`;
+            tagsHTML = `<div style="margin-top: 1rem; margin-bottom: 1.5rem;">${tags.map(tag => `<span class="tag-badge" role="button" tabindex="0">🏷️ ${tag}</span>`).join('')}</div>`;
         }
 
         const headerImgHTML = window.renderModalHeaderImage ? window.renderModalHeaderImage(article) : '';

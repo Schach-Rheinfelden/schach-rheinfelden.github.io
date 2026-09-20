@@ -385,7 +385,7 @@ window.openEventModal = function(id) {
     let tagsHTML = '';
     if (event.category) {
         const tags = event.category.split(',').map(s => s.trim());
-        tagsHTML = `<div style="margin-bottom: 1.5rem;">${tags.map(tag => `<span class="tag-badge">🏷️ ${tag}</span>`).join('')}</div>`;
+        tagsHTML = `<div style="margin-bottom: 1.5rem;">${tags.map(tag => `<span class="tag-badge" role="button" tabindex="0">🏷️ ${tag}</span>`).join('')}</div>`;
     }
 
     const galleryHTML = window.renderGalleryHTML ? window.renderGalleryHTML(event.gallery, '') : '';
@@ -646,7 +646,7 @@ function renderEvents() {
                         <div style="margin-top: 0.25rem;">📍 ${event.location}</div>
                     </div>
                     <div style="margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
-                        ${event.category ? event.category.split(',').map(tag => `<span class="tag-badge">🏷️ ${tag.trim()}</span>`).join('') : ''}
+                        ${event.category ? event.category.split(',').map(tag => `<span class="tag-badge" role="button" tabindex="0">🏷️ ${tag.trim()}</span>`).join('') : ''}
                     </div>
                 </div>
             </div>

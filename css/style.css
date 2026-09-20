@@ -2230,6 +2230,25 @@ body.light-theme .footer-legal a:hover {
     color: var(--accent-color);
 }
 
+/* Schlagwörter sind anklickbar: Ein Klick setzt den passenden Filter.
+   Das muss man ihnen ansehen — ohne Zeiger und Reaktion hält man sie für
+   Beschriftung und probiert es gar nicht erst. */
+.tag-badge {
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+
+.tag-badge:hover,
+.tag-badge:focus-visible {
+    border-color: var(--accent-color) !important;
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.tag-badge:focus-visible {
+    box-shadow: 0 0 0 2px var(--accent-color);
+}
+
 body.light-theme .tag-badge {
     background: #fef08a !important;
     border: 1px solid #fef08a !important;

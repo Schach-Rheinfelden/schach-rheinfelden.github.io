@@ -130,6 +130,32 @@ function buildFilters() {
         });
     });
 
+    /**
+     * Kategorie von aussen setzen - fuer den Klick auf ein Schlagwort.
+     *
+     * Der Weg ueber den vorhandenen Knopf statt ueber currentCategory direkt:
+     * So wird der Knopf gleich als aktiv markiert und ein eingeklappter Teil
+     * der Filterleiste bei Bedarf aufgeklappt. Wuerde nur die Variable gesetzt,
+     * zeigte die Leiste weiterhin "Alle Kategorien" an, waehrend die Liste
+     * gefiltert ist - und niemand faende den Weg zurueck.
+     */
+    window.filterMedia = function (kategorie) {
+        const knopf = Array.prototype.find.call(
+            filterContainer.querySelectorAll('.filter-btn:not(.filter-more)'),
+            b => b.dataset.filter === kategorie
+        );
+        if (knopf) {
+            if (window.zeigeFilterTag) window.zeigeFilterTag(filterContainer, knopf);
+            knopf.click();
+            return;
+        }
+        // Kein Knopf dafuer da - etwa wenn die Kategorie nur an einem einzigen
+        // Beitrag haengt. Dann wenigstens filtern.
+        filterContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        currentCategory = kategorie;
+        renderMedia();
+    };
+
     // Type Filter
     const typeFilterContainer = document.getElementById('media-type-filter');
     if (typeFilterContainer) {
@@ -370,7 +396,7 @@ function renderMedia() {
         const colorStyles = window.getCardColorStyles ? window.getCardColorStyles(item.color || item.akzentfarbe || item.accentColor) : { cardStyle: '', badgeStyle: '', color: null };
 
         const tagsHTML = item.category 
-            ? `<div style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge">🏷️ ${tag.trim()}</span>`).join('')}</div>` 
+            ? `<div style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">${item.category.split(',').map(tag => `<span class="tag-badge" role="button" tabindex="0">🏷️ ${tag.trim()}</span>`).join('')}</div>` 
             : '';
 
         return `

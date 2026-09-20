@@ -2131,6 +2131,116 @@ window.renderGalleryHTML = function (gallery, title = '') {
 };
 
 /* ===========================================================================
+   Schlagwörter filtern
+   ===========================================================================
+   Ein Klick auf ein Schlagwort setzt den passenden Filter - auf der Kachel
+   ebenso wie im geoeffneten Fenster. Bisher waren die Etiketten reine Zierde:
+   Man las "SMM", wollte alles dazu sehen und musste den Knopf oben in der
+   Filterleiste suchen.
+
+   ══ EIN ZUHOERER FUER ALLE STELLEN ══
+   Die Etiketten entstehen an neun Stellen in vier Dateien - Kacheln, Listen
+   und Fenster von News, Terminen und Mediathek. Neun Klickbefehle einzeln
+   einzutragen hiesse, neun Stellen gleich zu halten; beim naechsten neuen
+   Abschnitt waere es die zehnte.
+
+   Stattdessen haengt EIN Zuhoerer am Dokument. Welcher Filter gemeint ist,
+   erkennt er am naechstgelegenen Behaelter: eine News-Kachel filtert News,
+   das Terminfenster filtert Termine. Das Markup muss dafuer nichts wissen.
+   =========================================================================== */
+
+/** Ermittelt, zu welchem Bereich ein Schlagwort gehoert. */
+function schlagwortBereich_(el) {
+  if (!el || !el.closest) return '';
+  if (el.closest('#news-modal, .news-card')) return 'news';
+  if (el.closest('#event-modal, .event-card, .event-item')) return 'termine';
+  if (el.closest('#video-modal, .media-card')) return 'mediathek';
+  return '';
+}
+
+/**
+ * Schliesst das Detailfenster, IN DEM das Schlagwort steht, damit man das
+ * Ergebnis sieht.
+ *
+ * Massgeblich ist das Etikett selbst, nicht "irgendein offenes Fenster auf der
+ * Seite": Ein Klick auf einer Kachel soll nichts schliessen.
+ */
+function schliesseFensterFuerFilter_(etikett, bereich) {
+  const offen = etikett.closest ? etikett.closest('.modal') : null;
+  if (!offen) return false;
+
+  const schliesser = {
+    news: window.closeNewsModal,
+    termine: window.closeEventModal,
+    mediathek: window.closeVideoModal
+  }[bereich];
+
+  if (typeof schliesser === 'function') {
+    schliesser();
+  } else {
+    // Auffangweg, falls ein Bereich keine eigene Schliessfunktion hat.
+    offen.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  return true;
+}
+
+/**
+ * Setzt den Filter, zu dem ein angeklicktes Schlagwort gehoert.
+ *
+ * Gibt zurueck, ob etwas geschehen ist - der Aufrufer entscheidet dann, ob er
+ * das urspruengliche Ereignis abfaengt.
+ */
+function schlagwortFiltern_(etikett) {
+  const bereich = schlagwortBereich_(etikett);
+  if (!bereich) return false;
+
+  const filter = {
+    news: window.filterNews,
+    termine: window.filterEvents,
+    mediathek: window.filterMedia
+  }[bereich];
+  if (typeof filter !== 'function') return false;
+
+  // Die Nadel vorneweg gehoert nicht zum Schlagwort.
+  const wort = etikett.textContent.replace(/^\s*🏷️\s*/, '').trim();
+  if (!wort) return false;
+
+  const warOffen = schliesseFensterFuerFilter_(etikett, bereich);
+  filter(wort);
+
+  // Nur nach dem Schliessen eines Fensters zum Abschnitt springen: Dann ist
+  // die Stelle auf der Seite beliebig. Wer auf einer Kachel klickt, steht
+  // ohnehin schon dort - ein Sprung waere unnoetige Bewegung.
+  if (warOffen) {
+    const ziel = document.getElementById(
+      { news: 'news', termine: 'events', mediathek: 'media-container' }[bereich]
+    );
+    if (ziel && ziel.scrollIntoView) {
+      ziel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  return true;
+}
+
+/* In der EINFANGPHASE - das dritte Argument true.
+   Die Kachel traegt ihr onclick selbst; am Dokument in der Blasenphase kaeme
+   dieser Zuhoerer erst danach an und stopPropagation waere wirkungslos: Das
+   Fenster des Beitrags ginge trotzdem auf. Beim Einfangen laeuft das Dokument
+   zuerst, und der Klick erreicht die Kachel gar nicht mehr.
+
+   Tastatur braucht hier nichts: Die Etiketten tragen role="button", und weiter
+   unten macht ein allgemeiner Zuhoerer daraus einen Klick. */
+document.addEventListener('click', function (ev) {
+  const etikett = ev.target.closest && ev.target.closest('.tag-badge');
+  if (!etikett) return;
+  if (!schlagwortFiltern_(etikett)) return;
+
+  ev.preventDefault();
+  ev.stopPropagation();
+}, true);
+
+/* ===========================================================================
    Bildbetrachter
    ===========================================================================
    Ein Klick auf ein Galeriebild oeffnete bisher die nackte Bildadresse in einem
@@ -3298,6 +3408,29 @@ window.renderFilterTags = function (container, buttonsHtml, options) {
         'onclick="window.toggleFilterTags(\'' + gruppe + '\', this)">' +
         (aktivImRest ? 'weniger anzeigen' : '+ ' + rest.length + ' weitere') +
         '</button>';
+};
+
+/**
+ * Klappt die Filterleiste auf, falls ein bestimmter Knopf im verborgenen Teil
+ * steckt.
+ *
+ * Wird gebraucht, wenn ein Filter von aussen gesetzt wird - etwa durch einen
+ * Klick auf ein Schlagwort. Ohne das griffe der Filter zwar, die Leiste zeigte
+ * aber weiterhin "Alle" an: Man saehe eine gefilterte Liste, ohne zu erkennen,
+ * wonach gefiltert wird, und faende den Weg zurueck nicht.
+ *
+ * Fuer News und Termine geschieht das von selbst, weil deren Filterleiste nach
+ * jedem Wechsel neu aufgebaut wird und renderFilterTags den aktiven Knopf
+ * beruecksichtigt. Die Mediathek baut ihre Leiste nur einmal auf.
+ */
+window.zeigeFilterTag = function (container, knopf) {
+    if (!container || !knopf) return;
+    const rest = knopf.closest ? knopf.closest('.filter-rest') : null;
+    if (!rest || !rest.classList.contains('hidden')) return;
+
+    const gruppe = rest.getAttribute('data-gruppe');
+    const mehrKnopf = container.querySelector('.filter-more[data-gruppe="' + gruppe + '"]');
+    window.toggleFilterTags(gruppe, mehrKnopf);
 };
 
 /** Klappt die uebrigen Filterknoepfe auf oder zu. */

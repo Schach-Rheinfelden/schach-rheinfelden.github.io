@@ -34,6 +34,7 @@ Dieses Handbuch erklärt die Architektur der Website sowie alle Formatierungen, 
 17. [Liga-Center & Ergebnisdaten](#17-liga-center--ergebnisdaten)
 18. [Turnier-Anmeldungen (`anmeldungen.csv`)](#18-turnier-anmeldungen-anmeldungencsv)
 19. [Externe CSV-Quellen verknüpfen (`sources.csv`)](#19-externe-csv-quellen-verknüpfen-sourcescsv)
+20. [Bestenliste (`bestenliste.csv`)](#20-bestenliste-bestenlistecsv)
 
 ---
 
@@ -46,6 +47,7 @@ Dieses Handbuch erklärt die Architektur der Website sowie alle Formatierungen, 
 ├── events-archive.html   Terminarchiv
 ├── mediathek.html        Mediathek
 ├── liga-center.html      Tabellen, Runden & Spieler-Formkurven
+├── bestenliste.html      Ewige Rangliste aller Mannschaftspartien
 ├── youth.html            Jugendseite
 ├── 404.html              Fehlerseite
 ├── CNAME                 Domain-Zuordnung für GitHub Pages
@@ -57,7 +59,8 @@ Dieses Handbuch erklärt die Architektur der Website sowie alle Formatierungen, 
 │   ├── news-archive.js   Nachrichtenarchiv
 │   ├── events-archive.js Terminarchiv
 │   ├── mediathek.js      Mediathek
-│   └── liga-center.js    Liga-Center
+│   ├── liga-center.js    Liga-Center
+│   └── bestenliste.js    Bestenliste
 │
 ├── data/                 Alle Inhalte als CSV (siehe unten)
 └── assets/               Bilder, Logos, Dateien
@@ -551,3 +554,143 @@ media.csv;https://example.com/meine-mediathek.csv;Mediathek Fotos und Videos
 * Ist die externe Quelle nicht erreichbar oder liefert sie kein gültiges CSV, greift die Website automatisch auf die lokale Datei zurück – die Seite bleibt also funktionsfähig.
 * Externe Tabellen mit **Komma** als Trennzeichen werden automatisch erkannt und umgewandelt.
 * Bei Google Sheets die Tabelle über *Datei → Freigeben → Im Web veröffentlichen* als **CSV** veröffentlichen und diesen Link eintragen.
+
+---
+
+## 20. Bestenliste (`bestenliste.csv`)
+
+Die Seite **Bestenliste** (`bestenliste.html`) ist die ewige Rangliste des Mannschaftsschachs: jede Partie, die für Rhy 1, Rhy 2, Rhf 1 oder Rhf 2 gespielt wurde, seit 2006.
+
+### Woher die Zahlen kommen
+
+Gepflegt werden sie **nicht** hier, sondern im separaten Statistik-Dokument mit den Blättern `Rhy1`, `Rhy2`, `Rhf1` und `Rhf2`. Dort steht je Mannschaft eine breite Matrix: links der Name mit seinen Summen, rechts eine Spalte je gespielter Runde.
+
+Das Apps Script `Bestenliste.gs` faltet diese Matrix ins Langformat und schreibt sie ins Blatt `bestenliste`:
+
+> **♟️ Schach Rheinfelden → 🏆 Bestenliste → 🔄 Aus Statistik holen**
+>
+> Danach das Blatt wie gewohnt über **🚀 GitHub Upload** veröffentlichen.
+
+Der Punkt **👁️ Vorschau** zeigt vorher an, wie viele Saisons je Blatt erkannt wurden, ohne etwas zu ändern – sinnvoll, nachdem im Statistik-Dokument eine neue Saison angefügt wurde.
+
+### Aufbau der Datei
+
+```csv
+Name;Team;Liga;Saison;Jahr;Punkte;Partien;Siege;Remis;Niederlagen;Resultate
+Hyötylä, Tapio;Rhy 1;SGM;07/08;2008;3.5;7;2;3;2;1,0.5,0,1,0.5,0.5,0
+```
+
+* `Name` – **`Nachname, Vorname`**, genau wie im Statistik-Dokument. Die Website dreht das für die Anzeige um.
+* `Team` – `Rhy 1`, `Rhy 2`, `Rhf 1` oder `Rhf 2` (Schreibweise wie in `players.csv`).
+* `Liga` – `SGM`, `SMM` oder `BMM`.
+* `Saison` – Etikett aus dem Quellblatt, z. B. `07/08` oder `26`.
+* `Jahr` – Jahr, in dem die Saison **endet** (siehe unten). Danach wird sortiert und gefiltert.
+* `Punkte` … `Niederlagen` – Bilanz dieser einen Saison.
+* `Resultate` – die Einzelergebnisse der Runden, komma­getrennt: `1` Sieg, `0.5` Remis, `0` Niederlage, leer = nicht gespielt. Daraus rechnet die Seite Siegesserien und die Rundenpunkte im Spielerfenster.
+
+**Eine Zeile je Spieler, Mannschaft, Liga und Saison** – bewusst keine fertigen Gesamtsummen. Nur so lässt sich die Liste nach Mannschaft, Wettbewerb und Saison ausschneiden; eine vorberechnete Summe wäre für genau eine Ansicht richtig.
+
+### Reihenfolge und Platzierung
+
+**Gleichstand** entscheidet je Spalte der Massstab, der in ihrem Sinn „besser" heisst:
+
+| Sortiert nach | bei Gleichstand zuerst |
+| :--- | :--- |
+| Punkte | **weniger** Partien – 30 aus 40 ist mehr Leistung als 30 aus 60 |
+| Partien | mehr Punkte |
+| Erfolg | **mehr** Partien – 75 % aus 40 wiegen schwerer als 75 % aus 4 |
+| Siege | weniger Partien |
+
+Dreht man die Sortierrichtung um, dreht sich auch dieser zweite Massstab mit.
+
+**Die Platzierung** wird vergeben, *bevor* die Suche greift. Wer den eigenen Namen eintippt, sieht deshalb seinen echten Platz (`12.`) und nicht `1.`. Der Zähler rechts zeigt dann `1 von 103`.
+
+Filter wie Mannschaft, Wettbewerb, Saison, Mindestpartien und der Mitglieder-Schalter bestimmen dagegen, **wer überhaupt gewertet wird** – sie verändern die Platzierung also sehr wohl. Podest, Vereinsbilanz und Rekordtafel bleiben von der Suche ebenfalls unberührt.
+
+### 🔥 Serien: Siege in Folge und ungeschlagen
+
+Gezählt wird **innerhalb eines Wettbewerbs**, dort aber über die Jahre hinweg: Runde 7 der SGM 24/25 und Runde 1 der SGM 25/26 folgen tatsächlich aufeinander. Von SGM, SMM und BMM gilt der beste Wert; welcher Wettbewerb es war, steht klein unter der Zahl.
+
+* **Siege in Folge** – lauter Siege, eine Niederlage *oder ein Remis* beendet die Serie.
+* **Ungeschlagen** – ohne Niederlage, Remis zählen mit.
+* Runden ohne Einsatz unterbrechen **nicht**: Wer aussetzt, verliert nichts.
+
+**Warum nicht alles in eine Kette?** Weil SGM und BMM *parallel* laufen, von Oktober bis März. Hängt man sie hintereinander, entsteht eine Reihenfolge, die es nie gab – und die Zahl hängt davon ab, welchen Wettbewerb man zuerst einsortiert. Das erzeugt Fehler in beide Richtungen: Bei einem Spieler zerriss eine Niederlage aus dem parallel laufenden Wettbewerb eine echte Serie von 15 ungeschlagenen Partien zu 12; bei anderen verband sie zwei getrennte Läufe zu einem zu langen.
+
+Zu den Runden gibt es im Statistik-Dokument nur Nummern, keine Daten – eine echte zeitliche Verzahnung der Wettbewerbe ist deshalb nicht möglich.
+
+### Profilbilder
+
+Avatare, ELO, DWZ und Rolle holt die Seite aus `players.csv`. Zugeordnet wird über den Namen – unabhängig von Reihenfolge, Gross-/Kleinschreibung und Akzenten, sodass `Ödül, Ismail Irfan` und `Ismail Irfan Ödül` zusammenfinden.
+
+Wer dort **kein** Profil hat, erscheint trotzdem in der Liste, nur mit seinen Initialen statt einem Bild. Das ist der Normalfall für ehemalige Mitglieder: Von gut hundert Personen in der Bestenliste spielen rund vierzig heute noch. Der Schalter **👥 Nur heutige Mitglieder** blendet die übrigen aus.
+
+### Was die Seite selbst rechnet
+
+Summen, Quoten, Siegesserien, Rekorde und das Podest entstehen im Browser aus den Rohzeilen. Ändert sich nur `bestenliste.csv`, stimmt alles andere automatisch mit.
+
+### ⭐ Ertragreichste und 🎯 stärkste Saison
+
+Im Spielerfenster stehen **zwei** Bestmarken, weil „beste Saison" zwei verschiedene Dinge heissen kann:
+
+* **⭐ Ertragreichste Saison** – die grösste Punktausbeute. Misst aber zu einem guten Teil, wann jemand am meisten Zeit hatte.
+* **🎯 Stärkste Saison** – die beste Quote, **nur unter Saisons ab 5 Partien**. Ohne diese Schwelle gewänne immer die kürzeste Saison: Eine einzige gewonnene Partie steht mit 100 % da. Für 28 von 80 Spielern wäre die „beste Saison" dann eine mit höchstens zwei Partien.
+
+Nennen beide dieselbe Saison, erscheint nur die erste Angabe. Die Schwelle steht in `js/bestenliste.js` als `SAISON_MINDESTPARTIEN`.
+
+Die Tabelle **Alle Saisons** darunter führt Punkte und Partien in **zwei getrennten Spalten**. Kompakter wäre „3½ / 7" in einer Zelle gewesen – aber dann richtet sich jede Zeile für sich aus, und weil `3½` breiter ist als `1`, wandert der Schrägstrich. Zwei Spalten richtet die Tabelle selbst aus.
+
+### Was ein „Saisonjahr" ist
+
+Die Spalte `Jahr` ist das Jahr, in dem eine Saison **endet** – die letzte Zahl im Etikett:
+
+| Wettbewerb | Etikett | Saisonjahr |
+| :--- | :--- | :--- |
+| Schweizer Gruppenmeisterschaft | `SGM 25/26` | 2026 |
+| Bezirksmannschaftsmeisterschaft | `BMM 25/26` | 2026 |
+| Schweizer Mannschaftsmeisterschaft | `SMM 26` | 2026 |
+
+Alle drei liegen damit im Saisonjahr **2025/26**. Das folgt dem Spielkalender: SGM und BMM beginnen im Herbst 2025 und enden im Frühjahr 2026, die SMM 26 wird im Lauf des Jahres 2026 gespielt – zusammen ein durchgehender Zeitraum von Herbst bis Herbst.
+
+Nach **Kalenderjahr** zu gruppieren wäre die naheliegende Alternative und die schlechtere: Sie würde SGM und BMM mitten in der Saison zerschneiden.
+
+Aus 50 einzelnen Wettbewerbs-Saisons werden so **21 Saisonjahre**. Deshalb stehen im Spielerfenster Werte wie „11½ aus 19" – das sind drei Wettbewerbe zusammen.
+
+Damit „2025/26" für die SMM nicht rätselhaft bleibt, nennt die Saison-Auswahl ihren Inhalt mit: **`2025/26 · SGM 25/26 · SMM 26 · BMM 25/26`**. Filterst du auf einen Wettbewerb, schrumpft die Aufzählung entsprechend. Im Spielerfenster steht unter jeder Bestmarke klein, welche Wettbewerbe die Person in dem Jahr gespielt hat.
+
+### Zeitraum: Saison oder Kalenderjahr
+
+Über dem Schieberegler steht ein Umschalter:
+
+* **Saison** – ganze Saisonjahre. SGM 25/26, BMM 25/26 und SMM 26 gehören zusammen, Meisterschaften werden nicht zerschnitten.
+* **Kalenderjahr** – das echte Jahr der einzelnen Runde. Von einer Saison zählen dann nur die Partien, die tatsächlich in diesem Jahr gespielt wurden.
+
+Der Unterschied ist erheblich: 2026 sind es **226 Partien** nach Saisonjahr, aber **163** nach Kalenderjahr. Beides ist richtig, nur eben etwas anderes.
+
+Der Regler hat zwei Griffe. Beide aufeinander ergibt ein einzelnes Jahr; ein Griff ganz aussen heisst „keine Grenze". Er arbeitet mit Positionen in der Jahresliste, nicht mit Jahreszahlen – so entsteht keine tote Stelle, wenn ein Jahr fehlt (2020 hat wegen Corona keine SMM). Wenn ein gewähltes Jahr im neu gewählten Wettbewerb gar nicht vorkommt, rückt die Grenze auf die nächstgelegene vorhandene, statt eine leere Liste ohne erkennbaren Grund zu zeigen.
+
+### `saisons.csv` – welche Runde in welchem Jahr
+
+Für den Kalenderjahr-Modus braucht die Seite eine zweite, kleine Datei:
+
+```csv
+Team;Liga;Saison;Jahr;Runden;Jahre;Rundennummern
+Rhy 1;SGM;25/26;2026;7;2025,2025,2025,2026,2026,2026,2026;1,2,3,4,5,6,7
+Rhy 1;SGM;21/22;2022;5;2022,2022,2022,2022,2022;2,3,4,5,6
+```
+
+* `Runden` – wie viele Runden diese Mannschaft in dieser Saison hatte.
+* `Jahre` – das Kalenderjahr **jeder Runde**, in derselben Reihenfolge wie `Resultate` in `bestenliste.csv`.
+* `Rundennummern` – die **echten** Rundennummern. Zwei Eigenheiten stecken darin, und beide sehen wie Fehler aus, wenn man sie nicht kennt:
+  * **Lücken:** Hat eine Mannschaft spielfrei, fehlt die Spalte im Statistikblatt ganz. Die SGM 21/22 von Rhy 1 besteht deshalb aus den Runden **2 bis 6** – das betrifft 25 der 78 Blöcke.
+  * **Doppelte:** In den früheren BMM-Saisons von Rhf 2 wurde mit **Rückspiel** gespielt, deshalb `1,1,2,2,3,3,4,4,6,6`. Die Website schreibt das aus: „Runde 1 · Hinrunde" und „Runde 1 · Rückrunde".
+
+In `bestenliste.csv` sind leere Runden am **Ende** weggeschnitten, weil sie nichts zur Bilanz beitragen. Für die Anzeige holt die Seite die volle Rundenzahl aus dieser Datei zurück – sonst sähe eine Saison mit fünf Runden, in der nur Runde 4 gespielt wurde, nach vier Runden aus.
+
+78 Zeilen, eine je Mannschaft und Saison. Eine eigene Tabelle statt einer weiteren Spalte, weil die Jahre für alle Spielerinnen und Spieler derselben Mannschaft gleich sind – in jede der 801 Zeilen geschrieben stünde dieselbe Angabe hundertfach da.
+
+**Warum steht die Mannschaft mit drin?** Weil Rhy 1 und Rhy 2 dieselbe SGM-Saison spielen, aber in verschiedenen Gruppen und damit an verschiedenen Terminen. Runde 3 der SGM 09/10 fiel für Rhy 1 ins Jahr 2009, für Rhy 2 ins Jahr 2010. In den Daten gibt es sieben solcher Fälle.
+
+Das Apps Script erzeugt das Blatt `saisons` im selben Durchgang – **beide Blätter** müssen hochgeladen werden.
+
+Jahre, in denen nur ein Wettbewerb stattfand, verraten sich so von selbst – etwa `2020/21 · SMM 21` (Corona).

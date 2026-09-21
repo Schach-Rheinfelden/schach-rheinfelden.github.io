@@ -569,7 +569,18 @@
     /* ─── Vereinsbilanz ───────────────────────────────────────────────── */
 
     function zeichneBilanz(liste) {
-        const gesamt = bilanz(gefilterteZeilen());
+        /* Gerechnet wird aus den Zeilen DER GEWERTETEN PERSONEN, nicht aus
+           allen gefilterten Zeilen.
+           Der Unterschied sind die Filter, die je Person greifen statt je
+           Zeile: "nur heutige Mitglieder" und die Mindestzahl an Partien.
+           Zuvor stand hier die Summe aller Zeilen - die Spielerzahl sank beim
+           Umschalten also, die Partien und Punkte blieben stehen. Vier Zahlen
+           nebeneinander, von denen eine etwas anderes meint als die drei
+           anderen: Das laedt zum Fehlschluss ein. */
+        const zeilen = [];
+        liste.forEach(e => e.zeilen.forEach(z => zeilen.push(z)));
+
+        const gesamt = bilanz(zeilen);
         const kacheln = [
             { wert: liste.length, titel: 'Spielerinnen & Spieler', zeichen: '♟️' },
             { wert: gesamt.partien.toLocaleString('de-CH'), titel: 'Einzelpartien', zeichen: '⚔️' },

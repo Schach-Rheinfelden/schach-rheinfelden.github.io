@@ -607,6 +607,12 @@ Dreht man die Sortierrichtung um, dreht sich auch dieser zweite Massstab mit.
 
 Filter wie Mannschaft, Wettbewerb, Saison, Mindestpartien und der Mitglieder-Schalter bestimmen dagegen, **wer überhaupt gewertet wird** – sie verändern die Platzierung also sehr wohl. Podest, Vereinsbilanz und Rekordtafel bleiben von der Suche ebenfalls unberührt.
 
+### Die Vereinsbilanz oben
+
+Die vier Zahlen – Spieler, Partien, Punkte, Saisons – beziehen sich immer auf **genau die Personen, die gerade gewertet werden**. Auch „👥 Nur heutige Mitglieder" und die Mindestzahl an Partien gehen also mit: Blendest du die Ehemaligen aus, sinken nicht nur die Spieler, sondern auch die Partien und Punkte.
+
+Das war zunächst anders – die Bilanz zählte alle gefilterten Zeilen, weil diese beiden Filter je Person greifen statt je Zeile. Vier Zahlen nebeneinander, von denen eine etwas anderes meint als die drei anderen, laden aber zum Fehlschluss ein.
+
 ### 🔥 Serien: Siege in Folge und ungeschlagen
 
 Gezählt wird **innerhalb eines Wettbewerbs**, dort aber über die Jahre hinweg: Runde 7 der SGM 24/25 und Runde 1 der SGM 25/26 folgen tatsächlich aufeinander. Von SGM, SMM und BMM gilt der beste Wert; welcher Wettbewerb es war, steht klein unter der Zahl.

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- === Titel & Suchmaschinen === -->
+    <title>Bestenliste | Schach-Rheinfelden (Ewige Rangliste seit 2006)</title>
+    <meta name="description" content="Die ewige Bestenliste von Schach-Rheinfelden: Punkte, Partien und Erfolgsquoten aller Spielerinnen und Spieler in SMM, SGM und BMM seit 2006." />
+
+    <!-- === Favicon & Icons === -->
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+
+    <!-- ================================================================
+         LINK-VORSCHAU (Open Graph) fuer WhatsApp, Facebook, iMessage etc.
+         >>> HIER ANPASSEN, wenn Vorschau-Titel, -Text oder -Bild sich
+         >>> aendern sollen. og:image muss eine ABSOLUTE URL sein (https://...).
+         ================================================================ -->
+    <meta property="og:title" content="Bestenliste - Schach-Rheinfelden" />
+    <meta property="og:description" content="Zwanzig Jahre Mannschaftsschach in Zahlen: die ewige Rangliste unserer Spielerinnen und Spieler in SMM, SGM und BMM." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://schach-rheinfelden.github.io/bestenliste.html" />
+    <meta property="og:image" content="https://res.cloudinary.com/i1wuvnct/image/upload/w_800,c_limit,f_auto,q_auto/v1784323180/Bilder/Logos/Schach-Rheinfelden_Banner_jjcvcl.png" />
+    <meta property="og:site_name" content="Schach-Rheinfelden" />
+
+    <link rel="stylesheet" href="css/style.css?v=135">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="top-banner" class="top-banner"></div>
+    <header id="navbar" class="navbar">
+        <nav class="container nav-content">
+            <div class="brand-wrapper">
+                <a href="index.html" class="brand">
+                    <span class="logo-icon">♞</span>
+                    <span id="nav-club-name" class="brand-name">Schach Rheinfelden</span>
+                </a>
+                <div id="nav-today-badge" class="nav-today-badge hidden"></div>
+            </div>
+            <ul class="nav-links" id="nav-links">
+                <!-- Menü wird dynamisch von shared.js (initDynamicMenu) generiert -->
+            </ul>
+            <div class="nav-controls">
+                <label class="theme-switch" title="Theme wechseln">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider round"></span>
+                </label>
+                <div class="hamburger" id="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main style="padding-top: 120px; padding-bottom: 60px; min-height: 100vh;">
+        <section class="section" style="padding-top: 2rem;">
+            <div class="container">
+
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1.5rem;">
+                    <h1 class="section-title" style="margin-bottom: 0.5rem; text-align: left;"><span class="accent">Bestenliste</span></h1>
+                    <p class="section-subtitle" id="bl-untertitel">Jede Partie, die für Rhy 1, Rhy 2, Rhf 1 und Rhf 2 gespielt wurde – zusammengezählt über alle Saisons.</p>
+                </div>
+
+                <!-- Vereinsbilanz: vier Zahlen, die den Rahmen aufspannen -->
+                <div id="bl-bilanz" class="bl-bilanz"></div>
+
+                <!-- Podest der aktuellen Auswahl -->
+                <div id="bl-podest" class="bl-podest"></div>
+
+                <!-- Filter und Sortierung -->
+                <div class="glass-card bl-steuerung" id="bl-steuerung"></div>
+
+                <!-- Rangliste -->
+                <div id="bl-liste"></div>
+
+                <!-- Rekordtafel -->
+                <div id="bl-rekorde"></div>
+
+                <p class="bl-quelle" id="bl-quelle"></p>
+            </div>
+        </section>
+    </main>
+
+    <footer id="contact" class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <h3>Kontakt</h3>
+                <div id="footer-contact-container">
+                    <!-- Contact info injected via CSV -->
+                </div>
+            </div>
+            <div class="footer-legal">
+                <p id="footer-copyright-line">&copy; <span id="current-year"></span> <span id="footer-club-name">Schach Rheinfelden</span>.</p>
+                <p><a href="#" onclick="openLegalModal('impressum'); return false;">Impressum</a> | <a href="#" onclick="openLegalModal('datenschutz'); return false;">Datenschutz</a><span id="footer-bank-sep" style="display: none;"> | <a href="#" onclick="openLegalModal('bankverbindung'); return false;">Bankverbindung</a></span></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Legal Modal -->
+    <div id="legal-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeLegalModal()"></div>
+        <div class="modal-content glass-card" style="max-width: 600px;">
+            <button class="close-btn" onclick="closeLegalModal()">&times;</button>
+            <h2 id="legal-modal-title" style="margin-bottom: 1.5rem; color: var(--accent-color);"></h2>
+            <div id="legal-modal-body" style="font-size: 1.1rem; line-height: 1.6; color: var(--text-primary);"></div>
+        </div>
+    </div>
+
+    <!-- Spielerfenster -->
+    <div id="spieler-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeSpielerModal()"></div>
+        <div class="modal-content glass-card" style="max-width: 820px;">
+            <button class="close-btn" onclick="closeSpielerModal()">&times;</button>
+            <div id="spieler-modal-body"></div>
+        </div>
+    </div>
+
+    <script src="js/shared.js?v=117"></script>
+    <script src="js/bestenliste.js?v=9"></script>
+</body>
+</html>

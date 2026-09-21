@@ -5,6 +5,8 @@ events.csv;;Termine und Veranstaltungen
 media.csv;;Mediathek Fotos und Videos
 members.csv;;Vorstand und Ansprechpartner
 players.csv;;Spieleruebersicht und DWZ/ELO
+bestenliste.csv;;Ewige Bestenliste (Punkte je Spieler Liga und Saison)
+saisons.csv;;Kalenderjahr je Runde (fuer den Jahresfilter der Bestenliste)
 teams.csv;;Mannschaften im Spielbetrieb
 tournaments.csv;;Turniere (Open Rheinfelden Open Ascona etc.)
 quotes.csv;;Schach-Zitate fuer Banner/Teaser

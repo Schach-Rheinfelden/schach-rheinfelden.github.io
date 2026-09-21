@@ -4455,3 +4455,861 @@ body.light-theme .youth-card:hover {
         font-size: 1.25rem;
     }
 }
+
+/* ===========================================================================
+   Bestenliste (bestenliste.html)
+   ===========================================================================
+   Zwanzig Jahre Mannschaftsschach auf einer Seite. Die Rangliste ist bewusst
+   KEINE <table>: Jede Zeile ist ein <button>, weil sie sich anklicken laesst
+   und damit auch per Tastatur erreichbar sein muss. Eine Tabellenzeile kann
+   das nicht von sich aus.
+
+   Gearbeitet wird mit Grid statt mit Spaltenbreiten - so laesst sich dieselbe
+   Zeile auf dem Handy in zwei Ebenen umbrechen, ohne das Markup zu aendern.
+   =========================================================================== */
+
+/* ── Vereinsbilanz ───────────────────────────────────────────────────── */
+.bl-bilanz {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+.bl-bilanz-kachel {
+    padding: 1.4rem 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.bl-bilanz-zeichen { font-size: 1.5rem; line-height: 1; }
+
+.bl-bilanz-wert {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    line-height: 1.1;
+}
+
+.bl-bilanz-titel {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+}
+
+/* ── Podest ──────────────────────────────────────────────────────────── */
+.bl-podest {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: end;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+.bl-podest-platz {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+}
+
+/* Der Erste steht hoeher - das ist der ganze Sinn eines Podests. */
+.bl-podest-1 {
+    padding-top: 2.2rem;
+    padding-bottom: 2.2rem;
+    border-color: var(--accent-color);
+    box-shadow: var(--glass-highlight), 0 12px 34px var(--gold-glow);
+}
+
+.bl-podest-platz:hover,
+.bl-podest-platz:focus-visible {
+    transform: translateY(-4px);
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+.bl-podest-medaille { font-size: 1.8rem; line-height: 1; }
+
+.bl-podest-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    line-height: 1.25;
+}
+
+.bl-podest-punkte {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.bl-podest-punkte small {
+    font-family: var(--font-main);
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.bl-podest-quote {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* ── Bilder ──────────────────────────────────────────────────────────── */
+/* Goldener Ring wie bei den Spielerkarten auf der Startseite - dieselben
+   Werte, damit dieselbe Person auf beiden Seiten gleich aussieht. */
+.bl-avatar {
+    display: inline-block;
+    flex: none;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-color: rgba(148, 163, 184, 0.18);
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+/* Auf dem Podest darf der Ring kräftiger sein - die Bilder sind dort doppelt
+   so gross, ein 2px-Rand wirkt daneben dünn. */
+.bl-podest-platz .bl-avatar {
+    border-width: 3px;
+    box-shadow: 0 0 18px rgba(212, 175, 55, 0.35);
+}
+
+/* Ohne Bild die Initialen: besser als ein grauer Kreis, weil die Zeile damit
+   auch beim schnellen Ueberfliegen unterscheidbar bleibt. */
+.bl-avatar-leer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--accent-color);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.22), rgba(212, 175, 55, 0.06));
+    letter-spacing: 0.5px;
+}
+
+/* ── Steuerung ───────────────────────────────────────────────────────── */
+.bl-steuerung {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.bl-steuerung-oben {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.bl-suche {
+    flex: 1 1 260px;
+    min-width: 0;
+    padding: 0.7rem 1.1rem;
+    font-size: 1rem;
+    font-family: inherit;
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    background: var(--table-bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bl-suche:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.bl-schalter { white-space: nowrap; }
+.bl-schalter small { opacity: 0.7; font-weight: 400; }
+
+.bl-feld { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.bl-feld-titel {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.bl-knopfreihe { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.bl-knopfreihe .filter-btn { padding: 0.4rem 1.1rem; font-size: 0.9rem; }
+
+.bl-feld-paar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.bl-feld-schmal { max-width: 260px; }
+
+.bl-klein {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* ── Zeitraum: Umschalter und Schieberegler ──────────────────────────── */
+.bl-zeit-kopf {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.bl-zeit-kopf .bl-textknopf { margin-left: auto; font-size: 0.8rem; }
+.bl-klein-knopf { padding: 0.3rem 0.9rem !important; font-size: 0.82rem !important; }
+
+.bl-regler {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 0.3rem;
+}
+
+.bl-regler-rand {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Die Spur traegt vier uebereinanderliegende Schichten: Grund, goldene
+   Spanne und die beiden Griffe. Die Regler selbst sind unsichtbar gemacht
+   (nur ihre Griffe erscheinen) und lassen Klicks durch - sonst faenge der
+   obere alle Zeiger ab und der untere waere nicht mehr zu fassen. */
+.bl-regler-spur {
+    position: relative;
+    flex: 1 1 auto;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    min-width: 120px;
+}
+
+.bl-regler-grund,
+.bl-regler-aktiv {
+    position: absolute;
+    height: 6px;
+    border-radius: 3px;
+}
+
+.bl-regler-grund {
+    left: 0;
+    width: 100%;
+    background: rgba(148, 163, 184, 0.25);
+    z-index: 1;
+}
+
+.bl-regler-aktiv {
+    background: var(--gold-gradient);
+    z-index: 2;
+}
+
+.bl-regler-griff {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    margin: 0;
+    background: none;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    z-index: 3;
+}
+
+#bl-regler-bis { z-index: 4; }
+
+.bl-regler-griff:focus-visible { outline: none; }
+
+.bl-regler-griff::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.bl-regler-griff::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.bl-regler-griff:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--gold-glow), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.bl-regler-abzeichen {
+    align-self: flex-start;
+    background: rgba(212, 175, 55, 0.18);
+    color: var(--accent-color);
+    padding: 0.25rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-top: 0.4rem;
+}
+
+.bl-unterfeld { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.bl-hinweis {
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--text-secondary);
+}
+
+.bl-select {
+    width: 100%;
+    padding: 0.6rem 2.4rem 0.6rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23d4af37' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.8rem center;
+    background-repeat: no-repeat;
+    background-size: 1.1em 1.1em;
+}
+
+.bl-select:focus { border-color: var(--accent-color); }
+
+/* ── Sortierleiste ───────────────────────────────────────────────────── */
+.bl-sortierleiste {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.bl-sortierleiste .filter-btn { padding: 0.35rem 1rem; font-size: 0.85rem; }
+.bl-pfeil { font-size: 0.7rem; }
+
+.bl-treffer {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* ── Rangliste ───────────────────────────────────────────────────────── */
+.bl-tabelle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.bl-zeile {
+    position: relative;
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 2.4fr) 5rem 5rem minmax(120px, 1.3fr) 5.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: var(--table-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s, background 0.2s;
+}
+
+.bl-zeile:hover,
+.bl-zeile:focus-visible {
+    border-color: var(--accent-color);
+    transform: translateX(3px);
+    outline: none;
+}
+
+/* Ein sehr blasser Balken im Hintergrund, so lang wie die Punktzahl im
+   Verhaeltnis zum Spitzenreiter. Er ordnet die Liste auf einen Blick, ohne
+   eine weitere Spalte zu kosten. */
+.bl-sparklinie {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--anteil, 0%);
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.13), rgba(212, 175, 55, 0.02));
+    pointer-events: none;
+    z-index: 0;
+}
+
+.bl-zeile > *:not(.bl-sparklinie) { position: relative; z-index: 1; }
+
+.bl-rang {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-align: center;
+    /* Gleiche Ziffernbreite, damit die Namen daneben trotz 7. und 107. auf
+       einer Flucht stehen. */
+    font-variant-numeric: tabular-nums;
+}
+
+.bl-rang-podest { font-size: 1.35rem; }
+
+.bl-person { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.bl-person-text { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+
+.bl-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ein unscheinbarer Punkt hinter Ehemaligen. Kein Wort, keine Farbe - die
+   Liste soll niemanden abstempeln, nur erklaeren, warum ein Bild fehlt. */
+.bl-ehemalig {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    margin-left: 0.4rem;
+}
+
+.bl-teams { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.bl-team-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 0.1rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--accent-color);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.bl-team-badge:hover { border-color: var(--accent-color); background: rgba(212, 175, 55, 0.22); }
+
+.bl-wert { display: flex; flex-direction: column; line-height: 1.2; }
+.bl-wert b { font-size: 1.05rem; font-weight: 700; }
+.bl-wert small { font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.bl-wert-punkte b { color: var(--accent-color); font-size: 1.15rem; }
+
+.bl-quote { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.bl-quote-zahl { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
+
+.bl-quote-spur {
+    display: block;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(148, 163, 184, 0.2);
+    overflow: hidden;
+}
+
+.bl-quote-spur i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--gold-gradient);
+}
+
+/* Sieg / Remis / Niederlage als ein durchgehender Streifen. Drei Zahlen
+   nebeneinander waeren praeziser, aber langsamer zu lesen. */
+.bl-bilanzbalken {
+    display: flex;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(148, 163, 184, 0.2);
+}
+
+.bl-bilanzbalken i { display: block; height: 100%; }
+.bl-bilanzbalken .bl-s { background: #10b981; }
+.bl-bilanzbalken .bl-r { background: #94a3b8; }
+.bl-bilanzbalken .bl-n { background: #ef4444; }
+
+.bl-zeitraum {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.bl-leer {
+    padding: 2.5rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.bl-textknopf {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* ── Rekordtafel ─────────────────────────────────────────────────────── */
+.bl-abschnitt {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    margin: 3rem 0 1.25rem;
+    color: var(--text-primary);
+}
+
+.bl-rekord-gitter {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+}
+
+.bl-rekord {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 1.3rem;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.bl-rekord:hover, .bl-rekord:focus-visible {
+    border-color: var(--accent-color);
+    transform: translateY(-4px);
+    outline: none;
+}
+
+.bl-rekord-kopf {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.bl-rekord-zeichen { font-size: 1.1rem; }
+
+.bl-rekord-wert {
+    font-family: var(--font-heading);
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    line-height: 1.1;
+}
+
+.bl-rekord-person {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.bl-rekord-zusatz { font-size: 0.8rem; color: var(--text-secondary); }
+
+.bl-quelle {
+    margin-top: 3rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ── Spielerfenster ──────────────────────────────────────────────────── */
+.bl-modal-kopf {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-right: 2.5rem;
+}
+
+.bl-modal-name {
+    font-family: var(--font-heading);
+    font-size: 1.9rem;
+    margin: 0 0 0.3rem;
+    color: var(--text-primary);
+    line-height: 1.15;
+}
+
+.bl-modal-merkmale { margin: 0 0 0.5rem; color: var(--accent-color); font-size: 0.9rem; font-weight: 600; }
+.bl-modal-teams { margin: 0; display: flex; gap: 0.3rem; flex-wrap: wrap; }
+
+.bl-kennzahlen {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.bl-kennzahl {
+    background: var(--table-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.9rem 0.5rem;
+    text-align: center;
+}
+
+.bl-kennzahl b {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    line-height: 1.1;
+}
+
+.bl-kennzahl span {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+}
+
+.bl-modal-bilanz { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem; }
+.bl-modal-bilanz-text { font-size: 0.88rem; color: var(--text-secondary); font-weight: 600; }
+
+.bl-modal-fakten {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.bl-modal-fakten span {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 20px;
+    background: var(--table-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+}
+
+/* Welche Wettbewerbe im Saisonjahr steckten - klein darunter statt in Klammern
+   dahinter. "2023/24 · 11½ aus 19" wirft die Frage auf, woher 19 Partien
+   kommen; die Antwort gehoert daneben, nicht in einen Hinweis beim
+   Darueberfahren, den es auf dem Handy gar nicht gibt. */
+.bl-chip-zusatz {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.3px;
+    margin-top: 0.1rem;
+}
+
+.bl-modal-unterschrift {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-secondary);
+    margin: 1.5rem 0 0.75rem;
+}
+
+/* Saeulen je Saison. Die Hoehe steht in Prozent der besten Saison - eine
+   absolute Skala waere bei Spielern mit wenigen Partien nicht zu erkennen. */
+.bl-verlauf {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 110px;
+    padding: 0.5rem;
+    background: var(--table-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+.bl-verlauf-saeule {
+    flex: 1 0 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    gap: 3px;
+}
+
+.bl-verlauf-saeule i {
+    display: block;
+    width: 100%;
+    max-width: 26px;
+    border-radius: 3px 3px 0 0;
+    background: var(--gold-gradient);
+    transition: filter 0.2s;
+}
+
+.bl-verlauf-saeule:hover i { filter: brightness(1.25); }
+.bl-verlauf-saeule small { font-size: 0.62rem; color: var(--text-secondary); }
+
+.bl-modal-tabelle-rahmen { overflow-x: auto; }
+
+.bl-modal-tabelle {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.bl-modal-tabelle th {
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--glass-border);
+    white-space: nowrap;
+}
+
+.bl-modal-tabelle td {
+    padding: 0.55rem 0.6rem;
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.bl-modal-tabelle tr:hover td { background: rgba(212, 175, 55, 0.07); }
+.bl-td-saison { font-weight: 700; }
+
+/* Auch im KOPF rechtsbuendig. Ohne den Elementnamen im Selektor gewinnt die
+   allgemeine th-Regel (text-align: left) - die Ueberschrift stand dann links
+   ueber rechtsbuendigen Zahlen. */
+.bl-td-zahl,
+.bl-modal-tabelle th.bl-td-zahl { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Punkte kraeftig, Partien zurueckgenommen - beide in eigenen Spalten.
+   Frueher stand hier "3½ / 7" in EINER Zelle. Das war kompakter, richtete sich
+   aber je Zeile neu aus: "3½" ist breiter als "1", also wanderte der
+   Schraegstrich. Zwei Spalten richtet die Tabelle selbst aus. */
+.bl-td-stark { font-weight: 700; color: var(--text-primary); }
+.bl-td-leise { color: var(--text-secondary); }
+
+/* Die Punktreihe steckt in einem span, nicht direkt in der Zelle: display:flex
+   auf einem <td> nimmt die Zelle aus dem Tabellenlayout heraus, und die Spalten
+   der Zeile verrutschen. */
+.bl-punkte-reihe { display: flex; gap: 3px; align-items: center; }
+
+.bl-punkt {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.bl-punkt-s { background: #10b981; }
+.bl-punkt-r { background: #94a3b8; }
+.bl-punkt-n { background: #ef4444; }
+.bl-punkt-frei { background: transparent; border: 1px solid var(--glass-border); }
+
+/* ── Helles Theme ────────────────────────────────────────────────────── */
+body.light-theme .bl-zeile { background: rgba(0, 0, 0, 0.02); }
+body.light-theme .bl-team-badge { background: rgba(212, 175, 55, 0.16); color: #8a6d1f; }
+body.light-theme .bl-quote-spur,
+body.light-theme .bl-bilanzbalken { background: rgba(15, 23, 42, 0.12); }
+body.light-theme .bl-avatar-leer { color: #8a6d1f; }
+body.light-theme .bl-sparklinie {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.04));
+}
+
+/* ── Schmale Fenster ─────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    /* Zwei Ebenen statt sechs Spalten: oben Rang, Person und Punkte, darunter
+       die Quote mit ihren Balken und rechts daneben die Partienzahl.
+
+       Jedes Feld bekommt einen EIGENEN Namen. Zwei Elemente in denselben
+       Rasterbereich zu legen hiesse, sie uebereinanderzulegen - Grid stapelt
+       sie dann, statt sie nebeneinanderzustellen. */
+    .bl-zeile {
+        grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+        grid-template-areas:
+            "rang  person  punkte"
+            "quote quote   partien";
+        row-gap: 0.6rem;
+    }
+
+    .bl-rang { grid-area: rang; }
+    .bl-person { grid-area: person; }
+    .bl-wert-punkte { grid-area: punkte; text-align: right; align-items: flex-end; }
+    .bl-quote { grid-area: quote; flex-direction: row; align-items: center; gap: 0.6rem; }
+    .bl-quote-zahl { flex: none; min-width: 2.8rem; }
+    .bl-quote-spur { flex: 1 1 auto; }
+    .bl-bilanzbalken { flex: 1 1 auto; }
+
+    .bl-zeile > .bl-wert:not(.bl-wert-punkte) {
+        grid-area: partien;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.3rem;
+        justify-self: end;
+        white-space: nowrap;
+    }
+
+    /* Der Zeitraum ist das Erste, was entbehrlich wird: Er steht ohnehin im
+       Spielerfenster, und ein Klick ist hier ein Fingertipp. */
+    .bl-zeitraum { display: none; }
+}
+
+@media (max-width: 640px) {
+    .bl-podest {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+    }
+
+    /* Auf dem Handy liest sich 1 – 2 – 3 natuerlicher als die Podestform. */
+    .bl-podest-1 { order: -1; padding: 1.5rem 1rem; }
+
+    .bl-podest-platz {
+        flex-direction: row;
+        text-align: left;
+        gap: 0.9rem;
+    }
+
+    .bl-podest-name { flex: 1 1 auto; }
+    .bl-podest-quote { margin-left: auto; }
+
+    .bl-bilanz { grid-template-columns: repeat(2, 1fr); }
+    .bl-bilanz-wert { font-size: 1.6rem; }
+    .bl-kennzahlen { grid-template-columns: repeat(2, 1fr); }
+
+    .bl-modal-kopf { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
+    .bl-modal-name { font-size: 1.5rem; }
+
+    .bl-knopfreihe .filter-btn { padding: 0.35rem 0.9rem; font-size: 0.82rem; }
+}

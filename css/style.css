@@ -5213,8 +5213,11 @@ body.light-theme .youth-card:hover {
     overflow-x: auto;
 }
 
+/* Breiter als frueher, weil unter der Saeule jetzt "10/11" steht und nicht
+   nur "11". Bei langen Laufbahnen laeuft die Reihe aus dem Fenster - dafuer
+   ist der waagrechte Bildlauf da. */
 .bl-verlauf-saeule {
-    flex: 1 0 22px;
+    flex: 1 0 32px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -5233,7 +5236,12 @@ body.light-theme .youth-card:hover {
 }
 
 .bl-verlauf-saeule:hover i { filter: brightness(1.25); }
-.bl-verlauf-saeule small { font-size: 0.62rem; color: var(--text-secondary); }
+.bl-verlauf-saeule small {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
 
 .bl-modal-tabelle-rahmen { overflow-x: auto; }
 

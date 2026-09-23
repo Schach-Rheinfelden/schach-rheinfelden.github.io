@@ -5104,6 +5104,62 @@ body.light-theme .youth-card:hover {
     color: var(--text-secondary);
 }
 
+/* Filterleiste im Spielerfenster. Abgesetzt durch einen Rahmen, damit sie
+   nicht wie eine weitere Kennzahl aussieht, sondern wie ein Bedienelement.
+
+   EINE REIHE JE FILTER, untereinander. Nebeneinander sieht bei drei
+   Wettbewerben und vier Mannschaften aufgeraeumt aus - und zerfaellt, sobald
+   es mehr werden: Die zweite Beschriftung rutscht dann mitten in die Knoepfe
+   der ersten. Untereinander bleibt es bei zwanzig Knoepfen lesbar. */
+.bl-modal-filter {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: var(--table-bg);
+}
+
+/* Beschriftung links in fester Breite, Knoepfe rechts. Sie brechen innerhalb
+   ihrer eigenen Spalte um, die Beschriftung bleibt auf ihrer Linie. */
+.bl-mf-reihe {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.bl-mf-titel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    padding-top: 0.35rem;
+}
+
+.bl-mf-knoepfe { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+/* Kombinationen, die es nicht gibt: sichtbar, aber nicht waehlbar.
+   Zu entfernen waere unruhiger - die Reihe wuerde bei jedem Klick eine andere
+   Laenge haben, und man suchte Knoepfe, die eben noch da waren. */
+.bl-knopf-blass {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: auto;
+}
+
+.bl-mf-fuss { text-align: right; }
+.bl-modal-filter .bl-textknopf { font-size: 0.8rem; }
+
+@media (max-width: 560px) {
+    /* Auf dem Handy die Beschriftung ueber die Knoepfe - 6.5rem sind dort
+       ein Fuenftel der Breite. */
+    .bl-mf-reihe { grid-template-columns: minmax(0, 1fr); gap: 0.3rem; }
+    .bl-mf-titel { padding-top: 0; }
+}
+
 .bl-modal-bilanz { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem; }
 .bl-modal-bilanz-text { font-size: 0.88rem; color: var(--text-secondary); font-weight: 600; }
 

@@ -625,6 +625,12 @@ Gezählt wird **innerhalb eines Wettbewerbs**, dort aber über die Jahre hinweg:
 
 Zu den Runden gibt es im Statistik-Dokument nur Nummern, keine Daten – eine echte zeitliche Verzahnung der Wettbewerbe ist deshalb nicht möglich.
 
+### Der Untertitel
+
+Er nennt die Mannschaften, die **wirklich in den Daten stehen** – nicht eine feste Liste im HTML. Kommt eine dritte Rhy-Mannschaft dazu, steht sie am nächsten Tag oben im Satz. Ab fünf Mannschaften wird aus der Aufzählung eine Zahl („für unsere 6 Mannschaften"), sonst verdrängt sie den Rest des Satzes.
+
+Die Angaben in `<title>`, `<meta name="description">` und den Open-Graph-Feldern von `bestenliste.html` sind dagegen **fest eingetragen** und nennen SMM, SGM und BMM. Das ist Text für Suchmaschinen und Link-Vorschauen; er veraltet nicht von selbst und will bei einem neuen Wettbewerb von Hand nachgezogen werden.
+
 ### Profilbilder
 
 Avatare, ELO, DWZ und Rolle holt die Seite aus `players.csv`. Zugeordnet wird über den Namen – unabhängig von Reihenfolge, Gross-/Kleinschreibung und Akzenten, sodass `Ödül, Ismail Irfan` und `Ismail Irfan Ödül` zusammenfinden.
@@ -640,9 +646,31 @@ Summen, Quoten, Siegesserien, Rekorde und das Podest entstehen im Browser aus de
 Im Spielerfenster stehen **zwei** Bestmarken, weil „beste Saison" zwei verschiedene Dinge heissen kann:
 
 * **⭐ Ertragreichste Saison** – die grösste Punktausbeute. Misst aber zu einem guten Teil, wann jemand am meisten Zeit hatte.
-* **🎯 Stärkste Saison** – die beste Quote, **nur unter Saisons ab 5 Partien**. Ohne diese Schwelle gewänne immer die kürzeste Saison: Eine einzige gewonnene Partie steht mit 100 % da. Für 28 von 80 Spielern wäre die „beste Saison" dann eine mit höchstens zwei Partien.
+* **🎯 Stärkste Saison** – die beste Quote, **nur unter Saisons ab 3 Partien**. Ohne diese Schwelle gewänne immer die kürzeste Saison: Eine einzige gewonnene Partie steht mit 100 % da. Für 28 von 80 Spielern wäre die „beste Saison" dann eine mit höchstens zwei Partien.
 
-Nennen beide dieselbe Saison, erscheint nur die erste Angabe. Die Schwelle steht in `js/bestenliste.js` als `SAISON_MINDESTPARTIEN`.
+Dazu kommt eine dritte Ebene:
+
+* **🏆 Stärkste Bilanz** – das beste Ergebnis in **einem** Wettbewerb einer Saison, z. B. „SGM 23/24 · 5 aus 6 (83 %)". „Stärkste Saison" zählt SGM, SMM und BMM eines Jahrgangs zusammen; ein starker Lauf in einem Wettbewerb kann dort von einem schwachen im anderen aufgezehrt werden. Diese Marke zeigt ihn trotzdem.
+
+Nennen zwei Marken denselben Wert, erscheint nur die erste. Die Schwelle steht in `js/bestenliste.js` als `SAISON_MINDESTPARTIEN` und liegt bei **3**: Bei fünf bekam nur die Hälfte der Spieler überhaupt eine stärkste Bilanz (53 von 103), mit drei sind es 76.
+
+### 🗓️ „Aktiv von – bis"
+
+Gemeint sind die **Kalenderjahre, in denen wirklich gespielt wurde** – nicht die Saison-Etiketten. Wer im Herbst 2011 seine erste Partie in der Saison 11/12 bestritt, ist ab **2011** aktiv, nicht ab 2012.
+
+Der Unterschied ist kein Randfall: Bei **48 von 103** Spielern weicht er ab. Gezählt werden nur gespielte Runden; eine Saison, in der jemand nur auf der Liste stand, verlängert seine Laufbahn nicht.
+
+Die Spalte **Zeitraum** in der Rangliste und die Zusätze auf der Rekordtafel rechnen genauso.
+
+### Filter im Spielerfenster
+
+Hat jemand in mehreren Wettbewerben oder für mehrere Mannschaften gespielt, erscheinen oben im Fenster Knopfreihen dafür. **Alles rechnet mit:** Kennzahlen, Sieg-Remis-Niederlage-Balken, Bestmarken, Säulendiagramm und Tabelle.
+
+Kombinationen, die es nicht gibt – etwa „SGM" und „Rhf 1", eine Mannschaft, die nie SGM gespielt hat – sind **abgeblendet statt entfernt**. Entfernte Knöpfe liessen die Leiste bei jedem Klick eine andere Länge haben, und man suchte Knöpfe, die eben noch da waren.
+
+Eine Reihe mit nur einer Möglichkeit entfällt ganz: Wer nie für eine zweite Mannschaft gespielt hat, braucht keine Mannschaftswahl. Das ist eine Eigenschaft der Person und ändert sich beim Filtern nicht – die Leiste bleibt also trotzdem still.
+
+Aufgebaut ist sie als **eine Reihe je Filter**, Beschriftung links, Knöpfe rechts. Nebeneinander sähe es bei drei Wettbewerben aufgeräumt aus und zerfiele, sobald es mehr werden: Die zweite Beschriftung rutschte dann mitten in die Knöpfe der ersten. Geprüft ist das mit acht Mannschaften und fünf Wettbewerben.
 
 Die Tabelle **Alle Saisons** darunter führt Punkte und Partien in **zwei getrennten Spalten**. Kompakter wäre „3½ / 7" in einer Zelle gewesen – aber dann richtet sich jede Zeile für sich aus, und weil `3½` breiter ist als `1`, wandert der Schrägstrich. Zwei Spalten richtet die Tabelle selbst aus.
 
@@ -656,7 +684,7 @@ Die Spalte `Jahr` ist das Jahr, in dem eine Saison **endet** – die letzte Zahl
 | Bezirksmannschaftsmeisterschaft | `BMM 25/26` | 2026 |
 | Schweizer Mannschaftsmeisterschaft | `SMM 26` | 2026 |
 
-Alle drei liegen damit im Saisonjahr **2025/26**. Das folgt dem Spielkalender: SGM und BMM beginnen im Herbst 2025 und enden im Frühjahr 2026, die SMM 26 wird im Lauf des Jahres 2026 gespielt – zusammen ein durchgehender Zeitraum von Herbst bis Herbst.
+Alle drei liegen damit im Saisonjahr **2025/26**. Innerhalb eines Jahrgangs zählt der Spielkalender, nicht das Etikett: SGM und BMM laufen Oktober–März, die SMM März–September. Die **SMM endet also zuletzt** und steht in absteigenden Listen ganz oben – auch wenn „SMM 26" nach weniger aussieht als „SGM 25/26". Das folgt dem Spielkalender: SGM und BMM beginnen im Herbst 2025 und enden im Frühjahr 2026, die SMM 26 wird im Lauf des Jahres 2026 gespielt – zusammen ein durchgehender Zeitraum von Herbst bis Herbst.
 
 Nach **Kalenderjahr** zu gruppieren wäre die naheliegende Alternative und die schlechtere: Sie würde SGM und BMM mitten in der Saison zerschneiden.
 

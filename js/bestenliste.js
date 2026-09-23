@@ -1112,7 +1112,11 @@
                 + punkteText(x.b.punkte) + ' aus ' + x.b.partien + ' (' + x.b.quote.toFixed(0) + ' %)'
                 + '&#10;' + entschaerfe(wettbewerbeDesJahres(x.jahr)) + '">'
                 + '<i style="height:' + Math.max(4, x.b.punkte / maxJahrPunkte * 100).toFixed(1) + '%"></i>'
-                + '<small>' + String(x.jahr).slice(2) + '</small></span>').join('')
+                /* Das volle Saisonetikett, nicht nur das Endjahr: Ueberall sonst
+                   auf der Seite heisst dieser Jahrgang "10/11". Stuende hier
+                   "11", muesste man beim Lesen uebersetzen - und koennte es mit
+                   dem Kalenderjahr verwechseln. */
+                + '<small>' + saisonEtikett(x.jahr) + '</small></span>').join('')
             + '</div>';
 
         const saisonZeilen = alle.slice().sort((x, y) => y.ordnung - x.ordnung).map(z =>

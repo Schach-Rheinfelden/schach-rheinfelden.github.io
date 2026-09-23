@@ -72,7 +72,23 @@
 
     /* Reihenfolge der Wettbewerbe innerhalb eines Jahres - so, wie sie im
        Statistikblatt nebeneinander stehen. */
-    const LIGA_ORDNUNG = { SGM: 0, SMM: 1, BMM: 2 };
+    /**
+     * Reihenfolge der Wettbewerbe INNERHALB eines Saisonjahres.
+     *
+     * Nicht alphabetisch und nicht nach Land, sondern nach dem Spielkalender:
+     *
+     *   SGM und BMM  laufen von Oktober bis Maerz
+     *   SMM          laeuft von Maerz bis September
+     *
+     * Die SMM eines Jahrgangs endet also ZULETZT und steht in der absteigenden
+     * Liste ganz oben. Die SMM 26 gehoert ueber die SGM 25/26 und die
+     * BMM 25/26 - auch wenn ihr Etikett nach weniger aussieht.
+     *
+     * Zwischen SGM und BMM ist die Reihenfolge willkuerlich; sie laufen
+     * parallel. Unbekannte Wettbewerbe landen hinten (Rueckfallwert 9), bis
+     * sie hier eingeordnet werden.
+     */
+    const LIGA_ORDNUNG = { SGM: 0, BMM: 1, SMM: 2 };
 
     /**
      * Ab wie vielen Partien eine Saison als "staerkste" in Frage kommt.
@@ -82,8 +98,12 @@
      * 100 % da. Fuer 28 der 80 Spieler mit mehr als einer Saison waere die
      * "beste Saison" dann eine mit hoechstens zwei Partien - eine Aussage, die
      * niemand so meint.
+     *
+     * DREI und nicht fuenf: Bei fuenf bekamen nur 53 der 103 Spieler ueberhaupt
+     * eine staerkste Bilanz - die halbe Mannschaft blieb ohne, obwohl drei
+     * Partien schon etwas aussagen. Mit drei sind es 76.
      */
-    const SAISON_MINDESTPARTIEN = 5;
+    const SAISON_MINDESTPARTIEN = 3;
 
     const LIGA_NAME = {
         SGM: 'Schweizer Gruppenmeisterschaft',
@@ -303,8 +323,21 @@
             b.partien += z.partien; b.punkte += z.punkte;
             b.siege += z.siege; b.remis += z.remis; b.niederlagen += z.niederlagen;
             b.teams.add(z.team); b.ligen.add(z.liga); b.jahre.add(z.jahr);
-            if (z.jahr < b.von) b.von = z.jahr;
-            if (z.jahr > b.bis) b.bis = z.jahr;
+
+            /* "Aktiv von - bis" meint die KALENDERJAHRE, in denen wirklich
+               gespielt wurde, nicht die Saison-Etiketten.
+               Der Unterschied ist kein Randfall: Bei 48 der 103 Spieler weicht
+               er ab. Wer im Herbst 2011 seine erste Partie in der Saison 11/12
+               spielte, war ab 2011 aktiv - die Seite behauptete 2012.
+               Gezaehlt werden nur GESPIELTE Runden; eine Saison, in der jemand
+               nur auf dem Papier stand, verlaengert seine Laufbahn nicht. */
+            const jahre = z.rundenJahre || [];
+            z.resultate.forEach((v, i) => {
+                if (v === '') return;
+                const j = jahre[i] || z.jahr;
+                if (j < b.von) b.von = j;
+                if (j > b.bis) b.bis = j;
+            });
         });
         b.quote = b.partien ? (b.punkte / b.partien * 100) : 0;
         return b;
@@ -383,7 +416,7 @@
      */
     function zeileZuschneiden_(z) {
         let punkte = 0, partien = 0, siege = 0, remis = 0, niederlagen = 0;
-        const behalten = [];
+        const behalten = [], behaltenJahre = [], behaltenNummern = [];
 
         for (let i = 0; i < z.resultate.length; i++) {
             const v = z.resultate[i];
@@ -397,6 +430,12 @@
 
             const wert = zahl(v);
             behalten.push(v);
+            /* Jahr und Rundennummer muessen MITWANDERN. Bliebe hier die
+               vollstaendige Liste stehen, zeigte Index 0 der gekuerzten
+               Resultate auf das Jahr der ersten Runde - und der Aktiv-Zeitraum
+               waere im Kalendermodus verschoben. */
+            behaltenJahre.push(jahr);
+            behaltenNummern.push((z.rundenNummern || [])[i] || '');
             partien++; punkte += wert;
             if (wert === 1) siege++; else if (wert === 0.5) remis++; else niederlagen++;
         }
@@ -408,7 +447,7 @@
             jahr: z.jahr, ordnung: z.ordnung,
             punkte: punkte, partien: partien,
             siege: siege, remis: remis, niederlagen: niederlagen,
-            resultate: behalten, rundenJahre: z.rundenJahre
+            resultate: behalten, rundenJahre: behaltenJahre, rundenNummern: behaltenNummern
         };
     }
 
@@ -938,14 +977,68 @@
         }).join('');
     }
 
+    /* Das Fenster bringt seinen EIGENEN Filter mit, unabhaengig von dem der
+       Seite. Wer auf einen Namen klickt, will die Person sehen - nicht noch
+       einmal die Auswahl, die er draussen getroffen hat. Drinnen kann er dann
+       nach Wettbewerb und Mannschaft einschraenken, und zwar so, dass ALLES
+       mitgeht: Kennzahlen, Bestmarken, Verlauf und Tabelle. */
+    let MODAL_SPIELER = null;
+    const modalFilter = { liga: 'alle', team: 'alle' };
+
     window.openSpielerModal = function (sch) {
         const person = SPIELER.find(s => s.schluessel === sch);
         if (!person) return;
 
-        /* Das Fenster zeigt die GANZE Laufbahn, nicht den gefilterten
-           Ausschnitt. Wer auf einen Namen klickt, will die Person sehen -
-           nicht noch einmal den Filter, den er gerade selbst gesetzt hat. */
-        const alle = person.zeilen;
+        MODAL_SPIELER = person;
+        modalFilter.liga = 'alle';
+        modalFilter.team = 'alle';
+        zeichneSpielerModal_();
+
+        const fenster = document.getElementById('spieler-modal');
+        fenster.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        const zu = fenster.querySelector('.close-btn');
+        if (zu) zu.focus();
+    };
+
+    function zeichneSpielerModal_() {
+        const person = MODAL_SPIELER;
+        if (!person) return;
+
+        const ganzeLaufbahn = person.zeilen;
+
+        /* Die Auswahlmoeglichkeiten haengen voneinander ab: Unter den
+           Wettbewerben stehen nur die, die zur gewaehlten Mannschaft passen,
+           und umgekehrt. Sonst koennte man "SGM" und "Rhf 1" zugleich waehlen
+           - eine Mannschaft, die nie SGM gespielt hat - und saesse vor einer
+           leeren Tabelle ohne erkennbaren Grund. */
+        const passtTeam = z => modalFilter.team === 'alle' || z.team === modalFilter.team;
+        const passtLiga = z => modalFilter.liga === 'alle' || z.liga === modalFilter.liga;
+
+        /* Die Knoepfe entstehen aus der GANZEN Laufbahn, nicht aus dem gerade
+           sichtbaren Ausschnitt.
+           Zuvor wurden sie aus dem Ausschnitt gebaut - mit der Folge, dass die
+           Mannschaftsreihe verschwand, sobald ein Wettbewerb gewaehlt war, in
+           dem die Person nur fuer eine Mannschaft spielte. Die Leiste sprang,
+           und wer zurueckwollte, suchte einen Knopf, den es nicht mehr gab.
+           Jetzt steht die Reihe still; unmoegliche Kombinationen sind
+           abgeblendet statt entfernt. */
+        const ligen = [...new Set(ganzeLaufbahn.map(z => z.liga))]
+            .sort((a, b2) => (LIGA_ORDNUNG[a] === undefined ? 9 : LIGA_ORDNUNG[a])
+                           - (LIGA_ORDNUNG[b2] === undefined ? 9 : LIGA_ORDNUNG[b2]));
+        const teams = [...new Set(ganzeLaufbahn.map(z => z.team))].sort();
+
+        /* Waehlbar ist, was zusammen mit der ANDEREN Auswahl noch Zeilen
+           uebrig laesst. Die gerade aktive Wahl bleibt immer waehlbar, sonst
+           koennte man sie nicht mehr verlassen. */
+        const ligaMoeglich = l => l === modalFilter.liga
+            || ganzeLaufbahn.some(z => z.liga === l && passtTeam(z));
+        const teamMoeglich = t => t === modalFilter.team
+            || ganzeLaufbahn.some(z => z.team === t && passtLiga(z));
+
+        const alle = ganzeLaufbahn.filter(z => passtLiga(z) && passtTeam(z));
+        const eingeschraenkt = alle.length !== ganzeLaufbahn.length;
+
         const b = bilanz(alle);
         const s = serien(alle);
         const p = person.profil || {};
@@ -977,6 +1070,23 @@
         const staerkste = jahrBilanz
             .filter(x => x.b.partien >= SAISON_MINDESTPARTIEN)
             .sort((x, y) => (y.b.quote - x.b.quote) || (y.b.partien - x.b.partien))[0];
+
+        /* Und eine dritte Ebene darunter: die beste EINZELNE Wettbewerbssaison.
+           "Staerkste Saison" zaehlt SGM, SMM und BMM eines Jahrgangs zusammen -
+           ein starker Lauf in einem Wettbewerb kann dort von einem schwachen
+           im anderen aufgezehrt werden. Diese Marke zeigt ihn trotzdem. */
+        const einzel = alle
+            .filter(z => z.partien >= SAISON_MINDESTPARTIEN)
+            .map(z => ({ z: z, quote: z.punkte / z.partien * 100 }))
+            .sort((x, y) => (y.quote - x.quote) || (y.z.partien - x.z.partien))[0];
+
+        /* Nur zeigen, wenn sie etwas Neues sagt: Hatte ein Saisonjahr ohnehin
+           nur einen Wettbewerb, ist die Einzelbilanz dieselbe Zahl unter
+           anderem Namen. */
+        const einzelLohnt = !!einzel && !(staerkste
+            && einzel.z.jahr === staerkste.jahr
+            && einzel.z.partien === staerkste.b.partien
+            && einzel.z.punkte === staerkste.b.punkte);
 
         const saisonText = x => saisonEtikett(x.jahr) + ' · ' + punkteText(x.b.punkte)
             + ' aus ' + x.b.partien + ' (' + x.b.quote.toFixed(0) + ' %)';
@@ -1024,6 +1134,11 @@
             + '<p class="bl-modal-teams">' + teamBadges(b.teams) + '</p>'
             + '</div></div>'
 
+            + modalFilterLeiste_(
+                { werte: ligen, aktiv: modalFilter.liga, moeglich: ligaMoeglich },
+                { werte: teams, aktiv: modalFilter.team, moeglich: teamMoeglich },
+                eingeschraenkt, alle.length, ganzeLaufbahn.length)
+
             + '<div class="bl-kennzahlen">'
             + kennzahl(punkteText(b.punkte), 'Punkte')
             + kennzahl(b.partien, 'Partien')
@@ -1041,10 +1156,16 @@
                 + '⭐ Ertragreichste Saison ' + saisonText(ertragreichste)
                 + '<small class="bl-chip-zusatz">' + entschaerfe(wettbewerbeDesJahres(ertragreichste.jahr)) + '</small></span>' : '')
             + (staerkste && ertragreichste && staerkste.jahr !== ertragreichste.jahr
-                ? '<span title="Beste Quote unter den Saisons mit mindestens '
+                ? '<span title="Beste Quote eines Saisonjahres – alle Wettbewerbe zusammen, ab '
                   + SAISON_MINDESTPARTIEN + ' Partien · ' + entschaerfe(wettbewerbeDesJahres(staerkste.jahr)) + '">'
                   + '🎯 Stärkste Saison ' + saisonText(staerkste)
                   + '<small class="bl-chip-zusatz">' + entschaerfe(wettbewerbeDesJahres(staerkste.jahr)) + '</small></span>' : '')
+            + (einzelLohnt ? '<span title="Beste Quote in EINEM Wettbewerb einer Saison, ab '
+                  + SAISON_MINDESTPARTIEN + ' Partien. Die stärkste Saison zählt dagegen alle Wettbewerbe eines Jahrgangs zusammen.">'
+                  + '🏆 Stärkste Bilanz ' + entschaerfe(wettbewerbEtikett(einzel.z))
+                  + ' · ' + punkteText(einzel.z.punkte) + ' aus ' + einzel.z.partien
+                  + ' (' + einzel.quote.toFixed(0) + '\u2009%)'
+                  + '<small class="bl-chip-zusatz">' + entschaerfe(einzel.z.team) + '</small></span>' : '')
             + (s.siege > 1 ? '<span title="Aufeinanderfolgende Runden im selben Wettbewerb, über die Saisons hinweg">'
                 + '🔥 ' + s.siege + ' Siege in Folge'
                 + '<small class="bl-chip-zusatz">in der ' + entschaerfe(s.siegeIn) + '</small></span>' : '')
@@ -1056,7 +1177,10 @@
             + '<h3 class="bl-modal-unterschrift">Punkte je Saison</h3>'
             + verlauf
 
-            + '<h3 class="bl-modal-unterschrift">Alle Saisons</h3>'
+            + '<h3 class="bl-modal-unterschrift">'
+            + (eingeschraenkt ? 'Ausgewählte Saisons (' + alle.length + ' von ' + ganzeLaufbahn.length + ')'
+                              : 'Alle Saisons')
+            + '</h3>'
             + '<div class="bl-modal-tabelle-rahmen"><table class="bl-modal-tabelle">'
             /* Punkte und Partien als ZWEI Spalten, nicht als "3½ / 7".
                Der Schrägstrich sah kompakter aus, stand aber in jeder Zeile
@@ -1067,13 +1191,53 @@
             + '<th class="bl-td-zahl">Punkte</th><th class="bl-td-zahl">Partien</th>'
             + '<th class="bl-td-zahl">Quote</th><th>Runden</th></tr></thead>'
             + '<tbody>' + saisonZeilen + '</tbody></table></div>';
+    }
 
-        const fenster = document.getElementById('spieler-modal');
-        fenster.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        const zu = fenster.querySelector('.close-btn');
-        if (zu) zu.focus();
-    };
+    /**
+     * Die Knopfreihen im Spielerfenster.
+     *
+     * Ein fester Aufbau, damit nichts springt: links die Beschriftung, rechts
+     * die Knoepfe. Werden es mehr Mannschaften, umbrechen sie innerhalb ihrer
+     * eigenen Spalte - die Beschriftung bleibt stehen und die zweite Reihe
+     * rutscht nicht neben die erste.
+     *
+     * Eine Reihe mit einem einzigen Knopf entfaellt ganz: Wer nie fuer eine
+     * zweite Mannschaft gespielt hat, braucht keine Mannschaftswahl. Das ist
+     * eine Eigenschaft der Person und aendert sich waehrend des Filterns
+     * nicht - die Leiste bleibt also trotzdem still.
+     */
+    function modalFilterLeiste_(liga, team, eingeschraenkt, sichtbar, gesamt) {
+        const reihe = (name, feld, beschriftung) => {
+            if (feld.werte.length < 2) return '';
+
+            const knopf = (wert, text) => {
+                const aktiv = wert === feld.aktiv;
+                const geht = wert === 'alle' || feld.moeglich(wert);
+                return '<button type="button" class="filter-btn bl-klein-knopf'
+                    + (aktiv ? ' active' : '') + (geht ? '' : ' bl-knopf-blass') + '"'
+                    + ' data-mfilter="' + name + '" data-wert="' + entschaerfe(wert) + '"'
+                    + (geht ? '' : ' disabled title="Diese Auswahl gibt es nicht zusammen mit der anderen"')
+                    + '>' + entschaerfe(text) + '</button>';
+            };
+
+            return '<div class="bl-mf-reihe" role="group" aria-label="' + beschriftung + '">'
+                + '<span class="bl-mf-titel">' + beschriftung + '</span>'
+                + '<div class="bl-mf-knoepfe">'
+                + knopf('alle', 'Alle')
+                + feld.werte.map(x => knopf(x, x)).join('')
+                + '</div></div>';
+        };
+
+        const inhalt = reihe('liga', liga, 'Wettbewerb') + reihe('team', team, 'Mannschaft');
+        if (!inhalt) return '';
+
+        return '<div class="bl-modal-filter">' + inhalt
+            + (eingeschraenkt
+                ? '<div class="bl-mf-fuss"><button type="button" class="bl-textknopf" data-mfilter="weg" data-wert="alle">'
+                  + 'alles zeigen (' + sichtbar + ' von ' + gesamt + ')</button></div>'
+                : '')
+            + '</div>';
+    }
 
     window.closeSpielerModal = function () {
         document.getElementById('spieler-modal').classList.add('hidden');
@@ -1199,6 +1363,25 @@
                 return;
             }
 
+            /* Vor dem Spielerknopf pruefen: Die Filterknoepfe liegen IM
+               Fenster, und dort darf ein Klick nicht als "Person oeffnen"
+               durchgehen. */
+            const modalKnopf = ziel.closest && ziel.closest('[data-mfilter]');
+            if (modalKnopf) {
+                /* Browser unterdruecken den Klick auf ein disabled-Element von
+                   selbst. Darauf zu bauen genuegt hier nicht: Der Zuhoerer
+                   haengt am Dokument, und ein Klick, der auf anderem Weg
+                   hereinkommt, faende sonst eine Auswahl vor, die es gar nicht
+                   gibt - die Tabelle waere leer ohne erkennbaren Grund. */
+                if (modalKnopf.disabled) return;
+
+                const feld = modalKnopf.getAttribute('data-mfilter');
+                if (feld === 'weg') { modalFilter.liga = 'alle'; modalFilter.team = 'alle'; }
+                else modalFilter[feld] = modalKnopf.getAttribute('data-wert');
+                zeichneSpielerModal_();
+                return;
+            }
+
             const person = ziel.closest && ziel.closest('[data-spieler]');
             if (person) { window.openSpielerModal(person.getAttribute('data-spieler')); return; }
 
@@ -1266,6 +1449,40 @@
         });
     }
 
+    /** "a, b und c" - eine Aufzaehlung, wie man sie spricht. */
+    function aufzaehlung_(teile) {
+        if (teile.length <= 1) return teile.join('');
+        return teile.slice(0, -1).join(', ') + ' und ' + teile[teile.length - 1];
+    }
+
+    /**
+     * Der Untertitel nennt die Mannschaften - und zwar die, die WIRKLICH in
+     * den Daten stehen.
+     *
+     * Fest im HTML stand dort "für Rhy 1, Rhy 2, Rhf 1 und Rhf 2". Das stimmt
+     * genau so lange, bis eine dritte Mannschaft dazukommt, und dann stimmt es
+     * still nicht mehr: Die Seite zeigt die neue Mannschaft in jeder Liste,
+     * behauptet oben aber weiter, es gaebe sie nicht.
+     *
+     * Ab fuenf Mannschaften wird aus der Aufzaehlung eine Zahl - sonst
+     * verdraengt sie den Rest des Satzes.
+     */
+    function zeichneUntertitel_() {
+        const ziel = document.getElementById('bl-untertitel');
+        if (!ziel) return;
+
+        const teams = [...new Set(ZEILEN.map(z => z.team))].sort();
+        if (!teams.length) return;
+
+        const wer = teams.length <= 4
+            ? 'für ' + aufzaehlung_(teams)
+            : 'für unsere ' + teams.length + ' Mannschaften';
+
+        const g = bilanz(ZEILEN);
+        ziel.textContent = 'Jede Partie, die ' + wer + ' gespielt wurde – '
+            + 'zusammengezählt über ' + g.jahre.size + ' Saisons seit ' + g.von + '.';
+    }
+
     /* ─── Start ───────────────────────────────────────────────────────── */
 
     /* Einmal ist genug.
@@ -1297,6 +1514,7 @@
 
         zeichneAlles();
         hoereZu();
+        zeichneUntertitel_();
 
         const g = bilanz(ZEILEN);
         document.getElementById('bl-quelle').textContent =

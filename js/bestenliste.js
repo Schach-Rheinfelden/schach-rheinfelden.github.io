@@ -105,11 +105,102 @@
      */
     const SAISON_MINDESTPARTIEN = 3;
 
-    const LIGA_NAME = {
-        SGM: 'Schweizer Gruppenmeisterschaft',
-        SMM: 'Schweizer Mannschaftsmeisterschaft',
-        BMM: 'Bezirksmannschaftsmeisterschaft'
-    };
+    /**
+     * Ein Farbton je Wettbewerb - selbst vergeben, nicht von Hand eingetragen.
+     *
+     * ══ WARUM NICHT EINE LISTE ══
+     * Eine Liste im Code kennt nur die Wettbewerbe von heute. Kommt einer dazu,
+     * faellt er still ins Graue, und jemand muesste den Quelltext anfassen, um
+     * ihm eine Farbe zu geben.
+     *
+     * ══ WIE DIE TOENE ZUSTANDE KOMMEN ══
+     * Zwoelf Plaetze auf dem Farbkreis, moeglichst weit auseinander. Der Name
+     * des Wettbewerbs bestimmt ueber eine Pruefsumme seinen Wunschplatz; ist
+     * der besetzt, rueckt er auf den naechsten freien.
+     *
+     * Das hat zwei Eigenschaften, die beide gewollt sind:
+     *   - STABIL: "SGM" bekommt immer denselben Ton, auch nach Jahren und
+     *     unabhaengig davon, wer sonst noch dazukommt.
+     *   - GETRENNT: Zwei Wettbewerbe koennen nie denselben Ton haben.
+     *
+     * Die Toene zwischen 30 und 65 Grad fehlen mit Absicht - dort liegt das
+     * Vereinsgold. Es steht auf dieser Seite fuer "Bestwert" und "ausgewaehlt";
+     * ein goldener Wettbewerb wuerde das entwerten.
+     */
+    const LIGA_TOENE = [210, 145, 330, 265, 190, 15, 95, 290, 240, 170, 350, 115];
+    const LIGA_TON_UNBEKANNT = 215;
+
+    let LIGA_TON = new Map();
+
+    function pruefsumme_(text) {
+        let h = 0;
+        for (let i = 0; i < text.length; i++) h = ((h << 5) - h + text.charCodeAt(i)) | 0;
+        return Math.abs(h);
+    }
+
+    /**
+     * Vergibt die Toene fuer alle vorkommenden Wettbewerbe.
+     *
+     * Die Reihenfolge der Vergabe ist fest (nach Spielkalender, dann
+     * alphabetisch) - sonst haengt das Ergebnis davon ab, in welcher
+     * Reihenfolge die Zeilen in der CSV stehen.
+     */
+    function ligaToeneVergeben_(ligen) {
+        const ordnung = l => (LIGA_ORDNUNG[l] === undefined ? 9 : LIGA_ORDNUNG[l]);
+        const sortiert = ligen.slice().sort((a, b) => (ordnung(a) - ordnung(b)) || a.localeCompare(b, 'de'));
+
+        const belegt = new Map();   // Platz -> wie oft schon vergeben
+        const karte = new Map();
+
+        sortiert.forEach(liga => {
+            let platz = pruefsumme_(liga) % LIGA_TOENE.length;
+            for (let i = 0; i < LIGA_TOENE.length && belegt.has(platz); i++) {
+                platz = (platz + 1) % LIGA_TOENE.length;
+            }
+
+            /* Mehr Wettbewerbe als Plaetze: Dann wird ein Platz ein zweites Mal
+               vergeben, aber um ein paar Grad verschoben. Zwei aehnliche Toene
+               sind unschoen - zwei GLEICHE waeren ein Fehler, weil die Farbe
+               dann nichts mehr unterscheidet. */
+            const runde = belegt.get(platz) || 0;
+            belegt.set(platz, runde + 1);
+            karte.set(liga, ausserhalbGold_((LIGA_TOENE[platz] + runde * 9) % 360));
+        });
+        return karte;
+    }
+
+    /** Schiebt einen Ton aus dem Goldbereich heraus, in dem der Akzent liegt. */
+    function ausserhalbGold_(ton) {
+        return (ton >= 30 && ton <= 65) ? 66 + (ton - 30) : ton;
+    }
+
+    /**
+     * Ausgeschriebene Wettbewerbsnamen - aus info.csv, NICHT aus dem Code.
+     *
+     * Hier standen sie frueher fest eingetragen, und sie waren zum Teil
+     * schlicht erfunden: "BMM" hatte ich mit "Bezirksmannschaftsmeisterschaft"
+     * beschriftet, ohne das je geprueft zu haben. Falsches Wissen im Quelltext
+     * ist schlimmer als gar keines - es sieht aus, als haette es jemand
+     * nachgeschlagen.
+     *
+     * Jetzt kommt der Name aus den Vereinsdaten, wo ihn pflegen kann, wer ihn
+     * kennt:
+     *
+     *     liga.SGM;Schweizerische Gruppenmeisterschaft
+     *
+     * Fehlt der Eintrag, gibt es keinen Hinweis beim Darueberfahren - nur das
+     * Kuerzel, das ohnehin in der Zeile steht.
+     *
+     * Gross- und Kleinschreibung spielt auf BEIDEN Seiten keine Rolle:
+     * "liga.nmm" findet den Wettbewerb "NMM" und umgekehrt. Wer die Zeile von
+     * Hand eintraegt, soll nicht an der Schreibweise scheitern.
+     */
+    let LIGA_NAME = {};
+
+    /** Der ausgeschriebene Name eines Wettbewerbs, oder '' wenn keiner hinterlegt ist. */
+    function ligaName_(liga) {
+        return LIGA_NAME[String(liga || '').trim().toUpperCase()] || '';
+    }
 
     /* ─── Kleinkram ───────────────────────────────────────────────────── */
 
@@ -152,6 +243,12 @@
     /** "SGM 25/26" - ein einzelner Wettbewerb, wie ihn das Statistikblatt nennt. */
     function wettbewerbEtikett(z) {
         return z.liga + ' ' + z.saison;
+    }
+
+    /** Der Farbton eines Wettbewerbs, als Zahl fuer die CSS-Variable. */
+    function ligaTon(liga) {
+        const t = LIGA_TON.get(liga);
+        return t === undefined ? LIGA_TON_UNBEKANNT : t;
     }
 
     /**
@@ -239,11 +336,23 @@
     }
 
     async function laden() {
-        const [bl, pl, sa] = await Promise.all([
+        const [bl, pl, sa, info] = await Promise.all([
             holeCSV('data/bestenliste.csv'),
             holeCSV('data/players.csv').catch(() => []),
-            holeCSV('data/saisons.csv').catch(() => [])
+            holeCSV('data/saisons.csv').catch(() => []),
+            holeCSV('data/info.csv').catch(() => [])
         ]);
+
+        /* info.csv ist eine Liste aus Schluessel und Wert. Uns interessieren
+           nur die Zeilen "liga.XYZ" - alles andere gehoert anderen Teilen der
+           Website. */
+        info.forEach(r => {
+            const k = (r.key || '').trim();
+            const v = (r.value || '').trim();
+            if (!v) return;
+            const m = k.match(/^liga\.(.+)$/i);
+            if (m) LIGA_NAME[m[1].trim().toUpperCase()] = v;
+        });
 
         /* Rundenjahre: Team + Liga + Saison → Jahr je Runde.
            Die Mannschaft gehoert in den Schluessel, weil Rhy 1 und Rhy 2
@@ -306,6 +415,8 @@
             }
             nachPerson.get(z.schluessel).zeilen.push(z);
         });
+        LIGA_TON = ligaToeneVergeben_([...new Set(ZEILEN.map(z => z.liga))]);
+
         SPIELER = [...nachPerson.values()];
         SPIELER.forEach(s => s.zeilen.sort((a, b) => a.ordnung - b.ordnung));
     }
@@ -662,15 +773,43 @@
 
     /* ─── Steuerung ───────────────────────────────────────────────────── */
 
-    function knopfReihe(name, werte, aktiv, beschriftung) {
+    /**
+     * Eine Knopfreihe der Filterleiste.
+     *
+     * moeglich(wert) entscheidet, ob ein Knopf waehlbar ist. Unmoegliche
+     * Kombinationen - Rhf 1 spielt keine SGM - werden abgeblendet statt
+     * entfernt, aus demselben Grund wie im Spielerfenster: Eine Reihe, die bei
+     * jedem Klick eine andere Laenge hat, laesst einen Knoepfe suchen, die
+     * eben noch da waren.
+     */
+    function knopfReihe(name, werte, aktiv, beschriftung, moeglich) {
         return '<div class="bl-feld">'
             + '<span class="bl-feld-titel">' + beschriftung + '</span>'
             + '<div class="bl-knopfreihe" role="group" aria-label="' + beschriftung + '">'
-            + werte.map(w =>
-                '<button type="button" class="filter-btn' + (w.wert === aktiv ? ' active' : '') + '"'
-                + ' data-filter="' + name + '" data-wert="' + entschaerfe(w.wert) + '">'
-                + entschaerfe(w.text) + '</button>').join('')
+            + werte.map(w => {
+                const geht = w.wert === 'alle' || w.wert === aktiv
+                    || !moeglich || moeglich(w.wert);
+                return '<button type="button" class="filter-btn'
+                    + (w.wert === aktiv ? ' active' : '') + (geht ? '' : ' bl-knopf-blass') + '"'
+                    + ' data-filter="' + name + '" data-wert="' + entschaerfe(w.wert) + '"'
+                    + (geht ? '' : ' disabled title="Zusammen mit der übrigen Auswahl gibt es dazu keine Partien"')
+                    + '>' + entschaerfe(w.text) + '</button>';
+            }).join('')
             + '</div></div>';
+    }
+
+    /**
+     * Zaehlt eine Zeile im aktuell eingestellten Zeitraum mit?
+     *
+     * Im Saisonmodus entscheidet das Saisonjahr, im Kalendermodus muss
+     * wenigstens EINE gespielte Runde im Zeitraum liegen - dieselbe Regel, die
+     * auch die Liste anwendet. Anders gefragt: Wuerde dieser Knopf zu einer
+     * leeren Liste fuehren?
+     */
+    function zeileImZeitraum_(z) {
+        if (filter.zeitModus !== 'kalender') return imZeitraum(z.jahr);
+        const jahre = z.rundenJahre || [];
+        return z.resultate.some((v, i) => v !== '' && imZeitraum(jahre[i] || z.jahr));
     }
 
     function istZeitraumGesetzt() {
@@ -749,10 +888,16 @@
             + '</div>'
 
             + knopfReihe('team', [{ wert: 'alle', text: 'Alle Mannschaften' }]
-                .concat(teams.map(t => ({ wert: t, text: t }))), filter.team, 'Mannschaft')
+                .concat(teams.map(t => ({ wert: t, text: t }))), filter.team, 'Mannschaft',
+                t => ZEILEN.some(z => z.team === t
+                    && (filter.liga === 'alle' || z.liga === filter.liga)
+                    && zeileImZeitraum_(z)))
 
             + knopfReihe('liga', [{ wert: 'alle', text: 'Alle Wettbewerbe' }]
-                .concat(ligen.map(l => ({ wert: l, text: l }))), filter.liga, 'Wettbewerb')
+                .concat(ligen.map(l => ({ wert: l, text: l }))), filter.liga, 'Wettbewerb',
+                l => ZEILEN.some(z => z.liga === l
+                    && (filter.team === 'alle' || z.team === filter.team)
+                    && zeileImZeitraum_(z)))
 
             + '<div class="bl-feld">'
             + '<div class="bl-zeit-kopf">'
@@ -1120,8 +1265,14 @@
             + '</div>';
 
         const saisonZeilen = alle.slice().sort((x, y) => y.ordnung - x.ordnung).map(z =>
-            '<tr>'
-            + '<td class="bl-td-saison">' + entschaerfe(z.liga) + ' ' + entschaerfe(z.saison) + '</td>'
+            /* Der Farbton haengt an der ZEILE, den farbigen Rand zeichnet das
+               Stylesheet an die erste Zelle. So bleibt die Zeile eine gewoehnliche
+               Tabellenzeile - Kopieren und Vorlesen aendern sich nicht. */
+            '<tr style="--liga-ton:' + ligaTon(z.liga) + '">'
+            + '<td class="bl-td-saison"'
+            + (ligaName_(z.liga) ? ' title="' + entschaerfe(ligaName_(z.liga)) + '"' : '')
+            + '>'
+            + entschaerfe(z.liga) + ' <span class="bl-td-jahrgang">' + entschaerfe(z.saison) + '</span></td>'
             + '<td>' + entschaerfe(z.team) + '</td>'
             + '<td class="bl-td-zahl bl-td-stark">' + punkteText(z.punkte) + '</td>'
             + '<td class="bl-td-zahl bl-td-leise">' + z.partien + '</td>'
@@ -1339,6 +1490,8 @@
 
             const filterKnopf = ziel.closest && ziel.closest('[data-filter]');
             if (filterKnopf) {
+                // Wie im Spielerfenster: nicht auf den Browser verlassen.
+                if (filterKnopf.disabled) return;
                 const feld = filterKnopf.getAttribute('data-filter');
                 filter[feld] = filterKnopf.getAttribute('data-wert');
                 zeichneAlles();

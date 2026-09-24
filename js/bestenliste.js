@@ -1270,14 +1270,363 @@
         + ' 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0'
         + ' 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>';
 
+    const BILD_SYMBOL =
+        '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"'
+        + ' viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round"'
+        + ' stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2'
+        + ' 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2'
+        + ' 0 002 2z"></path></svg>';
+
+    /**
+     * Teilen und "Als Bild" im Fensterkopf.
+     *
+     * Kein Name im onclick: Der wird aus MODAL_SPIELER gelesen. Sonst muesste
+     * jeder Apostroph in "O'Neill" von Hand entschaerft werden.
+     *
+     * Der Bildknopf traegt bewusst nur das Sinnbild. Zwei beschriftete Knoepfe
+     * nebeneinander wuerden im Kopf mehr Platz einnehmen als der Name - und
+     * "Als Bild" ist die seltenere der beiden Handlungen.
+     */
     function teilenKnopf_(person) {
-        // Kein Name im onclick: Der wird aus MODAL_SPIELER gelesen. Sonst
-        // muesste jeder Apostroph in "O'Neill" von Hand entschaerft werden.
-        return '<button type="button" class="btn btn-secondary bl-teilen"'
+        const wer = entschaerfe(person.anzeige);
+        return '<div class="bl-kopf-knoepfe">'
+            + '<button type="button" class="btn btn-secondary bl-teilen"'
             + ' onclick="window.teileSpieler()"'
-            + ' aria-label="Bilanz von ' + entschaerfe(person.anzeige) + ' teilen">'
-            + TEILEN_SYMBOL + '<span>Teilen</span></button>';
+            + ' aria-label="Bilanz von ' + wer + ' teilen">'
+            + TEILEN_SYMBOL + '<span>Teilen</span></button>'
+            + '<button type="button" id="bl-bild-btn" class="btn btn-secondary bl-bild"'
+            + ' onclick="window.spielerAlsBild()"'
+            + ' title="Als Bild speichern"'
+            + ' aria-label="Bilanz von ' + wer + ' als Bild speichern">'
+            + BILD_SYMBOL + '</button>'
+            + '</div>';
     }
+
+    /* ─── Spielerkarte als Bild ───────────────────────────────────────────
+       Die Karte wird GEZEICHNET, nicht abfotografiert.
+
+       Ein Abzug des Fensters waere der naheliegende Weg, braucht aber eine
+       Fremdbibliothek (html2canvas), und das Ergebnis traegt immer die
+       Bildlaufleiste, die Schaltflaechen und den abgeschnittenen unteren Rand
+       mit sich. Gezeichnet ist die Karte dagegen in jedem Thema gleich breit,
+       hat keine Knoepfe darauf und passt in WhatsApp ohne Zuschneiden.
+
+       Das Zeichenwerkzeug stammt aus shared.js - dieselbe Maschinerie, die die
+       Terminkarte baut (window.bildwerkzeug).
+       ─────────────────────────────────────────────────────────────────────── */
+
+    let MODAL_DATEN = null;
+
+    /** Kreisrunder Ausschnitt mit Goldring - wie die Avatare auf der Seite. */
+    function karteAvatar_(ctx, bild, person, x, y, gr, K) {
+        const r = gr / 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + r, y + r, r, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+
+        if (bild) {
+            // Zuschneiden statt verzerren: quadratischer Ausschnitt aus der Mitte.
+            const s = Math.min(bild.naturalWidth, bild.naturalHeight);
+            ctx.drawImage(bild,
+                (bild.naturalWidth - s) / 2, (bild.naturalHeight - s) / 2, s, s,
+                x, y, gr, gr);
+        } else {
+            const g = ctx.createLinearGradient(x, y, x + gr, y + gr);
+            g.addColorStop(0, K.gold);
+            g.addColorStop(1, '#8a6d1f');
+            ctx.fillStyle = g;
+            ctx.fillRect(x, y, gr, gr);
+
+            ctx.fillStyle = K.grund;
+            ctx.font = '700 ' + Math.round(gr * 0.36) + 'px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(initialen(person.anzeige), x + r, y + r + 2);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+        }
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(x + r, y + r, r - 2, 0, Math.PI * 2);
+        ctx.strokeStyle = K.gold;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+    }
+
+    /** Waagrechter Balken aus Sieg / Remis / Niederlage - wie im Fenster. */
+    function karteBalken_(ctx, b, x, y, breite, hoehe, K) {
+        const W = window.bildwerkzeug;
+        if (!b.partien) return;
+
+        W.rundeck(ctx, x, y, breite, hoehe, hoehe / 2);
+        ctx.save();
+        ctx.clip();
+
+        const teile = [
+            { n: b.siege, f: '#16a34a' },
+            { n: b.remis, f: K.textLeise },
+            { n: b.niederlagen, f: '#dc2626' }
+        ];
+        let lauf = x;
+        teile.forEach(t => {
+            const w = t.n / b.partien * breite;
+            ctx.fillStyle = t.f;
+            ctx.fillRect(lauf, y, w + 1, hoehe);   // +1 gegen Haarlinien dazwischen
+            lauf += w;
+        });
+        ctx.restore();
+    }
+
+    /**
+     * Zeichnet die Spielerkarte und liefert die Zeichenflaeche.
+     *
+     * Zweistufig wie die Terminkarte: erst vermessen, dann zeichnen. Die
+     * Flaeche nachtraeglich zu vergroessern wuerde ihren Inhalt loeschen.
+     */
+    async function zeichneSpielerBild_(d, optionen) {
+        const W = window.bildwerkzeug;
+        const opt = optionen || {};
+        const K = W.tafel(opt.hell);
+        const breite = K.breite;
+        const rand = K.rand;
+        const innen = breite - rand * 2;
+
+        await W.schriftenBereit();
+
+        const avatarUrl = !opt.ohneFoto && d.person.profil
+            ? (d.person.profil.avatar || '').trim() : '';
+        const bild = avatarUrl ? await W.foto(avatarUrl) : null;
+
+        const mess = document.createElement('canvas').getContext('2d');
+        mess.font = '700 62px "Playfair Display", serif';
+        const nameZeilen = W.zeilen(mess, d.person.anzeige, innen - 220);
+
+        // Fakten sammeln - jede Zeile nur, wenn sie etwas zu sagen hat.
+        const fakten = [];
+        fakten.push('🗓️ Aktiv ' + zeitraumText(d.b));
+        if (d.ertragreichste) {
+            fakten.push('⭐ Ertragreichste Saison ' + saisonEtikett(d.ertragreichste.jahr)
+                + ' · ' + punkteText(d.ertragreichste.b.punkte) + ' aus ' + d.ertragreichste.b.partien
+                + (d.zugleichStaerkste ? ' – zugleich die stärkste' : ''));
+        }
+        if (d.staerkste && !d.zugleichStaerkste) {
+            fakten.push('🎯 Stärkste Saison ' + saisonEtikett(d.staerkste.jahr)
+                + ' · ' + d.staerkste.b.quote.toFixed(0) + ' %');
+        }
+        if (d.einzel) {
+            fakten.push('🏅 Stärkste Bilanz ' + wettbewerbEtikett(d.einzel.z)
+                + ' · ' + punkteText(d.einzel.z.punkte) + ' aus ' + d.einzel.z.partien);
+        }
+        if (d.s.siege >= 3) fakten.push('🔥 ' + d.s.siege + ' Siege in Folge');
+        if (d.s.ungeschlagen >= 5) fakten.push('🛡️ ' + d.s.ungeschlagen + ' Partien ungeschlagen');
+
+        // ── Vermessen ──────────────────────────────────────────────────────
+        const kopfHoehe = Math.max(200, nameZeilen.length * 72 + 96);
+        const verlaufHoehe = d.jahrBilanz.length > 1 ? 190 : 0;
+
+        let hoehe = rand + kopfHoehe + 40;
+        if (d.ausschnitt) hoehe += 54;
+        hoehe += 150;                               // Kennzahlenreihe
+        hoehe += 78;                                // Bilanzbalken samt Zeile
+        hoehe += fakten.length * 48 + 16;
+        hoehe += verlaufHoehe;
+        hoehe += 40 + 52 + rand;                    // Linie, Fusszeile, Rand
+
+        // ── Zeichnen ───────────────────────────────────────────────────────
+        const canvas = document.createElement('canvas');
+        canvas.width = breite;
+        canvas.height = Math.round(hoehe);
+        const ctx = canvas.getContext('2d');
+
+        const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        g.addColorStop(0, K.grund);
+        g.addColorStop(1, K.grundTief);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, breite, canvas.height);
+
+        // Goldstreifen oben: Anders als beim Termin gibt es hier keine
+        // Einzelfarbe - die Bestenliste ist eine Seite, kein Kalendereintrag.
+        ctx.fillStyle = K.gold;
+        ctx.fillRect(0, 0, breite, 6);
+
+        ctx.textBaseline = 'alphabetic';
+        let y = rand + 6;
+
+        // ── Kopf: Avatar, Name, Merkmale, Mannschaften ─────────────────────
+        const avGr = 180;
+        karteAvatar_(ctx, bild, d.person, rand, y, avGr, K);
+
+        const tx = rand + avGr + 36;
+        let ty = y + 8;
+
+        ctx.fillStyle = K.text;
+        ctx.font = '700 62px "Playfair Display", serif';
+        nameZeilen.forEach(z => { ty += 62; ctx.fillText(z, tx, ty); ty += 8; });
+
+        if (d.merkmale.length) {
+            ty += 34;
+            ctx.fillStyle = K.textLeise;
+            ctx.font = '400 28px Outfit, sans-serif';
+            ctx.fillText(d.merkmale.join(' · '), tx, ty);
+        }
+
+        if (d.teams.length) {
+            ty += 48;
+            ctx.font = '600 24px Outfit, sans-serif';
+            let bx = tx;
+            d.teams.forEach(t => {
+                const w = ctx.measureText(t).width + 36;
+                W.rundeck(ctx, bx, ty - 26, w, 40, 10);
+                ctx.fillStyle = K.tagGrund;
+                ctx.fill();
+                ctx.fillStyle = K.tagText;
+                ctx.fillText(t, bx + 18, ty);
+                bx += w + 12;
+            });
+        }
+
+        y += kopfHoehe + 40;
+
+        /* Der Ausschnitt MUSS auf der Karte stehen. Ohne ihn behauptet ein
+           weitergereichtes Bild eine Gesamtbilanz, wo in Wahrheit nur die
+           SGM-Jahre gezaehlt wurden - und niemand kann das dem Bild ansehen. */
+        if (d.ausschnitt) {
+            ctx.fillStyle = K.gold;
+            ctx.font = '600 26px Outfit, sans-serif';
+            ctx.fillText('AUSSCHNITT: ' + d.ausschnitt.toUpperCase(), rand, y);
+            y += 54;
+        }
+
+        // ── Kennzahlen ─────────────────────────────────────────────────────
+        const zahlen = [
+            [punkteText(d.b.punkte), 'Punkte'],
+            [String(d.b.partien), 'Partien'],
+            // Schmales Leerzeichen vor dem Prozentzeichen - genau wie im
+            // Fenster. Ein gewoehnliches Leerzeichen setzte die Zahl sichtbar
+            // weiter vom Zeichen ab als nebenan im Dialog.
+            [d.b.quote.toFixed(0) + ' %', 'Erfolg'],
+            [String(d.b.jahre.size), 'Saisons']
+        ];
+        const spalte = innen / zahlen.length;
+        ctx.textAlign = 'center';
+        zahlen.forEach((z, i) => {
+            const mx = rand + spalte * i + spalte / 2;
+            ctx.fillStyle = K.gold;
+            ctx.font = '700 66px "Playfair Display", serif';
+            ctx.fillText(z[0], mx, y + 66);
+            ctx.fillStyle = K.textLeise;
+            ctx.font = '400 26px Outfit, sans-serif';
+            ctx.fillText(z[1].toUpperCase(), mx, y + 110);
+        });
+        ctx.textAlign = 'left';
+        y += 150;
+
+        // ── Bilanzbalken ───────────────────────────────────────────────────
+        karteBalken_(ctx, d.b, rand, y, innen, 18, K);
+        y += 50;
+        ctx.fillStyle = K.textLeise;
+        ctx.font = '400 26px Outfit, sans-serif';
+        ctx.fillText(d.b.siege + ' Siege · ' + d.b.remis + ' Remis · '
+            + d.b.niederlagen + ' Niederlagen', rand, y);
+        y += 28;
+
+        // ── Fakten ─────────────────────────────────────────────────────────
+        y += 16;
+        ctx.fillStyle = K.text;
+        ctx.font = '400 30px Outfit, sans-serif';
+        fakten.forEach(f => { y += 48; ctx.fillText(f, rand, y); });
+
+        // ── Punkte je Saison ───────────────────────────────────────────────
+        if (verlaufHoehe) {
+            y += 56;
+            const hoch = 100;
+            const max = Math.max.apply(null, d.jahrBilanz.map(x => x.b.punkte).concat([1]));
+            const lueck = 8;
+            const bw = Math.max(6, (innen - lueck * (d.jahrBilanz.length - 1)) / d.jahrBilanz.length);
+
+            d.jahrBilanz.forEach((x, i) => {
+                const h = Math.max(3, x.b.punkte / max * hoch);
+                const bx = rand + i * (bw + lueck);
+                W.rundeck(ctx, bx, y + hoch - h, bw, h, Math.min(4, bw / 2));
+                ctx.fillStyle = K.gold;
+                ctx.fill();
+            });
+
+            // Beschriftet werden nur die Enden. Bei zwanzig Saisons stehen
+            // zwanzig Jahreszahlen sonst uebereinander.
+            y += hoch + 34;
+            ctx.fillStyle = K.textLeise;
+            ctx.font = '400 24px Outfit, sans-serif';
+            ctx.fillText(saisonEtikett(d.jahrBilanz[0].jahr), rand, y);
+            ctx.textAlign = 'right';
+            ctx.fillText(saisonEtikett(d.jahrBilanz[d.jahrBilanz.length - 1].jahr),
+                breite - rand, y);
+            ctx.textAlign = 'left';
+        }
+
+        // ── Fusszeile ──────────────────────────────────────────────────────
+        y = canvas.height - rand - 52;
+        ctx.strokeStyle = K.linie;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(rand, y);
+        ctx.lineTo(breite - rand, y);
+        ctx.stroke();
+
+        const info = window.globalInfoData || {};
+        y += 52;
+        ctx.fillStyle = K.textLeise;
+        ctx.font = '700 30px Outfit, sans-serif';
+        ctx.fillText('♞ ' + (info.clubName || 'Schach Rheinfelden'), rand, y);
+
+        ctx.font = '400 24px Outfit, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(location.host || 'schach-rheinfelden.github.io', breite - rand, y);
+        ctx.textAlign = 'left';
+
+        if (bild && bild._objektUrl) URL.revokeObjectURL(bild._objektUrl);
+        return canvas;
+    }
+
+    window.spielerAlsBild = async function () {
+        const d = MODAL_DATEN;
+        if (!d || !window.bildwerkzeug) return;
+
+        /* Nur sperren, keinen Text tauschen: Der Knopf traegt nur ein Sinnbild,
+           und "Erstelle Bild …" wuerde ihn mitten im Tippen breit ziehen und
+           alles daneben verschieben. Das Gesperrtsein zeigt CSS an. */
+        const knopf = document.getElementById('bl-bild-btn');
+        if (knopf) knopf.disabled = true;
+
+        try {
+            let blob;
+            try {
+                blob = await window.bildwerkzeug.blob(await zeichneSpielerBild_(d));
+            } catch (e) {
+                /* Zweiter Versuch ohne Avatar. Wenn ueberhaupt etwas scheitert,
+                   dann das Bild - Schrift und Formen koennen die Flaeche nicht
+                   verunreinigen. Eine Karte mit Initialen ist besser als eine
+                   Fehlermeldung. */
+                console.warn('Karte ohne Avatar, weil das Bild scheiterte:', e);
+                blob = await window.bildwerkzeug.blob(
+                    await zeichneSpielerBild_(d, { ohneFoto: true }));
+            }
+
+            await window.bildWeitergeben(
+                blob,
+                window.bildDateiname(d.person.anzeige, 'Spieler'),
+                d.person.anzeige + ' – Bestenliste');
+        } catch (e) {
+            console.error('Spielerkarte fehlgeschlagen', e);
+            alert('Das Bild konnte nicht erstellt werden.');
+        } finally {
+            if (knopf) knopf.disabled = false;
+        }
+    };
 
     window.teileSpieler = function () {
         const person = MODAL_SPIELER;
@@ -1380,6 +1729,12 @@
             && einzel.z.partien === staerkste.b.partien
             && einzel.z.punkte === staerkste.b.punkte);
 
+        /* Nennen beide Bestmarken dieselbe Saison, faellt die zweite Zeile weg
+           - sie wuerde nur wiederholen. Damit das Fehlen nicht als Luecke
+           gelesen wird, vermerkt es die erste Zeile. */
+        const zugleichStaerkste = !!(staerkste && ertragreichste
+            && staerkste.jahr === ertragreichste.jahr);
+
         const saisonText = x => saisonEtikett(x.jahr) + ' · ' + punkteText(x.b.punkte)
             + ' aus ' + x.b.partien + ' (' + x.b.quote.toFixed(0) + ' %)';
 
@@ -1390,10 +1745,28 @@
             return [...new Set(zs.map(wettbewerbEtikett))].join(' · ');
         };
 
-        const merkmale = [];
-        if ((p.elo || '').trim()) merkmale.push('ELO ' + entschaerfe(p.elo));
-        if ((p.dwz || '').trim()) merkmale.push('DWZ ' + entschaerfe(p.dwz));
-        if ((p.rolle || '').trim()) merkmale.push(entschaerfe(p.rolle));
+        /* Erst roh sammeln, dann entschaerfen: Die Spielerkarte zeichnet die
+           Merkmale auf eine Zeichenflaeche, und dort waere "&amp;" wirklich
+           "&amp;" - Zeichenflaechen kennen keine HTML-Entitaeten. */
+        const merkmaleRoh = [];
+        if ((p.elo || '').trim()) merkmaleRoh.push('ELO ' + p.elo);
+        if ((p.dwz || '').trim()) merkmaleRoh.push('DWZ ' + p.dwz);
+        if ((p.rolle || '').trim()) merkmaleRoh.push(p.rolle);
+        const merkmale = merkmaleRoh.map(entschaerfe);
+
+        /* Was die Spielerkarte braucht, wird hier abgelegt statt dort noch
+           einmal gerechnet. Zweimal dieselbe Rechnung hiesse: Bild und Fenster
+           koennen auseinanderlaufen, sobald eine von beiden angefasst wird. */
+        MODAL_DATEN = {
+            person: person, b: b, s: s, jahrBilanz: jahrBilanz,
+            merkmale: merkmaleRoh, teams: [...b.teams].sort(),
+            ertragreichste: ertragreichste, staerkste: staerkste,
+            zugleichStaerkste: zugleichStaerkste,
+            einzel: einzelLohnt ? einzel : null,
+            ausschnitt: eingeschraenkt
+                ? [modalFilter.liga, modalFilter.team].filter(x => x !== 'alle').join(' · ')
+                : ''
+        };
 
         const kennzahl = (wert, titel) =>
             '<div class="bl-kennzahl"><b>' + wert + '</b><span>' + titel + '</span></div>';
@@ -1456,9 +1829,17 @@
 
             + '<div class="bl-modal-fakten">'
             + '<span>🗓️ Aktiv ' + zeitraumText(b) + '</span>'
-            + (ertragreichste ? '<span title="Grösste Punktausbeute · ' + entschaerfe(wettbewerbeDesJahres(ertragreichste.jahr)) + '">'
+            /* Fallen beide Bestmarken auf dasselbe Jahr, stand die stärkste
+               Saison frueher einfach nicht da - und wer sie suchte, hielt die
+               Mindestpartienzahl fuer den Grund. Jetzt sagt die Sternzeile es
+               selbst: eine Aussage mehr, ohne dieselbe Saison zu verdoppeln. */
+            + (ertragreichste ? '<span title="Grösste Punktausbeute'
+                + (zugleichStaerkste ? ' – und zugleich die beste Quote' : '')
+                + ' · ' + entschaerfe(wettbewerbeDesJahres(ertragreichste.jahr)) + '">'
                 + '⭐ Ertragreichste Saison ' + saisonText(ertragreichste)
-                + '<small class="bl-chip-zusatz">' + entschaerfe(wettbewerbeDesJahres(ertragreichste.jahr)) + '</small></span>' : '')
+                + '<small class="bl-chip-zusatz">'
+                + (zugleichStaerkste ? 'zugleich die stärkste · ' : '')
+                + entschaerfe(wettbewerbeDesJahres(ertragreichste.jahr)) + '</small></span>' : '')
             + (staerkste && ertragreichste && staerkste.jahr !== ertragreichste.jahr
                 ? '<span title="Beste Quote eines Saisonjahres – alle Wettbewerbe zusammen, ab '
                   + SAISON_MINDESTPARTIEN + ' Partien · ' + entschaerfe(wettbewerbeDesJahres(staerkste.jahr)) + '">'

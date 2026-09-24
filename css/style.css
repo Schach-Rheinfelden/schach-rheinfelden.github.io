@@ -5063,6 +5063,25 @@ body.light-theme .youth-card:hover {
     padding-right: 2.5rem;
 }
 
+/* Der Textblock nimmt den freien Platz, damit der Teilen-Knopf an den
+   rechten Rand rueckt. min-width: 0 erlaubt langen Namen den Umbruch -
+   ohne das waechst ein Flex-Kind ueber den Container hinaus. */
+.bl-modal-kopf-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Gleiches Aussehen wie der Teilen-Knopf im News- und Terminfenster. */
+.bl-teilen {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
 .bl-modal-name {
     font-family: var(--font-heading);
     font-size: 1.9rem;
@@ -5397,6 +5416,8 @@ body.light-theme .bl-sparklinie {
 
     .bl-modal-kopf { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
     .bl-modal-name { font-size: 1.5rem; }
+    /* Untereinander soll der Knopf nicht ueber die ganze Breite laufen. */
+    .bl-teilen { align-self: flex-start; }
 
     .bl-knopfreihe .filter-btn { padding: 0.35rem 0.9rem; font-size: 0.82rem; }
 }

@@ -73,22 +73,67 @@
     /* Reihenfolge der Wettbewerbe innerhalb eines Jahres - so, wie sie im
        Statistikblatt nebeneinander stehen. */
     /**
-     * Reihenfolge der Wettbewerbe INNERHALB eines Saisonjahres.
+     * Reihenfolge der Wettbewerbe INNERHALB eines Saisonjahres - aus den Daten
+     * abgeleitet, nicht als Liste gepflegt.
      *
-     * Nicht alphabetisch und nicht nach Land, sondern nach dem Spielkalender:
+     * ══ DIE REGEL ══
+     * Traegt das Saisonetikett einen Schraegstrich ("25/26"), laeuft der
+     * Wettbewerb ueber den Jahreswechsel und endet im Fruehjahr. Steht dort nur
+     * ein Jahr ("26"), liegt er ganz darin und endet spaeter. Also kommen die
+     * mit Schraegstrich zuerst, die ohne danach; innerhalb der beiden Gruppen
+     * alphabetisch.
      *
-     *   SGM und BMM  laufen von Oktober bis Maerz
-     *   SMM          laeuft von Maerz bis September
+     * Fuer die heutigen Daten heisst das: BMM, NMM und SGM (alle Herbst bis
+     * Fruehjahr), dann SMM. Die SMM 26 steht damit ueber der SGM 25/26 - was
+     * sie soll, weil sie spaeter endet.
      *
-     * Die SMM eines Jahrgangs endet also ZULETZT und steht in der absteigenden
-     * Liste ganz oben. Die SMM 26 gehoert ueber die SGM 25/26 und die
-     * BMM 25/26 - auch wenn ihr Etikett nach weniger aussieht.
+     * ══ WARUM NICHT EINE LISTE ══
+     * Hier stand eine: { SGM: 0, BMM: 1, SMM: 2 }. Als die NMM dazukam, fiel
+     * sie auf den Rueckfallwert und sortierte sich ans Ende des Jahrgangs -
+     * obwohl sie im Herbst beginnt und vor der SMM endet. Niemand haette das
+     * bemerkt, ausser er haette genau hingesehen.
      *
-     * Zwischen SGM und BMM ist die Reihenfolge willkuerlich; sie laufen
-     * parallel. Unbekannte Wettbewerbe landen hinten (Rueckfallwert 9), bis
-     * sie hier eingeordnet werden.
+     * Die Regel ist eine Annahme, keine Gewissheit: Ein Wettbewerb, der von
+     * Januar bis Maerz laeuft, traegt auch nur ein Jahr im Etikett und wuerde
+     * hier zu spaet einsortiert. Fuer diesen Fall gibt es LIGA_ORDNUNG_FEST.
      */
-    const LIGA_ORDNUNG = { SGM: 0, BMM: 1, SMM: 2 };
+    const LIGA_ORDNUNG_FEST = {
+        // 'KLM': 0   // Beispiel: ein Wettbewerb, den die Regel falsch einordnet
+    };
+
+    let LIGA_ORDNUNG = {};
+
+    function ligaOrdnungBestimmen_(zeilen) {
+        const zaehler = new Map();
+        zeilen.forEach(z => {
+            const c = zaehler.get(z.liga) || { gespannt: 0, einjaehrig: 0 };
+            if (String(z.saison).indexOf('/') >= 0) c.gespannt++; else c.einjaehrig++;
+            zaehler.set(z.liga, c);
+        });
+
+        const gruppen = [[], []];
+        [...zaehler.keys()].sort((a, b) => a.localeCompare(b, 'de')).forEach(liga => {
+            const c = zaehler.get(liga);
+            gruppen[c.gespannt >= c.einjaehrig ? 0 : 1].push(liga);
+        });
+
+        const ordnung = {};
+        gruppen.forEach((liste, g) => {
+            liste.forEach((liga, i) => {
+                ordnung[liga] = LIGA_ORDNUNG_FEST[liga] !== undefined
+                    ? LIGA_ORDNUNG_FEST[liga]
+                    : g * 100 + i;
+            });
+        });
+        return ordnung;
+    }
+
+    /* Der Rueckfallwert liegt zwischen den beiden Gruppen und nicht am Ende:
+       Ein Wettbewerb ohne Daten kann nicht einsortiert werden, und ganz hinten
+       waere eine Behauptung wie jede andere. */
+    function ligaOrdnung_(liga) {
+        return LIGA_ORDNUNG[liga] === undefined ? 99 : LIGA_ORDNUNG[liga];
+    }
 
     /**
      * Ab wie vielen Partien eine Saison als "staerkste" in Frage kommt.
@@ -146,8 +191,8 @@
      * Reihenfolge die Zeilen in der CSV stehen.
      */
     function ligaToeneVergeben_(ligen) {
-        const ordnung = l => (LIGA_ORDNUNG[l] === undefined ? 9 : LIGA_ORDNUNG[l]);
-        const sortiert = ligen.slice().sort((a, b) => (ordnung(a) - ordnung(b)) || a.localeCompare(b, 'de'));
+        const sortiert = ligen.slice()
+            .sort((a, b) => (ligaOrdnung_(a) - ligaOrdnung_(b)) || a.localeCompare(b, 'de'));
 
         const belegt = new Map();   // Platz -> wie oft schon vergeben
         const karte = new Map();
@@ -265,7 +310,7 @@
             gesammelt.get(z.jahr).add(wettbewerbEtikett(z));
         });
 
-        const ordnung = l => (LIGA_ORDNUNG[l] !== undefined ? LIGA_ORDNUNG[l] : 9);
+        const ordnung = ligaOrdnung_;
         const fertig = new Map();
         gesammelt.forEach((menge, jahr) => {
             fertig.set(jahr, [...menge].sort((a, b) =>
@@ -378,6 +423,10 @@
             PROFILE.set(schluessel(n), p);
         });
 
+        /* Erst die Reihenfolge der Wettbewerbe bestimmen - jede Zeile bekommt
+           sie gleich als Sortierschluessel mit. */
+        LIGA_ORDNUNG = ligaOrdnungBestimmen_(bl.map(r => ({ liga: r.liga, saison: r.saison })));
+
         ZEILEN = bl.map(r => {
             const jahr = parseInt(r.jahr, 10) || 0;
             const info = SAISONINFO.get(r.team + '|' + r.liga + '|' + r.saison)
@@ -390,7 +439,8 @@
                 liga: r.liga,
                 saison: r.saison,
                 jahr: jahr,
-                ordnung: jahr * 10 + (LIGA_ORDNUNG[r.liga] !== undefined ? LIGA_ORDNUNG[r.liga] : 9),
+                // Faktor 1000, damit die Wettbewerbsordnung (bis 199) nie ins Jahr blutet.
+                ordnung: jahr * 1000 + ligaOrdnung_(r.liga),
                 punkte: zahl(r.punkte),
                 partien: parseInt(r.partien, 10) || 0,
                 siege: parseInt(r.siege, 10) || 0,
@@ -812,6 +862,33 @@
         return z.resultate.some((v, i) => v !== '' && imZeitraum(jahre[i] || z.jahr));
     }
 
+    /**
+     * Erklaert das Saisonjahr - mit den Wettbewerben, die es WIRKLICH gibt.
+     *
+     * Hier stand "SGM, BMM und die SMM desselben Jahrgangs stehen zusammen".
+     * Das war richtig und wurde es in dem Augenblick nicht mehr, in dem ein
+     * vierter Wettbewerb dazukam: Die Seite haette ihn ueberall gezeigt und
+     * hier behauptet, es gaebe ihn nicht.
+     *
+     * Ein Beispiel wird mitgeliefert, wenn eines da ist - "SGM 25/26, BMM 25/26
+     * und SMM 26" erklaert den Satz besser als der Satz selbst.
+     */
+    function saisonErklaerung_(ligen, jahre) {
+        const satz = 'Ein Saisonjahr endet im zweitgenannten Jahr; ';
+        if (!ligen.length) return satz + 'alle Wettbewerbe desselben Jahrgangs stehen zusammen.';
+
+        const wer = 'alle Wettbewerbe desselben Jahrgangs stehen zusammen';
+
+        // Ein Jahrgang, in dem moeglichst viele Wettbewerbe vorkommen.
+        let bestes = null, meiste = 0;
+        (jahre || []).forEach(j => {
+            const dabei = wettbewerbeJeJahr_(ZEILEN.filter(z => z.jahr === j)).get(j) || [];
+            if (dabei.length > meiste) { meiste = dabei.length; bestes = dabei; }
+        });
+
+        return satz + wer + (meiste > 1 ? ' – zum Beispiel ' + aufzaehlung_(bestes) + '.' : '.');
+    }
+
     function istZeitraumGesetzt() {
         return filter.jahrVon !== 'alle' || filter.jahrBis !== 'alle';
     }
@@ -819,7 +896,7 @@
     function zeichneSteuerung() {
         const teams = [...new Set(ZEILEN.map(z => z.team))].sort();
         const ligen = [...new Set(ZEILEN.map(z => z.liga))]
-            .sort((a, b) => (LIGA_ORDNUNG[a] || 9) - (LIGA_ORDNUNG[b] || 9));
+            .sort((a, b) => ligaOrdnung_(a) - ligaOrdnung_(b));
 
         /* Die Jahresliste richtet sich nach Mannschaft und Wettbewerb, aber
            NICHT nach dem Zeitraum selbst - sonst bliebe nach der ersten Wahl
@@ -904,7 +981,7 @@
             + '<span class="bl-feld-titel">Zeitraum</span>'
             + '<div class="bl-knopfreihe" role="group" aria-label="Zeitrechnung">'
             + '<button type="button" class="filter-btn bl-klein-knopf' + (kalender ? '' : ' active') + '"'
-            + ' data-zeit="saison" title="Ganze Saisons. SGM 25/26, BMM 25/26 und SMM 26 gehören zusammen.">Saison</button>'
+            + ' data-zeit="saison" title="' + entschaerfe(saisonErklaerung_(ligen, jahre)) + '">Saison</button>'
             + '<button type="button" class="filter-btn bl-klein-knopf' + (kalender ? ' active' : '') + '"'
             + ' data-zeit="kalender" title="Kalenderjahr der einzelnen Runde. Saisons werden dabei geteilt.">Kalenderjahr</button>'
             + '</div>'
@@ -934,7 +1011,7 @@
             + '<small class="bl-hinweis">'
             + (kalender
                 ? 'Gezählt wird, was in diesen Kalenderjahren gespielt wurde – eine Saison kann dabei geteilt werden.'
-                : 'Ein Saisonjahr endet im zweitgenannten Jahr; SGM, BMM und die SMM desselben Jahrgangs stehen zusammen.')
+                : saisonErklaerung_(ligen, jahre))
             + ' Beide Griffe aufeinander ergeben ein einzelnes Jahr.</small>'
             + '</div>'
 
@@ -1130,13 +1207,40 @@
     let MODAL_SPIELER = null;
     const modalFilter = { liga: 'alle', team: 'alle' };
 
-    window.openSpielerModal = function (sch) {
+    /* Woher das Fenster geoeffnet wurde. Beim Schliessen soll der Fokus genau
+       dorthin zurueck - wer sich mit der Tastatur durch die Liste arbeitet,
+       faengt sonst nach jedem Fenster wieder ganz oben an. */
+    let MODAL_HERKUNFT = null;
+
+    /**
+     * @param sch        Schluessel der Person.
+     * @param vorauswahl Optional { liga, team } - nur beim Oeffnen aus einem
+     *                   geteilten Verweis. Beide Werte werden gegen die
+     *                   Laufbahn geprueft: Ein alter Verweis auf eine
+     *                   Mannschaft, fuer die die Person nie gespielt hat,
+     *                   wuerde sonst eine leere Tabelle zeigen.
+     */
+    window.openSpielerModal = function (sch, vorauswahl) {
         const person = SPIELER.find(s => s.schluessel === sch);
         if (!person) return;
 
+        MODAL_HERKUNFT = document.activeElement;
         MODAL_SPIELER = person;
         modalFilter.liga = 'alle';
         modalFilter.team = 'alle';
+
+        if (vorauswahl) {
+            const passt = (feld, wert) => wert && person.zeilen.some(z => z[feld] === wert);
+            if (passt('liga', vorauswahl.liga)) modalFilter.liga = vorauswahl.liga;
+            if (passt('team', vorauswahl.team)) modalFilter.team = vorauswahl.team;
+            // Und nur zusammen, wenn es die Paarung wirklich gibt.
+            if (!person.zeilen.some(z => (modalFilter.liga === 'alle' || z.liga === modalFilter.liga)
+                && (modalFilter.team === 'alle' || z.team === modalFilter.team))) {
+                modalFilter.liga = 'alle';
+                modalFilter.team = 'alle';
+            }
+        }
+
         zeichneSpielerModal_();
 
         const fenster = document.getElementById('spieler-modal');
@@ -1144,6 +1248,50 @@
         document.body.style.overflow = 'hidden';
         const zu = fenster.querySelector('.close-btn');
         if (zu) zu.focus();
+        adresseSchreiben_();
+    };
+
+    /* ─── Teilen ──────────────────────────────────────────────────────
+       Aufbau und Aussehen wie im News- und Terminfenster, damit der Knopf
+       ueberall auf der Seite dasselbe bedeutet.
+
+       Ein Unterschied bleibt: News und Termine haengen eine Kennnummer an
+       (?newsId=12), die Bestenliste hat so eine Nummer nicht. Sie schreibt
+       ihren ganzen Zustand ohnehin laufend in die Adresszeile - Filter,
+       Sortierung, geoeffnete Person und deren Fensterfilter. Geteilt wird
+       deshalb schlicht die aktuelle Adresse: Der Empfaenger sieht genau
+       die Ansicht, die der Absender vor sich hatte.
+       ─────────────────────────────────────────────────────────────────── */
+
+    const TEILEN_SYMBOL =
+        '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"'
+        + ' viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round"'
+        + ' stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0'
+        + ' 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0'
+        + ' 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>';
+
+    function teilenKnopf_(person) {
+        // Kein Name im onclick: Der wird aus MODAL_SPIELER gelesen. Sonst
+        // muesste jeder Apostroph in "O'Neill" von Hand entschaerft werden.
+        return '<button type="button" class="btn btn-secondary bl-teilen"'
+            + ' onclick="window.teileSpieler()"'
+            + ' aria-label="Bilanz von ' + entschaerfe(person.anzeige) + ' teilen">'
+            + TEILEN_SYMBOL + '<span>Teilen</span></button>';
+    }
+
+    window.teileSpieler = function () {
+        const person = MODAL_SPIELER;
+        if (!person) return;
+
+        // Die Adresse wird gebuendelt geschrieben (150 ms). Wer sofort nach
+        // dem Oeffnen auf Teilen drueckt, wuerde sonst die Adresse von VORHER
+        // verschicken - ohne ?spieler=. Darum hier erst nachziehen.
+        adresseJetztSchreiben_();
+
+        window.shareContent(
+            person.anzeige + ' – Bestenliste',
+            'Sieh dir diese Bilanz in unserer Bestenliste an!',
+            location.href);
     };
 
     function zeichneSpielerModal_() {
@@ -1169,8 +1317,7 @@
            Jetzt steht die Reihe still; unmoegliche Kombinationen sind
            abgeblendet statt entfernt. */
         const ligen = [...new Set(ganzeLaufbahn.map(z => z.liga))]
-            .sort((a, b2) => (LIGA_ORDNUNG[a] === undefined ? 9 : LIGA_ORDNUNG[a])
-                           - (LIGA_ORDNUNG[b2] === undefined ? 9 : LIGA_ORDNUNG[b2]));
+            .sort((a, b2) => ligaOrdnung_(a) - ligaOrdnung_(b2));
         const teams = [...new Set(ganzeLaufbahn.map(z => z.team))].sort();
 
         /* Waehlbar ist, was zusammen mit der ANDEREN Auswahl noch Zeilen
@@ -1283,11 +1430,13 @@
         document.getElementById('spieler-modal-body').innerHTML =
             '<div class="bl-modal-kopf">'
             + avatarHTML(person, 96)
-            + '<div>'
-            + '<h2 class="bl-modal-name">' + entschaerfe(person.anzeige) + '</h2>'
+            + '<div class="bl-modal-kopf-text">'
+            + '<h2 class="bl-modal-name" id="spieler-modal-titel">' + entschaerfe(person.anzeige) + '</h2>'
             + (merkmale.length ? '<p class="bl-modal-merkmale">' + merkmale.join(' · ') + '</p>' : '')
             + '<p class="bl-modal-teams">' + teamBadges(b.teams) + '</p>'
-            + '</div></div>'
+            + '</div>'
+            + teilenKnopf_(person)
+            + '</div>'
 
             + modalFilterLeiste_(
                 { werte: ligen, aktiv: modalFilter.liga, moeglich: ligaMoeglich },
@@ -1397,6 +1546,21 @@
     window.closeSpielerModal = function () {
         document.getElementById('spieler-modal').classList.add('hidden');
         document.body.style.overflow = '';
+
+        /* Zurueck zur Herkunft. Die Liste wird zwischendurch neu aufgebaut -
+           dann ist das gemerkte Element nicht mehr im Dokument und die Zeile
+           muss ueber den Spielerschluessel wiedergefunden werden. */
+        let ziel = MODAL_HERKUNFT;
+        if ((!ziel || !ziel.isConnected) && MODAL_SPIELER) {
+            ziel = document.querySelector('.bl-zeile[data-spieler="'
+                + (window.CSS && CSS.escape ? CSS.escape(MODAL_SPIELER.schluessel) : MODAL_SPIELER.schluessel)
+                + '"]');
+        }
+        if (ziel && ziel.focus) ziel.focus();
+
+        MODAL_HERKUNFT = null;
+        MODAL_SPIELER = null;
+        adresseSchreiben_();
     };
 
     /* ─── Alles neu zeichnen ──────────────────────────────────────────── */
@@ -1411,6 +1575,7 @@
      * gemeint hat.
      */
     function zeichne() {
+        adresseSchreiben_();
         const volle = rangliste();
         const sichtbar = suchtreffer(volle);
         zeichneBilanz(volle);
@@ -1422,6 +1587,119 @@
     function zeichneAlles() {
         zeichneSteuerung();
         zeichne();
+    }
+
+    /* ─── Adresszeile ─────────────────────────────────────────────────── */
+
+    /**
+     * Die Ansicht steht in der Adresszeile - damit sie sich teilen laesst.
+     *
+     * Ohne das war jede Auswahl fluechtig: Wer seine Laufbahn jemandem zeigen
+     * wollte, konnte nur die Seite schicken und dazusagen, wonach man suchen
+     * muss. Und ein Neuladen warf jeden Filter weg.
+     *
+     * Geschrieben wird nur, was VOM STANDARD ABWEICHT. Die unveraenderte Seite
+     * hat damit eine saubere Adresse ohne Fragezeichen, und ein Verweis nennt
+     * genau das, was ihn ausmacht.
+     *
+     * replaceState und nicht pushState: Ein Filterklick ist kein Seitenwechsel.
+     * Wuerde jeder einen Eintrag im Verlauf anlegen, muesste man sich zwanzig
+     * Mal zurueckklicken, um die Seite zu verlassen.
+     */
+    let adresseWartet = null;
+
+    function adresseSchreiben_() {
+        // Gebuendelt: Beim Tippen im Suchfeld faellt sonst je Anschlag ein
+        // Schreibvorgang an, und manche Browser drosseln das.
+        if (adresseWartet) clearTimeout(adresseWartet);
+        adresseWartet = setTimeout(adresseJetztSchreiben_, 150);
+    }
+
+    function adresseJetztSchreiben_() {
+        adresseWartet = null;
+        if (!window.history || !history.replaceState) return;
+
+        const p = new URLSearchParams();
+        if (filter.team !== 'alle') p.set('team', filter.team);
+        if (filter.liga !== 'alle') p.set('wettbewerb', filter.liga);
+        if (filter.zeitModus === 'kalender') p.set('zeit', 'kalender');
+        if (filter.jahrVon !== 'alle') p.set('von', filter.jahrVon);
+        if (filter.jahrBis !== 'alle') p.set('bis', filter.jahrBis);
+        if (filter.minPartien) p.set('min', filter.minPartien);
+        if (filter.nurMitglieder) p.set('mitglieder', '1');
+        if (filter.suche.trim()) p.set('suche', filter.suche.trim());
+        if (sortSpalte !== 'punkte') p.set('sortieren', sortSpalte);
+
+        // Die Standardrichtung haengt von der Spalte ab: Zahlen absteigend,
+        // Namen aufsteigend. Nur die Abweichung gehoert in die Adresse.
+        if (sortAb !== (sortSpalte !== 'name')) p.set('richtung', sortAb ? 'ab' : 'auf');
+
+        /* Der Fensterfilter gehoert mit in die Adresse. Sonst zeigt ein
+           geteilter Verweis die ganze Laufbahn, obwohl der Absender gerade
+           nur die SGM-Jahre vor sich hatte. Eigene Namen (sp-...), weil es
+           ein anderer Filter ist als der der Seite. */
+        if (MODAL_SPIELER) {
+            p.set('spieler', MODAL_SPIELER.anzeige);
+            if (modalFilter.liga !== 'alle') p.set('sp-wettbewerb', modalFilter.liga);
+            if (modalFilter.team !== 'alle') p.set('sp-team', modalFilter.team);
+        }
+
+        const text = p.toString();
+        try {
+            history.replaceState(null, '', text ? '?' + text : location.pathname);
+        } catch (e) { /* Manche Browser sperren das in besonderen Lagen. */ }
+    }
+
+    /**
+     * Liest die Adresszeile - und prueft jeden Wert gegen die Daten.
+     *
+     * Ein Verweis kann alt sein: Die Mannschaft kann es nicht mehr geben, der
+     * Wettbewerb umbenannt sein, die Person ausgetreten. Ungueltiges wird
+     * STILL verworfen statt zu einer leeren Seite zu fuehren - der Besucher
+     * hat den Verweis ja nicht selbst gebaut und kann nichts dafuer.
+     */
+    function adresseLesen_() {
+        const p = new URLSearchParams(location.search);
+        if (![...p.keys()].length) return null;
+
+        const teams = new Set(ZEILEN.map(z => z.team));
+        const ligen = new Set(ZEILEN.map(z => z.liga));
+        const jahre = new Set(ZEILEN.map(z => z.jahr));
+
+        if (teams.has(p.get('team'))) filter.team = p.get('team');
+        if (ligen.has(p.get('wettbewerb'))) filter.liga = p.get('wettbewerb');
+        if (p.get('zeit') === 'kalender') filter.zeitModus = 'kalender';
+
+        const jahrAus = (name) => {
+            const j = parseInt(p.get(name), 10);
+            return jahre.has(j) ? j : 'alle';
+        };
+        filter.jahrVon = jahrAus('von');
+        filter.jahrBis = jahrAus('bis');
+
+        const min = parseInt(p.get('min'), 10);
+        if ([5, 10, 25, 50, 100].indexOf(min) >= 0) filter.minPartien = min;
+        if (p.get('mitglieder') === '1') filter.nurMitglieder = true;
+        if (p.get('suche')) filter.suche = p.get('suche');
+
+        if (SPALTEN.some(x => x.id === p.get('sortieren'))) sortSpalte = p.get('sortieren');
+        const richtung = p.get('richtung');
+        if (richtung === 'ab' || richtung === 'auf') sortAb = richtung === 'ab';
+        else sortAb = sortSpalte !== 'name';
+
+        // Der Name wird ueber dieselbe Vergleichsform gesucht wie die Profile:
+        // Gross-/Kleinschreibung, Akzente und Wortstellung sind damit egal.
+        const wer = p.get('spieler');
+        if (!wer) return null;
+        const gesucht = schluessel(wer);
+        const person = SPIELER.find(x => x.schluessel === gesucht);
+        if (!person) return null;
+
+        // openSpielerModal prueft die Vorauswahl selbst gegen die Laufbahn.
+        return {
+            schluessel: person.schluessel,
+            vorauswahl: { liga: p.get('sp-wettbewerb'), team: p.get('sp-team') }
+        };
     }
 
     /* ─── Bedienung ───────────────────────────────────────────────────── */
@@ -1536,6 +1814,7 @@
                 if (feld === 'weg') { modalFilter.liga = 'alle'; modalFilter.team = 'alle'; }
                 else modalFilter[feld] = modalKnopf.getAttribute('data-wert');
                 zeichneSpielerModal_();
+                adresseSchreiben_();
                 return;
             }
 
@@ -1600,9 +1879,32 @@
         });
 
         document.addEventListener('keydown', function (ev) {
-            if (ev.key !== 'Escape') return;
-            const f = document.getElementById('spieler-modal');
-            if (f && !f.classList.contains('hidden')) window.closeSpielerModal();
+            const fenster = document.getElementById('spieler-modal');
+            if (!fenster || fenster.classList.contains('hidden')) return;
+
+            if (ev.key === 'Escape') { window.closeSpielerModal(); return; }
+            if (ev.key !== 'Tab') return;
+
+            /* Fokus im Fenster halten.
+               Ein Dialog, der aria-modal sagt, muss es auch sein: Ohne das
+               wandert der Fokus mit Tab hinter das Fenster in die Liste, die
+               dort gar nicht sichtbar ist. Man tippt dann blind. */
+            const erreichbar = [...fenster.querySelectorAll(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )].filter(el => el.offsetParent !== null || el === document.activeElement);
+            if (!erreichbar.length) return;
+
+            const erstes = erreichbar[0];
+            const letztes = erreichbar[erreichbar.length - 1];
+            const jetzt = document.activeElement;
+
+            if (ev.shiftKey && (jetzt === erstes || !fenster.contains(jetzt))) {
+                ev.preventDefault();
+                letztes.focus();
+            } else if (!ev.shiftKey && (jetzt === letztes || !fenster.contains(jetzt))) {
+                ev.preventDefault();
+                erstes.focus();
+            }
         });
     }
 
@@ -1669,9 +1971,15 @@
             return;
         }
 
+        /* Erst den Zustand aus der Adresse holen, dann zeichnen - sonst baut
+           die Seite sich zweimal auf und blitzt kurz ungefiltert. */
+        const ausAdresse = adresseLesen_();
+
         zeichneAlles();
         hoereZu();
         zeichneUntertitel_();
+
+        if (ausAdresse) window.openSpielerModal(ausAdresse.schluessel, ausAdresse.vorauswahl);
 
         const g = bilanz(ZEILEN);
         document.getElementById('bl-quelle').textContent =

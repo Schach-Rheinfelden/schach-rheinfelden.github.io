@@ -5071,15 +5071,47 @@ body.light-theme .youth-card:hover {
     min-width: 0;
 }
 
+.bl-kopf-knoepfe {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* Gleiches Aussehen wie der Teilen-Knopf im News- und Terminfenster. */
 .bl-teilen {
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.4rem 0.8rem;
     border-color: var(--accent-color);
     color: var(--accent-color);
+}
+
+/* Der Bildknopf tritt zurueck: gedaempfter Rand, gedaempfte Farbe. Teilen ist
+   die haeufigere Handlung und soll den Blick zuerst bekommen; erst beim
+   Darueberfahren kommt der zweite Knopf auf dieselbe Stufe. */
+.bl-bild {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-color: var(--glass-border);
+    color: var(--text-secondary);
+}
+
+.bl-bild:hover:not(:disabled) {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+/* Waehrend die Karte entsteht - mit Avatar dauert das einen Moment. Ohne
+   sichtbare Rueckmeldung tippt man ein zweites Mal. */
+.bl-bild:disabled {
+    opacity: 0.5;
+    cursor: progress;
 }
 
 .bl-modal-name {
@@ -5416,8 +5448,8 @@ body.light-theme .bl-sparklinie {
 
     .bl-modal-kopf { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
     .bl-modal-name { font-size: 1.5rem; }
-    /* Untereinander soll der Knopf nicht ueber die ganze Breite laufen. */
-    .bl-teilen { align-self: flex-start; }
+    /* Untereinander sollen die Knoepfe nicht ueber die ganze Breite laufen. */
+    .bl-kopf-knoepfe { align-self: flex-start; }
 
     .bl-knopfreihe .filter-btn { padding: 0.35rem 0.9rem; font-size: 0.82rem; }
 }

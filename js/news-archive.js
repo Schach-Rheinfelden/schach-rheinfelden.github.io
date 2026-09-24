@@ -100,20 +100,8 @@
         'https://images.unsplash.com/photo-1586165368502-1bad197a6461?auto=format&fit=crop&w=600&q=80'
     ];
 
-    window.shareContent = function (title, text, customUrl) {
-        const url = customUrl || window.location.href;
-        if (navigator.share) {
-            navigator.share({ title: title, text: text, url: url }).catch(console.error);
-        } else {
-            navigator.clipboard.writeText(`${title}\n${url}`).then(() => alert('Link kopiert!'));
-        }
-    };
-
-    window.buildShareUrl = function (type, id) {
-        const url = new URL(window.location.href);
-        url.searchParams.set(type + 'Id', id);
-        return url.href;
-    };
+    /* window.shareContent und window.buildShareUrl stehen jetzt in
+       js/shared.js - einmal fuer alle Seiten. */
 
     document.addEventListener('DOMContentLoaded', async () => {
         // Theme initialisieren

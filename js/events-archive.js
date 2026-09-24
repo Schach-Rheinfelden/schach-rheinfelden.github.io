@@ -118,20 +118,8 @@ window.loadMorePastEvents = function() {
     renderEvents();
 };
 
-window.shareContent = function(title, text, customUrl) {
-    const url = customUrl || window.location.href;
-    if (navigator.share) {
-        navigator.share({ title: title, text: text, url: url }).catch(console.error);
-    } else {
-        navigator.clipboard.writeText(`${title}\n${url}`).then(() => alert('Link kopiert!'));
-    }
-};
-
-window.buildShareUrl = function(type, id) {
-    const url = new URL(window.location.href);
-    url.searchParams.set(type + 'Id', id);
-    return url.href;
-};
+/* window.shareContent und window.buildShareUrl stehen jetzt in js/shared.js -
+   einmal fuer alle Seiten. */
 
 // Global click listener to close timeline labels when clicking outside
 document.addEventListener('click', function(e) {

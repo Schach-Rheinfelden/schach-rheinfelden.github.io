@@ -631,6 +631,41 @@ Er nennt die Mannschaften, die **wirklich in den Daten stehen** – nicht eine f
 
 Die Angaben in `<title>`, `<meta name="description">` und den Open-Graph-Feldern von `bestenliste.html` sind dagegen **fest eingetragen** und nennen SMM, SGM und BMM. Das ist Text für Suchmaschinen und Link-Vorschauen; er veraltet nicht von selbst und will bei einem neuen Wettbewerb von Hand nachgezogen werden.
 
+### Ansichten verlinken
+
+**Jede Auswahl steht in der Adresszeile** und lässt sich damit verschicken oder als Lesezeichen behalten:
+
+```
+bestenliste.html?spieler=Tapio%20Hyötylä
+bestenliste.html?team=Rhy%201&wettbewerb=SGM&von=2020&bis=2026
+bestenliste.html?sortieren=quote&min=25
+```
+
+| Parameter | Bedeutung |
+| :--- | :--- |
+| `spieler` | öffnet das Fenster dieser Person. Schreibweise egal – Gross-/Kleinschreibung, Akzente und Wortstellung werden ignoriert |
+| `team`, `wettbewerb` | Mannschaft bzw. Wettbewerb |
+| `von`, `bis` | Zeitraum (Jahreszahlen) |
+| `zeit` | `kalender` für den Kalenderjahr-Modus |
+| `min` | Mindestzahl an Partien |
+| `mitglieder` | `1` für „nur heutige Mitglieder" |
+| `suche` | Suchbegriff |
+| `sortieren`, `richtung` | Sortierspalte und `auf` / `ab` |
+
+Geschrieben wird nur, was **vom Standard abweicht** – die unveränderte Seite hat eine saubere Adresse ohne Fragezeichen.
+
+**Alte Verweise brechen nicht.** Gibt es die Mannschaft nicht mehr oder ist die Person ausgetreten, wird der Wert still verworfen und die Seite zeigt die volle Liste. Wer den Link bekommen hat, kann nichts dafür.
+
+Die Adresse wird mit `replaceState` gesetzt, nicht mit `pushState`: Ein Filterklick ist kein Seitenwechsel. Würde jeder einen Eintrag im Verlauf anlegen, müsste man sich zwanzig Mal zurückklicken, um die Seite zu verlassen.
+
+### Tastatur und Vorlesen
+
+Das Spielerfenster ist ein richtiger Dialog: `role="dialog"`, `aria-modal`, und `aria-labelledby` zeigt auf den Namen – eine Sprachausgabe liest beim Öffnen also die Person vor, nicht „Dialog".
+
+* **Tab bleibt im Fenster.** Ohne das wandert der Fokus dahinter in die Liste, die gar nicht sichtbar ist; man tippt blind.
+* **Nach dem Schliessen** springt der Fokus zurück auf die Zeile, aus der das Fenster kam. Wurde die Liste zwischendurch neu aufgebaut, wird die Zeile über den Spielerschlüssel wiedergefunden.
+* **Escape** schliesst.
+
 ### Profilbilder
 
 Avatare, ELO, DWZ und Rolle holt die Seite aus `players.csv`. Zugeordnet wird über den Namen – unabhängig von Reihenfolge, Gross-/Kleinschreibung und Akzenten, sodass `Ödül, Ismail Irfan` und `Ismail Irfan Ödül` zusammenfinden.
@@ -711,7 +746,13 @@ Die Spalte `Jahr` ist das Jahr, in dem eine Saison **endet** – die letzte Zahl
 | Bezirksmannschaftsmeisterschaft | `BMM 25/26` | 2026 |
 | Schweizer Mannschaftsmeisterschaft | `SMM 26` | 2026 |
 
-Alle drei liegen damit im Saisonjahr **2025/26**. Innerhalb eines Jahrgangs zählt der Spielkalender, nicht das Etikett: SGM und BMM laufen Oktober–März, die SMM März–September. Die **SMM endet also zuletzt** und steht in absteigenden Listen ganz oben – auch wenn „SMM 26" nach weniger aussieht als „SGM 25/26". Das folgt dem Spielkalender: SGM und BMM beginnen im Herbst 2025 und enden im Frühjahr 2026, die SMM 26 wird im Lauf des Jahres 2026 gespielt – zusammen ein durchgehender Zeitraum von Herbst bis Herbst.
+Alle drei liegen damit im Saisonjahr **2025/26**.
+
+**Die Reihenfolge innerhalb eines Jahrgangs leitet die Seite aus den Daten ab**, sie steht nicht als Liste im Code: Trägt das Saisonetikett einen Schrägstrich (`25/26`), läuft der Wettbewerb über den Jahreswechsel und endet im Frühjahr. Steht dort nur ein Jahr (`26`), liegt er ganz darin und endet später. Erst die einen, dann die anderen, innerhalb der Gruppen alphabetisch.
+
+Die **SMM endet also zuletzt** und steht in absteigenden Listen ganz oben – auch wenn „SMM 26" nach weniger aussieht als „SGM 25/26". Ein neuer Wettbewerb ordnet sich von selbst richtig ein.
+
+> Die Regel ist eine Annahme, keine Gewissheit: Ein Wettbewerb, der nur von Januar bis März läuft, trägt ebenfalls ein einzelnes Jahr im Etikett und würde zu spät einsortiert. Für solche Fälle gibt es `LIGA_ORDNUNG_FEST` in `js/bestenliste.js` (und dieselbe Regel in `Bestenliste.gs`, damit CSV und Seite übereinstimmen). Das folgt dem Spielkalender: SGM und BMM beginnen im Herbst 2025 und enden im Frühjahr 2026, die SMM 26 wird im Lauf des Jahres 2026 gespielt – zusammen ein durchgehender Zeitraum von Herbst bis Herbst.
 
 Nach **Kalenderjahr** zu gruppieren wäre die naheliegende Alternative und die schlechtere: Sie würde SGM und BMM mitten in der Saison zerschneiden.
 

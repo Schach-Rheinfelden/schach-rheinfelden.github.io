@@ -668,11 +668,38 @@ Hat jemand in mehreren Wettbewerben oder für mehrere Mannschaften gespielt, ers
 
 Kombinationen, die es nicht gibt – etwa „SGM" und „Rhf 1", eine Mannschaft, die nie SGM gespielt hat – sind **abgeblendet statt entfernt**. Entfernte Knöpfe liessen die Leiste bei jedem Klick eine andere Länge haben, und man suchte Knöpfe, die eben noch da waren.
 
+**Die Filterleiste der Seite verhält sich genauso.** Wählst du Rhf 1, werden SGM und SMM abgeblendet; wählst du SGM, verschwinden die deutschen Mannschaften aus der Auswahl. Der Zeitraum zählt mit: Ist 2006–2010 eingestellt, ist BMM nicht wählbar, weil es die erst ab 2012 gibt.
+
 Eine Reihe mit nur einer Möglichkeit entfällt ganz: Wer nie für eine zweite Mannschaft gespielt hat, braucht keine Mannschaftswahl. Das ist eine Eigenschaft der Person und ändert sich beim Filtern nicht – die Leiste bleibt also trotzdem still.
 
 Aufgebaut ist sie als **eine Reihe je Filter**, Beschriftung links, Knöpfe rechts. Nebeneinander sähe es bei drei Wettbewerben aufgeräumt aus und zerfiele, sobald es mehr werden: Die zweite Beschriftung rutschte dann mitten in die Knöpfe der ersten. Geprüft ist das mit acht Mannschaften und fünf Wettbewerben.
 
-Die Tabelle **Alle Saisons** darunter führt Punkte und Partien in **zwei getrennten Spalten**. Kompakter wäre „3½ / 7" in einer Zelle gewesen – aber dann richtet sich jede Zeile für sich aus, und weil `3½` breiter ist als `1`, wandert der Schrägstrich. Zwei Spalten richtet die Tabelle selbst aus.
+In der Tabelle **Alle Saisons** hat jede Zeile einen **farbigen linken Rand** je Wettbewerb – dieselbe Sprache wie die Zeitleiste im Terminarchiv. In einer Laufbahn von zwanzig Jahren stehen dort vierzig Zeilen untereinander, die sich nur in drei Buchstaben unterscheiden; die Farbe macht daraus Blöcke, ohne dass die Zeile breiter wird.
+
+**Die Farben vergibt die Seite selbst.** Zwölf Plätze auf dem Farbkreis, möglichst weit auseinander; der Name des Wettbewerbs bestimmt über eine Prüfsumme seinen Wunschplatz, ist der besetzt, rückt er auf den nächsten freien. Das heisst:
+
+* **Ein neuer Wettbewerb bekommt von selbst eine Farbe** – niemand muss den Quelltext anfassen.
+* **Stabil:** `SGM` behält seinen Ton über die Jahre, unabhängig davon, in welcher Reihenfolge die Zeilen in der CSV stehen.
+* **Getrennt:** Zwei Wettbewerbe bekommen nie denselben Ton. Geprüft bis 20 Wettbewerbe – mehr als zwölf teilen sich einen Platz, werden dann aber um einige Grad verschoben.
+* **Kein Gold:** Die Töne zwischen 30 und 65 Grad bleiben frei. Dort liegt das Vereinsgold, das auf dieser Seite „Bestwert" und „ausgewählt" bedeutet.
+
+Sättigung und Helligkeit stehen im Stylesheet, nicht im Skript – nur so lässt sich derselbe Ton im hellen Theme dunkler ausgeben, damit er auf Weiss lesbar bleibt. Die Plätze stehen in `js/bestenliste.js` als `LIGA_TOENE`.
+
+### Ausgeschriebene Wettbewerbsnamen
+
+Beim Darüberfahren über eine Zeile erscheint der volle Name. Er steht in **`info.csv`**, nicht im Code:
+
+```csv
+liga.SGM;Schweizerische Gruppenmeisterschaft
+liga.SMM;Schweizerische Mannschaftsmeisterschaft
+liga.BMM;Badische Mannschaftsmeisterschaft
+```
+
+Fehlt der Eintrag, **erscheint kein Hinweis** – nur das Kürzel, das ohnehin in der Zeile steht. Das ist Absicht: Ein erfundener Langname sähe aus, als hätte ihn jemand nachgeschlagen.
+
+**Bei einem neuen Wettbewerb** bekommt die Seite Filterknopf, Farbe und Tabellenzeile von selbst. Den ausgeschriebenen Namen trägst du nach, sobald du magst – eine Zeile `liga.NMM;…` in `info.csv`, fertig. Gross- und Kleinschreibung spielt keine Rolle: `liga.nmm` findet auch den Wettbewerb `NMM`.
+
+Sie führt Punkte und Partien in **zwei getrennten Spalten**. Kompakter wäre „3½ / 7" in einer Zelle gewesen – aber dann richtet sich jede Zeile für sich aus, und weil `3½` breiter ist als `1`, wandert der Schrägstrich. Zwei Spalten richtet die Tabelle selbst aus.
 
 ### Was ein „Saisonjahr" ist
 

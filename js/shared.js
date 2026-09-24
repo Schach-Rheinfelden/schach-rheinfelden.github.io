@@ -3066,6 +3066,78 @@ function terminbildBlob_(canvas) {
     });
 }
 
+/**
+ * Ein fertiges Bild weitergeben: teilen, sonst herunterladen.
+ *
+ * ══ WARUM DER DOWNLOAD DER AUFFANGWEG IST ══
+ * navigator.share verlangt eine frische Nutzerhandlung. Zwischen dem Tippen
+ * und diesem Punkt liegen aber das Laden der Schriften und des Bildes - in
+ * Safari ist die Handlung dann bereits "verbraucht", und share lehnt mit
+ * NotAllowedError ab. Frueher endete das in einer Fehlermeldung, obwohl das
+ * Bild fertig vorlag. Abgebrochen wird deshalb nur, was der Nutzer selbst
+ * abgebrochen hat (AbortError).
+ *
+ * @param blob  Das Bild.
+ * @param name  Dateiname samt Endung.
+ * @param titel Ueberschrift fuer die Teilen-Auswahl.
+ */
+window.bildWeitergeben = async function (blob, name, titel) {
+    let datei = null;
+    try {
+        datei = new File([blob], name, { type: 'image/png' });
+    } catch (e) { /* File-Konstruktor fehlt in aelteren Browsern */ }
+
+    if (datei && navigator.canShare && navigator.canShare({ files: [datei] })) {
+        try {
+            await navigator.share({ files: [datei], title: titel });
+            return;
+        } catch (e) {
+            if (e && e.name === 'AbortError') return;
+            console.warn('Teilen nicht moeglich, lade herunter:', e);
+        }
+    }
+    terminbildHerunterladen_(blob, name);
+};
+
+/** Dateiname aus einem beliebigen Titel - ohne Zeichen, die Dateisysteme stoeren. */
+window.bildDateiname = function (titel, ersatz) {
+    return (String(titel || ersatz)
+        .replace(/[^\wäöüÄÖÜß\- ]+/g, '')
+        .trim()
+        .replace(/\s+/g, '_') || ersatz) + '.png';
+};
+
+/* Die Bausteine der Terminkarte stehen auch anderen Seiten offen - die
+   Bestenliste zeichnet damit ihre Spielerkarte. Sie hier zu oeffnen ist
+   billiger, als das Zeichenwerkzeug ein zweites Mal zu schreiben. */
+window.bildwerkzeug = {
+    farben: TERMINBILD,
+    rundeck: terminbildRundeck_,
+    farbe: terminbildFarbe_,
+    foto: terminbildFoto_,
+    zeilen: terminbildZeilen_,
+    blob: terminbildBlob_,
+
+    /** Auf die Schriften warten - mit Zeitgrenze, sonst haengt der Knopf. */
+    schriftenBereit: async function () {
+        if (!document.fonts || !document.fonts.ready) return;
+        try {
+            await Promise.race([
+                document.fonts.ready,
+                new Promise(f => setTimeout(f, 2500))
+            ]);
+        } catch (e) { /* dann eben in der Ersatzschrift */ }
+    },
+
+    /** Farbtafel fuer das gerade eingestellte Thema. */
+    tafel: function (hell) {
+        const h = hell !== undefined
+            ? hell
+            : !!(document.body && document.body.classList.contains('light-theme'));
+        return Object.assign({}, TERMINBILD, h ? TERMINBILD.hell : TERMINBILD.dunkel);
+    }
+};
+
 window.teileTerminAlsBild = async function (id) {
     // ══ WOHER DER TERMIN KOMMT ══
     // Massgeblich ist der Termin, den das Fenster gerade anzeigt - er wird
@@ -3107,35 +3179,8 @@ window.teileTerminAlsBild = async function (id) {
             blob = await terminbildBlob_(await window.zeichneTerminBild(event, { ohneFoto: true }));
         }
 
-        const name = (String(event.title || 'Termin')
-            .replace(/[^\wäöüÄÖÜß\- ]+/g, '')
-            .trim()
-            .replace(/\s+/g, '_') || 'Termin') + '.png';
-
-        // ── Teilen, sonst herunterladen ─────────────────────────────────────
-        // navigator.share verlangt eine frische Nutzerhandlung. Zwischen dem
-        // Tippen und diesem Punkt liegen aber das Laden der Schriften und des
-        // Fotos - in Safari ist die Handlung dann bereits "verbraucht", und
-        // share lehnt mit NotAllowedError ab. Frueher endete das in einer
-        // Fehlermeldung, obwohl das Bild fertig vorlag.
-        //
-        // Jetzt ist der Download der Auffangweg: Abgelehnt wird nur, was der
-        // Nutzer selbst abgebrochen hat (AbortError).
-        let datei = null;
-        try {
-            datei = new File([blob], name, { type: 'image/png' });
-        } catch (e) { /* File-Konstruktor fehlt in aelteren Browsern */ }
-
-        if (datei && navigator.canShare && navigator.canShare({ files: [datei] })) {
-            try {
-                await navigator.share({ files: [datei], title: event.title });
-                return;
-            } catch (e) {
-                if (e && e.name === 'AbortError') return;
-                console.warn('Teilen nicht moeglich, lade herunter:', e);
-            }
-        }
-        terminbildHerunterladen_(blob, name);
+        await window.bildWeitergeben(
+            blob, window.bildDateiname(event.title, 'Termin'), event.title);
     } catch (e) {
         console.error('Termin als Bild fehlgeschlagen', e);
         alert('Das Bild konnte nicht erstellt werden.');

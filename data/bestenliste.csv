@@ -1,5 +1,7 @@
 Name;Team;Liga;Saison;Jahr;Punkte;Partien;Siege;Remis;Niederlagen;Resultate
+Acton, Fynn Jona;Rhy 2;NMM;14/15;2015;0.5;1;0;1;0;,0.5
 Acton, Fynn Jona;Rhy 1;SMM;19;2019;0.5;1;0;1;0;,,,,,0.5
+Acton, Fynn Jona;Rhy 1;NMM;18/19;2019;1;1;1;0;0;,,,1
 Acton, Fynn Jona;Rhy 2;SGM;19/20;2020;0;4;0;0;4;0,0,0,0
 Acton, Fynn Jona;Rhf 1;BMM;19/20;2020;2.5;4;2;1;1;,1,1,,0,0.5
 Acton, Fynn Jona;Rhy 1;SMM;21;2021;1;2;1;0;1;,0,,,1
@@ -20,6 +22,7 @@ Adamek, Gerd-Dieter;Rhf 1;BMM;11/12;2012;3.5;5;2;3;0;1,,0.5,0.5,0.5,1
 Adamek, Gerd-Dieter;Rhf 1;BMM;12/13;2013;0.5;3;0;1;2;0,,,0,0.5
 Adamek, Gerd-Dieter;Rhf 1;BMM;13/14;2014;2;3;2;0;1;1,1,,0
 Adamek, Gerd-Dieter;Rhf 1;BMM;14/15;2015;0;1;0;0;1;,,,,0
+Adamek, Gerd-Dieter;Rhy 1;NMM;16/17;2017;0;1;0;0;1;0
 Adamek, Gerd-Dieter;Rhf 1;BMM;23/24;2024;0;2;0;0;2;,,,,,,,0,0
 Adamek, Gerd-Dieter;Rhf 2;BMM;23/24;2024;1;1;1;0;0;,,1
 Adamek, Gerd-Dieter;Rhf 1;BMM;24/25;2025;2.5;6;2;1;3;0,,0.5,1,0,1,0
@@ -53,11 +56,14 @@ Baumann, Hans-Ulrich;Rhy 1;SGM;13/14;2014;0.5;1;0;1;0;0.5
 Baur, Markus;Rhy 1;SGM;05/06;2006;2;7;0;4;3;0.5,0.5,0.5,0.5,0,0,0
 Bieri, Cédric;Rhy 1;SMM;18;2018;0;1;0;0;1;,,,0
 Bojczuk, Alexander;Rhf 1;BMM;13/14;2014;1.5;2;1;1;0;,1,0.5
+Bojczuk, Alexander;Rhy 2;NMM;13/14;2014;1;2;1;0;1;0,,,,1
 Bojczuk, Alexander;Rhy 2;SGM;14/15;2015;0.5;1;0;1;0;,,,,0.5
 Bojczuk, Alexander;Rhf 1;BMM;14/15;2015;1;3;0;2;1;,0.5,0.5,0
+Bolettieri, Sandro;Rhy 1;NMM;14/15;2015;1;5;1;0;4;0,1,0,0,0
 Bolettieri, Sandro;Rhy 1;SGM;15/16;2016;1;1;1;0;0;,,,,1
 Bolettieri, Sandro;Rhy 2;SGM;15/16;2016;2;3;2;0;1;,,1,1,,,0
 Bolettieri, Sandro;Rhf 1;BMM;15/16;2016;2;2;2;0;0;,,,,,,1,1
+Bolettieri, Sandro;Rhy 1;NMM;15/16;2016;1;4;1;0;3;1,0,0,0
 Bolettieri, Sandro;Rhy 1;SGM;16/17;2017;1;6;0;2;4;0,0,0,0,0.5,0.5
 Bolettieri, Sandro;Rhf 1;BMM;16/17;2017;2.5;5;2;1;2;0.5,0,1,0,1
 Bolettieri, Sandro;Rhy 1;SMM;17;2017;1.5;2;1;1;0;1,0.5
@@ -86,19 +92,26 @@ Bolettieri, Sandro;Rhf 1;BMM;25/26;2026;0;2;0;0;2;,,,,0,0
 Bonic, Adam;Rhf 1;BMM;11/12;2012;1.5;4;1;1;2;,0,,0,0.5,1
 Bonic, Adam;Rhf 1;BMM;12/13;2013;4;5;4;0;1;1,1,0,1,1
 Bonic, Adam;Rhf 1;BMM;13/14;2014;2;3;2;0;1;,1,,1,0
+Bonic, Adam;Rhy 1;NMM;13/14;2014;0;1;0;0;1;,,,,0
+Bonic, Adam;Rhy 2;NMM;13/14;2014;3;3;3;0;0;1,,1,1
 Bonic, Adam;Rhy 1;SGM;14/15;2015;0;1;0;0;1;0
 Bonic, Adam;Rhy 2;SGM;14/15;2015;1;4;1;0;3;,0,,0,,0,1
 Bonic, Adam;Rhf 1;BMM;14/15;2015;1.5;3;1;1;1;,0,1,,0.5
+Bonic, Adam;Rhy 1;NMM;14/15;2015;2.5;5;2;1;2;1,1,0.5,0,0
 Bonic, Adam;Rhy 1;SGM;15/16;2016;0.5;1;0;1;0;0.5
 Bonic, Adam;Rhy 2;SGM;15/16;2016;3.5;5;3;1;1;,1,0,0.5,1,,1
 Bonic, Adam;Rhf 1;BMM;15/16;2016;1.5;4;1;1;2;,0,,,0.5,,0,1
+Bonic, Adam;Rhy 1;NMM;15/16;2016;2;4;2;0;2;1,0,1,0
 Bonic, Adam;Rhy 1;SGM;16/17;2017;1.5;3;1;1;1;1,,0.5,,0
 Bonic, Adam;Rhf 1;BMM;16/17;2017;1;2;1;0;1;,0,1
 Bonic, Adam;Rhy 1;SMM;17;2017;2;3;2;0;1;0,,,,1,1
+Bonic, Adam;Rhy 1;NMM;16/17;2017;1.5;3;1;1;1;,1,0.5,0
 Bonic, Adam;Rhy 1;SGM;17/18;2018;4;5;3;2;0;,,1,0.5,0.5,1,1
 Bonic, Adam;Rhf 1;BMM;17/18;2018;2;3;2;0;1;1,,0,,,,,1
 Bonic, Adam;Rhy 1;SMM;18;2018;0.5;1;0;1;0;0.5
+Bonic, Adam;Rhy 1;NMM;17/18;2018;2;3;2;0;1;1,1,,0
 Bonic, Adam;Rhf 1;BMM;18/19;2019;1;3;1;0;2;,0,,0,,1
+Bonic, Adam;Rhy 1;NMM;18/19;2019;0;1;0;0;1;,,,,0
 Bonic, Adam;Rhy 1;SGM;19/20;2020;1;1;1;0;0;,,,,,1
 Bonic, Adam;Rhf 1;BMM;19/20;2020;0.5;2;0;1;1;,0.5,,,0
 Bonic, Adam;Rhy 1;SMM;21;2021;1;3;1;0;2;0,1,,0
@@ -114,6 +127,7 @@ Bonic, Adam;Rhy 2;SMM;25;2025;0;1;0;0;1;,,,,,,0
 Bonic, Adam;Rhy 1;SGM;25/26;2026;1;2;1;0;1;,,,,1,0
 Bonic, Adam;Rhf 1;BMM;25/26;2026;1;2;1;0;1;,0,,,,,1
 Bonic, Adam;Rhy 1;SMM;26;2026;0;1;0;0;1;,,,,,0
+Bonitz, Ronny;Rhy 1;NMM;14/15;2015;0.5;1;0;1;0;,,0.5
 Bratosin, Roberto;Rhy 1;SMM;25;2025;0;1;0;0;1;,,,,0
 Bratosin, Roberto;Rhy 2;SGM;25/26;2026;1;4;1;0;3;,,0,0,0,,1
 Bratosin, Vicentiu;Rhy 1;SMM;25;2025;0;1;0;0;1;,,,,0
@@ -165,8 +179,11 @@ Dillier, Valentin;Rhy 1;SMM;07;2007;0;1;0;0;1;,,0
 Dillier, Valentin;Rhy 2;SGM;07/08;2008;0.5;2;0;1;1;0,,,,0.5
 Dillier, Valentin;Rhy 1;SMM;08;2008;0;2;0;0;2;,,0,,,0
 Eliczi, Stephan;Rhf 1;BMM;13/14;2014;0;1;0;0;1;,,0
+Eliczi, Stephan;Rhy 2;NMM;13/14;2014;1;4;1;0;3;0,1,,0,0
 Eliczi, Stephan;Rhy 2;SGM;14/15;2015;0;4;0;0;4;0,0,,0,,,0
 Eliczi, Stephan;Rhf 1;BMM;14/15;2015;1;2;1;0;1;0,,,1
+Eliczi, Stephan;Rhy 1;NMM;14/15;2015;0;1;0;0;1;,,0
+Eliczi, Stephan;Rhy 2;NMM;14/15;2015;0;1;0;0;1;,,,0
 Eliczi, Stephan;Rhy 2;SGM;15/16;2016;1;4;1;0;3;0,,1,0,0
 Eliczi, Stephan;Rhf 2;BMM;15/16;2016;2;2;2;0;0;,,,,,,,,1,1
 Eliczi, Stephan;Rhy 1;SMM;17;2017;1.5;5;1;1;3;0,0,,1,0.5,0
@@ -174,6 +191,7 @@ Eliczi, Stephan;Rhf 1;BMM;17/18;2018;1;2;1;0;1;,,,0,,1
 Eliczi, Stephan;Rhy 1;SMM;18;2018;2;5;2;0;3;1,0,0,0,1
 Eliczi, Stephan;Rhy 2;SGM;18/19;2019;1.5;4;1;1;2;,0,0.5,0,,1
 Eliczi, Stephan;Rhy 1;SMM;19;2019;3;5;3;0;2;0,,1,1,0,1
+Eliczi, Stephan;Rhy 1;NMM;18/19;2019;0;1;0;0;1;,,0
 Eliczi, Stephan;Rhy 2;SGM;19/20;2020;0;4;0;0;4;0,0,,,0,0
 Eliczi, Stephan;Rhy 2;SMM;21;2021;2;6;2;0;4;1,0,1,0,0,0
 Eliczi, Stephan;Rhy 2;SGM;21/22;2022;0;3;0;0;3;,0,,,0,0
@@ -226,6 +244,7 @@ Fuchs, Roland;Rhy 1;SGM;10/11;2011;2.5;3;2;1;0;0.5,1,1
 Fuchs, Roland;Rhy 1;SMM;11;2011;0.5;2;0;1;1;,0.5,,,,,0
 Fuchs, Roland;Rhy 2;SGM;11/12;2012;3;7;3;0;4;0,0,1,1,1,0,0
 Fuchs, Roland;Rhy 1;SMM;12;2012;0;1;0;0;1;,,,,,0
+Fuchs, Roland;Rhy 1;NMM;16/17;2017;0;1;0;0;1;,0
 Fuchs, Roland;Rhy 1;SGM;21/22;2022;0;1;0;0;1;,,,,0
 Fuchs, Roland;Rhy 2;SMM;22;2022;2;6;2;0;4;0,1,0,0,1,0
 Fuchs, Roland;Rhy 2;SGM;22/23;2023;0.5;5;0;1;4;,0,0,0.5,,0,0
@@ -237,6 +256,7 @@ Fuchs, Roland;Rhy 2;SGM;24/25;2025;0;2;0;0;2;0,0
 Fuchs, Roland;Rhy 2;SMM;25;2025;0;2;0;0;2;0,,,,,,0
 Fuchs, Roland;Rhy 2;SGM;25/26;2026;0;2;0;0;2;,,,,0,,0
 Fuchs, Roland;Rhy 2;SMM;26;2026;1;4;1;0;3;,0,1,0,,0
+Gashi, Arsim;Rhy 1;NMM;18/19;2019;0;1;0;0;1;,,0
 Gashi, Arsim;Rhf 1;BMM;19/20;2020;1;2;1;0;1;1,,,,,0
 Gashi, Arsim;Rhf 1;BMM;21/22;2022;0.5;1;0;1;0;,0.5
 Gashi, Arsim;Rhy 1;SGM;22/23;2023;1;1;1;0;0;1
@@ -259,7 +279,10 @@ Gjergjaj, Dede;Rhy 1;SMM;11;2011;0.5;2;0;1;1;0.5,,,,,,0
 Gjergjaj, Dede;Rhy 2;SGM;11/12;2012;3;5;3;0;2;0,1,1,,,1,0
 Gjergjaj, Dede;Rhy 1;SMM;12;2012;4;5;3;2;0;1,0.5,0.5,,1,1
 Gjergjaj, Dede;Rhy 1;SGM;12/13;2013;1;3;1;0;2;1,0,0
+Gjergjaj, Dede;Rhy 1;NMM;13/14;2014;1;2;1;0;1;,,,1,0
+Gjergjaj, Dede;Rhy 2;NMM;13/14;2014;0.5;1;0;1;0;,0.5
 Gjergjaj, Dede;Rhy 2;SGM;14/15;2015;0.5;1;0;1;0;,,0.5
+Gjergjaj, Dede;Rhy 1;NMM;14/15;2015;0;1;0;0;1;,,,,0
 Grob, Hans;Rhy 1;SGM;15/16;2016;0;1;0;0;1;,,,,,0
 Haag, Rolf;Rhy 1;SGM;23/24;2024;3.5;7;3;1;3;0.5,0,1,0,0,1,1
 Haag, Rolf;Rhf 1;BMM;23/24;2024;3;8;2;2;4;0.5,0,0,1,1,0,0.5,0
@@ -271,25 +294,31 @@ Haag, Rolf;Rhy 1;SMM;25;2025;2.5;7;1;3;3;1,0,0,0.5,0,0.5,0.5
 Haag, Rolf;Rhy 1;SGM;25/26;2026;1.5;6;1;1;4;0,0,1,0,0.5,0
 Haag, Rolf;Rhf 1;BMM;25/26;2026;3;7;1;4;2;0.5,0.5,,0.5,1,,0.5,0,0
 Haag, Rolf;Rhy 1;SMM;26;2026;2.5;4;2;1;1;1,,0,0.5,1
+Habibi, Ali;Rhy 1;NMM;13/14;2014;1;1;1;0;0;,1
 Harsch, Martin;Rhy 1;SGM;11/12;2012;1;2;0;2;0;0.5,0.5
 Harsch, Martin;Rhy 1;SGM;19/20;2020;4;5;3;2;0;1,1,1,0.5,0.5
 Harsch, Martin;Rhy 1;SGM;21/22;2022;0.5;2;0;1;1;0.5,0
 Hartmann, Beat;Rhf 1;BMM;11/12;2012;3.5;6;3;1;2;1,0,1,0,0.5,1
 Hartmann, Beat;Rhf 1;BMM;12/13;2013;0;5;0;0;5;0,0,0,0,0
 Hartmann, Beat;Rhf 1;BMM;13/14;2014;1;1;1;0;0;,,,,1
+Hartmann, Beat;Rhy 2;NMM;13/14;2014;2;5;2;0;3;1,1,0,0,0
 Hartmann, Beat;Rhy 2;SGM;14/15;2015;2.5;7;2;1;4;1,0,0.5,0,0,1,0
 Hartmann, Beat;Rhf 1;BMM;14/15;2015;0.5;3;0;1;2;,0.5,0,0
+Hartmann, Beat;Rhy 2;NMM;14/15;2015;2;2;2;0;0;1,1
 Hartmann, Beat;Rhy 2;SGM;15/16;2016;3.5;6;3;1;2;,1,1,0.5,0,0,1
 Hartmann, Beat;Rhf 1;BMM;15/16;2016;1;3;1;0;2;1,0,,0
 Hartmann, Beat;Rhf 1;BMM;16/17;2017;1;2;1;0;1;0,,,1
 Hartmann, Beat;Rhy 1;SMM;17;2017;0;6;0;0;6;0,0,0,0,0,0
+Hartmann, Beat;Rhy 1;NMM;16/17;2017;2;2;2;0;0;,1,1
 Hartmann, Beat;Rhf 1;BMM;17/18;2018;1;6;1;0;5;0,1,,0,0,0,0
 Hartmann, Beat;Rhy 1;SMM;18;2018;3.5;5;3;1;1;1,1,0,0.5,1
+Hartmann, Beat;Rhy 1;NMM;17/18;2018;3;3;3;0;0;1,1,1
 Hartmann, Beat;Rhy 1;SGM;18/19;2019;1;1;1;0;0;,,,,,,1
 Hartmann, Beat;Rhy 2;SGM;18/19;2019;2;4;2;0;2;0,,,0,1,1
 Hartmann, Beat;Rhf 1;BMM;18/19;2019;1;4;1;0;3;0,0,1,,,,,0
 Hartmann, Beat;Rhf 2;BMM;18/19;2019;2;2;2;0;0;1,1
 Hartmann, Beat;Rhy 1;SMM;19;2019;5;6;5;0;1;1,1,1,0,1,1
+Hartmann, Beat;Rhy 1;NMM;18/19;2019;1;4;1;0;3;1,0,0,,0
 Hartmann, Beat;Rhy 2;SGM;19/20;2020;0.5;5;0;1;4;,0.5,0,0,0,0
 Hartmann, Beat;Rhf 1;BMM;19/20;2020;0;2;0;0;2;0,,,0
 Hartmann, Beat;Rhy 1;SMM;21;2021;0;1;0;0;1;,,,,0
@@ -315,6 +344,7 @@ Hartmann, Beat;Rhf 1;BMM;25/26;2026;1;1;1;0;0;,,,,,1
 Hartmann, Beat;Rhy 2;SMM;26;2026;1;1;1;0;0;,,,,,,1
 Hasler, Cedric;Rhf 2;BMM;23/24;2024;2;3;2;0;1;,,,,,0,1,1
 Hasler, Cedric;Rhf 1;BMM;24/25;2025;0;1;0;0;1;,0
+Hertle, Philipp;Rhy 2;NMM;14/15;2015;1;1;1;0;0;,,,1
 Herzog, Andrea;Rhf 1;BMM;16/17;2017;0;1;0;0;1;0
 Hyötylä, Tapio;Rhy 1;SGM;05/06;2006;3.5;6;3;1;2;1,1,0,0.5,,1,0
 Hyötylä, Tapio;Rhy 1;SMM;06;2006;2.5;3;2;1;0;,1,1,0.5
@@ -334,15 +364,19 @@ Hyötylä, Tapio;Rhy 1;SGM;12/13;2013;3.5;6;3;1;2;0,0.5,1,0,1,1
 Hyötylä, Tapio;Rhf 1;BMM;12/13;2013;3;4;2;2;0;,0.5,0.5,1,1
 Hyötylä, Tapio;Rhy 1;SGM;13/14;2014;2;6;1;2;3;0,0,0.5,,1,0,0.5
 Hyötylä, Tapio;Rhf 1;BMM;13/14;2014;2;3;2;0;1;1,,1,0
+Hyötylä, Tapio;Rhy 1;NMM;13/14;2014;2;2;2;0;0;,1,1
 Hyötylä, Tapio;Rhy 1;SGM;14/15;2015;2;7;0;4;3;0.5,0,0.5,0,0.5,0,0.5
 Hyötylä, Tapio;Rhf 1;BMM;14/15;2015;1.5;3;1;1;1;,0,,1,0.5
+Hyötylä, Tapio;Rhy 1;NMM;14/15;2015;2;2;2;0;0;,1,,1
 Hyötylä, Tapio;Rhy 1;SGM;15/16;2016;3.5;6;2;3;1;0.5,0.5,0.5,1,1,0
 Hyötylä, Tapio;Rhf 1;BMM;15/16;2016;3;3;3;0;0;,,,,1,1,1
+Hyötylä, Tapio;Rhy 1;NMM;15/16;2016;1;2;1;0;1;1,,,0
 Hyötylä, Tapio;Rhy 1;SGM;16/17;2017;2;2;2;0;0;1,,,,,1
 Hyötylä, Tapio;Rhf 1;BMM;16/17;2017;1.5;3;1;1;1;,1,0,0.5
 Hyötylä, Tapio;Rhy 1;SMM;17;2017;1;1;1;0;0;,,1
 Hyötylä, Tapio;Rhy 1;SGM;17/18;2018;1;1;1;0;0;,1
 Hyötylä, Tapio;Rhf 1;BMM;17/18;2018;0.5;2;0;1;1;0,,,,0.5
+Hyötylä, Tapio;Rhy 1;NMM;17/18;2018;0;1;0;0;1;,,,0
 Jäger, Justin;Rhy 1;SMM;26;2026;0;1;0;0;1;,0
 Jäggi, Felix;Rhy 1;SMM;11;2011;3;4;3;0;1;0,,,1,1,1
 Jäggi, Felix;Rhy 1;SGM;11/12;2012;0.5;2;0;1;1;0.5,0
@@ -352,6 +386,7 @@ Jäggi, Felix;Rhy 1;SGM;13/14;2014;2;5;1;2;2;0,0.5,0.5,1,0
 Jäggi, Felix;Rhy 1;SGM;14/15;2015;3;6;2;2;2;0,1,0,0.5,0.5,1
 Jäggi, Felix;Rhy 1;SGM;15/16;2016;0;2;0;0;2;,0,0
 Jakob, Roman;Rhf 1;BMM;18/19;2019;4;6;3;2;1;0,,1,0.5,1,,0.5,1
+Jakob, Roman;Rhy 1;NMM;18/19;2019;1;3;0;2;1;0.5,,,0.5,0
 Jakob, Roman;Rhf 1;BMM;19/20;2020;2.5;4;2;1;1;,1,0,,0.5,1
 Jost, Hansruedi;Rhy 2;SGM;22/23;2023;0;5;0;0;5;0,0,0,0,,,0
 Jost, Hansruedi;Rhy 1;SMM;23;2023;0;1;0;0;1;,,,0
@@ -370,7 +405,9 @@ Jost, Hansruedi;Rhf 2;BMM;25/26;2026;2.5;7;2;1;4;0,,1,0,,0,1,0.5,0
 Jost, Hansruedi;Rhy 1;SMM;26;2026;0;2;0;0;2;,0,,0
 Jost, Hansruedi;Rhy 2;SMM;26;2026;1;3;1;0;2;,0,,1,,0
 Kaiser, Robert;Rhf 1;BMM;17/18;2018;3;4;3;0;1;,,,,1,1,0,1
+Kaiser, Robert;Rhy 1;NMM;17/18;2018;2;3;2;0;1;,1,1,0
 Kaiser, Robert;Rhf 1;BMM;18/19;2019;4;8;2;4;2;0,0.5,0.5,1,1,0.5,0,0.5
+Kaiser, Robert;Rhy 1;NMM;18/19;2019;0.5;1;0;1;0;,0.5
 Kaiser, Robert;Rhf 1;BMM;21/22;2022;1;2;1;0;1;0,1
 Kaiser, Robert;Rhf 1;BMM;22/23;2023;2;7;0;4;3;0.5,0,0.5,0,0.5,,0.5,0
 Kaiser, Robert;Rhf 1;BMM;23/24;2024;3;5;2;2;1;,0.5,,,1,0,,1,0.5
@@ -384,7 +421,9 @@ Kaiser, Robert;Rhy 1;SGM;25/26;2026;0;1;0;0;1;,,,0
 Kaiser, Robert;Rhf 1;BMM;25/26;2026;3;6;2;2;2;1,,,0,0.5,0,,0.5,1
 Kaiser, Robert;Rhf 2;BMM;25/26;2026;1;1;1;0;0;,,1
 Kaiser, Robert;Rhy 1;SMM;26;2026;1.5;5;1;1;3;0,0,0.5,0,1
+Kämpfe, Werner;Rhy 2;NMM;14/15;2015;0;1;0;0;1;,,,0
 Kämpfe, Werner;Rhf 1;BMM;15/16;2016;4;4;4;0;0;,,,,1,1,1,1
+Kämpfe, Werner;Rhy 1;NMM;16/17;2017;0;1;0;0;1;,,,0
 Kämpfe, Werner;Rhy 1;SGM;25/26;2026;0;2;0;0;2;,0,,,0
 Kämpfe, Werner;Rhf 1;BMM;25/26;2026;0.5;3;0;1;2;,0.5,0,0
 Karl, Hans;Rhy 1;SGM;18/19;2019;2.5;4;1;3;0;,,,0.5,0.5,1,0.5
@@ -449,8 +488,10 @@ Krüttli, Markus;Rhy 1;SGM;11/12;2012;4.5;6;4;1;1;1,1,0.5,1,0,1
 Krüttli, Markus;Rhy 1;SMM;12;2012;1.5;3;1;1;1;,0.5,,1,0
 Krüttli, Markus;Rhy 1;SGM;12/13;2013;0.5;1;0;1;0;,,,,,0.5
 Krüttli, Markus;Rhy 1;SGM;13/14;2014;4.5;7;4;1;2;0,1,1,1,0.5,0,1
+Krüttli, Markus;Rhy 1;NMM;13/14;2014;3.5;4;3;1;0;1,1,0.5,,1
 Krüttli, Markus;Rhy 1;SGM;14/15;2015;2;6;0;4;2;,0.5,0.5,0,0.5,0,0.5
 Krüttli, Markus;Rhy 1;SGM;16/17;2017;2;5;0;4;1;,0.5,0.5,0.5,0,0.5
+Krüttli, Markus;Rhy 1;NMM;16/17;2017;1.5;2;1;1;0;1,,0.5
 Krüttli, Markus;Rhy 1;SGM;17/18;2018;2;5;2;0;3;0,,1,0,0,,1
 Krüttli, Markus;Rhy 1;SMM;18;2018;1;1;1;0;0;,1
 Krüttli, Markus;Rhy 1;SGM;18/19;2019;1;3;0;2;1;,,0.5,,,0,0.5
@@ -463,8 +504,10 @@ Lücke, Liam;Rhf 1;BMM;24/25;2025;0;1;0;0;1;,,,,,,,0
 Lücke, Liam;Rhf 2;BMM;24/25;2025;2;6;2;0;4;0,1,,0,0,0,1
 Lücke, Liam;Rhf 1;BMM;25/26;2026;0.5;2;0;1;1;,0,,,,,,0.5
 Lücke, Liam;Rhf 2;BMM;25/26;2026;1.5;4;1;1;2;0,,,0.5,,0,1
+Lutz, Hans;Rhy 1;NMM;16/17;2017;1;1;1;0;0;,,,1
 Manis, Özgür;Rhf 1;BMM;16/17;2017;1;3;1;0;2;,0,,0,1
 Manis, Özgür;Rhy 1;SMM;17;2017;3;6;3;0;3;0,1,0,1,0,1
+Manis, Özgür;Rhy 1;NMM;16/17;2017;0;1;0;0;1;0
 Manis, Özgür;Rhf 1;BMM;17/18;2018;2;3;2;0;1;,,0,,,1,,1
 Manis, Özgür;Rhy 1;SMM;18;2018;1;2;1;0;1;,0,,,1
 Manis, Özgür;Rhf 1;BMM;18/19;2019;1;1;1;0;0;,,,,,1
@@ -477,8 +520,11 @@ Manke, Hansjürgen;Rhy 1;SMM;09;2009;0.5;1;0;1;0;,,0.5
 Manke, Hansjürgen;Rhy 2;SGM;11/12;2012;0.5;1;0;1;0;,0.5
 Manke, Hansjürgen;Rhy 2;SGM;14/15;2015;0.5;3;0;1;2;0,,0,,,,0.5
 Manke, Hansjürgen;Rhf 1;BMM;14/15;2015;0.5;1;0;1;0;,,0.5
+Manke, Hansjürgen;Rhy 1;NMM;14/15;2015;0;1;0;0;1;0
+Manke, Hansjürgen;Rhy 2;NMM;14/15;2015;1;1;1;0;0;,1
 Manke, Hansjürgen;Rhf 1;BMM;15/16;2016;0;1;0;0;1;,,,,,,,0
 Manke, Hansjürgen;Rhf 1;BMM;17/18;2018;0.5;3;0;1;2;,0.5,0,,,,0
+Manke, Hansjürgen;Rhy 1;NMM;18/19;2019;0.5;1;0;1;0;0.5
 Markaj, Kole;Rhy 1;SGM;05/06;2006;0;1;0;0;1;,,0
 Markaj, Kole;Rhy 2;SGM;05/06;2006;3;5;2;2;1;1,0,,0.5,0.5,,1
 Markaj, Kole;Rhy 1;SGM;06/07;2007;0;2;0;0;2;,,,,0,0
@@ -493,12 +539,17 @@ Markaj, Kole;Rhy 1;SMM;11;2011;3.5;4;3;1;0;1,,0.5,,1,1
 Markaj, Kole;Rhy 2;SGM;11/12;2012;2;2;2;0;0;,,,1,,1
 Markaj, Kole;Rhy 1;SMM;12;2012;3.5;5;3;1;1;0,1,1,0.5,1
 Markaj, Kole;Rhy 1;SGM;13/14;2014;1;1;1;0;0;,,,,,,1
+Markaj, Kole;Rhy 1;NMM;13/14;2014;3;3;3;0;0;1,,1,1
 Markaj, Kole;Rhy 1;SGM;14/15;2015;0;1;0;0;1;,,,,0
 Massen, Ulrich;Rhf 1;BMM;14/15;2015;1;2;1;0;1;0,,,,1
+Massen, Ulrich;Rhy 1;NMM;14/15;2015;0.5;1;0;1;0;,,,,0.5
 Massen, Ulrich;Rhf 1;BMM;15/16;2016;1;3;1;0;2;1,,0,,,,,0
+Massen, Ulrich;Rhy 1;NMM;15/16;2016;0;1;0;0;1;,0
 Massen, Ulrich;Rhf 1;BMM;16/17;2017;2;5;1;2;2;0,0.5,1,0.5,0
+Massen, Ulrich;Rhy 1;NMM;16/17;2017;0;2;0;0;2;0,,0
 Massen, Ulrich;Rhf 1;BMM;17/18;2018;2;5;2;0;3;,1,0,0,,1,0
 Massen, Ulrich;Rhf 1;BMM;18/19;2019;2.5;6;2;1;3;0,,0.5,,1,0,1,0
+Massen, Ulrich;Rhy 1;NMM;18/19;2019;1.5;2;1;1;0;,,0.5,1
 Massen, Ulrich;Rhf 1;BMM;19/20;2020;2;4;2;0;2;,1,0,0,,1
 Massen, Ulrich;Rhy 1;SMM;21;2021;1.5;2;1;1;0;,1,0.5
 Massen, Ulrich;Rhy 1;SGM;21/22;2022;0.5;1;0;1;0;,,,,0.5
@@ -566,16 +617,22 @@ Neis, Michael;Rhy 1;SGM;12/13;2013;4;5;3;2;0;0.5,1,,0.5,1,1
 Neis, Michael;Rhf 1;BMM;12/13;2013;2.5;3;2;1;0;1,0.5,,,1
 Neis, Michael;Rhy 1;SGM;13/14;2014;2.5;4;2;1;1;,1,0.5,0,1
 Neis, Michael;Rhf 1;BMM;13/14;2014;2;3;2;0;1;1,,0,,1
+Neis, Michael;Rhy 1;NMM;13/14;2014;3.5;5;3;1;1;1,1,1,0.5,0
 Neis, Michael;Rhy 1;SGM;14/15;2015;1;6;1;0;5;0,,0,0,1,0,0
 Neis, Michael;Rhf 1;BMM;14/15;2015;2.5;5;2;1;2;1,0.5,0,1,0
+Neis, Michael;Rhy 1;NMM;14/15;2015;2.5;5;2;1;2;0,1,0,0.5,1
 Neis, Michael;Rhy 1;SGM;15/16;2016;3.5;7;2;3;2;0.5,1,0.5,0.5,0,0,1
 Neis, Michael;Rhf 1;BMM;15/16;2016;5.5;6;5;1;0;0.5,1,,1,1,,1,1
+Neis, Michael;Rhy 1;NMM;15/16;2016;3;4;2;2;0;1,1,0.5,0.5
 Neis, Michael;Rhy 1;SGM;16/17;2017;0.5;5;0;1;4;0.5,0,0,0,,0
 Neis, Michael;Rhf 1;BMM;16/17;2017;1.5;2;1;1;0;,0.5,,,1
+Neis, Michael;Rhy 1;NMM;16/17;2017;1;3;0;2;1;0,0.5,,0.5
 Neis, Michael;Rhy 1;SGM;17/18;2018;1.5;5;1;1;3;0,0,0,1,,0.5
 Neis, Michael;Rhf 1;BMM;17/18;2018;2;2;2;0;0;,1,,,1
+Neis, Michael;Rhy 1;NMM;17/18;2018;0.5;4;0;1;3;0,0,0,0.5
 Neis, Michael;Rhy 1;SGM;18/19;2019;2.5;6;2;1;3;0,1,0,1,0.5,0
 Neis, Michael;Rhf 1;BMM;18/19;2019;0.5;5;0;1;4;0,0,,0,0.5,,,0
+Neis, Michael;Rhy 1;NMM;18/19;2019;1;5;1;0;4;0,0,0,0,1
 Neis, Michael;Rhy 1;SGM;19/20;2020;0.5;2;0;1;1;,,0.5,,0
 Neis, Michael;Rhf 1;BMM;19/20;2020;1.5;3;1;1;1;,,0,1,0.5
 Neis, Michael;Rhy 1;SMM;21;2021;2;3;1;2;0;1,,0.5,,0.5
@@ -612,10 +669,13 @@ Pollermann, Werner;Rhf 1;BMM;13/14;2014;1;1;1;0;0;,1
 Pollermann, Werner;Rhy 2;SGM;14/15;2015;1;2;1;0;1;,,,,0,1
 Pollermann, Werner;Rhy 1;SGM;15/16;2016;0.5;1;0;1;0;,,,,,,0.5
 Pollermann, Werner;Rhf 1;BMM;15/16;2016;1;2;0;2;0;0.5,,,,,,,0.5
+Pollermann, Werner;Rhy 1;NMM;15/16;2016;0.5;1;0;1;0;,,0.5
 Pollermann, Werner;Rhy 1;SGM;16/17;2017;0.5;1;0;1;0;,,,0.5
+Pollermann, Werner;Rhy 1;NMM;16/17;2017;0;1;0;0;1;,,,0
 Pollermann, Werner;Rhy 1;SGM;17/18;2018;0.5;1;0;1;0;,,,,,,0.5
 Pollermann, Werner;Rhf 1;BMM;17/18;2018;0.5;2;0;1;1;,,0,0.5
 Pollermann, Werner;Rhf 1;BMM;18/19;2019;0.5;1;0;1;0;,,,,,0.5
+Pollermann, Werner;Rhy 1;NMM;18/19;2019;1;2;1;0;1;0,,,1
 Pollermann, Werner;Rhy 1;SMM;21;2021;0;1;0;0;1;0
 Pollermann, Werner;Rhy 1;SGM;21/22;2022;0;1;0;0;1;,0
 Pollermann, Werner;Rhf 1;BMM;21/22;2022;1;1;1;0;0;1
@@ -626,6 +686,7 @@ Rauber, Jylien;Rhy 2;SGM;18/19;2019;0;5;0;0;5;0,0,0,0,0
 Rauber, Jylien;Rhy 1;SMM;19;2019;0;5;0;0;5;0,0,0,,0,0
 Rauber, Jylien;Rhy 2;SGM;19/20;2020;1;4;1;0;3;0,,0,0,1
 Rezvanov, Elias;Rhf 2;BMM;24/25;2025;0;1;0;0;1;0
+Rothmund, Hans-Peter;Rhy 1;NMM;14/15;2015;0.5;2;0;1;1;0.5,,,0
 Rothmund, Hans-Peter;Rhf 1;BMM;15/16;2016;0;2;0;0;2;,0,0
 Rübsam, Robin;Rhf 2;BMM;17/18;2018;0;2;0;0;2;0,0
 Rübsam, Robin;Rhf 2;BMM;18/19;2019;0;1;0;0;1;0
@@ -635,6 +696,7 @@ Rudschuck, Norbert;Rhf 2;BMM;25/26;2026;1;1;1;0;0;,,,,,1
 Rudschuck, Norbert;Rhy 1;SMM;26;2026;1;3;0;2;1;0,,,0.5,,0.5
 Ruf, Valentina;Rhf 2;BMM;15/16;2016;0;2;0;0;2;0,0
 Ruf, Viktoria;Rhf 2;BMM;15/16;2016;1;2;1;0;1;0,1
+Sargsyan, Nazeli;Rhy 2;NMM;14/15;2015;0;1;0;0;1;,0
 Schambach, Frank;Rhf 1;BMM;15/16;2016;5;7;4;2;1;0.5,1,0.5,1,1,0,1
 Schambach, Frank;Rhf 1;BMM;16/17;2017;1.5;2;1;1;0;0.5,,,,1
 Schmid, Dario;Rhy 2;SGM;25/26;2026;0;1;0;0;1;,,,,,0
@@ -661,7 +723,9 @@ Schneider, André;Rhf 1;BMM;16/17;2017;1;1;1;0;0;1
 Schneider, André;Rhy 1;SMM;17;2017;0.5;1;0;1;0;,,,0.5
 Schneider, André;Rhf 1;BMM;17/18;2018;1;4;0;2;2;0.5,,,0,0.5,,0
 Schneider, André;Rhy 1;SMM;18;2018;1;1;1;0;0;,1
+Schneider, André;Rhy 1;NMM;17/18;2018;0;1;0;0;1;,,0
 Schneider, André;Rhf 1;BMM;18/19;2019;2;4;1;2;1;,0.5,,1,0.5,,0
+Schneider, André;Rhy 1;NMM;18/19;2019;0;1;0;0;1;,,,,0
 Schneider, André;Rhf 1;BMM;19/20;2020;0;1;0;0;1;,,,,0
 Schneider, André;Rhy 1;SMM;21;2021;1.5;2;1;1;0;,,1,0.5
 Schneider, André;Rhy 1;SGM;21/22;2022;0.5;4;0;1;3;0.5,0,0,0
@@ -681,9 +745,12 @@ Sedelmeier, Erwin;Rhy 2;SGM;06/07;2007;0;1;0;0;1;,,,,0
 Segginger, Jean-Jacques;Rhf 1;BMM;11/12;2012;0.5;2;0;1;1;,0,,0.5
 Segginger, Jean-Jacques;Rhy 2;SGM;14/15;2015;1;2;1;0;1;,,1,,,0
 Segginger, Jean-Jacques;Rhf 1;BMM;14/15;2015;1;1;1;0;0;,,,1
+Segginger, Jean-Jacques;Rhy 2;NMM;14/15;2015;0;1;0;0;1;0
 Segginger, Jean-Jacques;Rhy 2;SGM;15/16;2016;0;1;0;0;1;,,,,,0
 Segginger, Jean-Jacques;Rhf 1;BMM;15/16;2016;1;1;1;0;0;,1
 Sickert, Janne;Rhf 2;BMM;15/16;2016;0;6;0;0;6;,,0,0,0,0,0,0
+Sobolewski, Henrik;Rhy 1;NMM;17/18;2018;1.5;4;1;1;2;0,0.5,1,0
+Sobolewski, Henrik;Rhy 1;NMM;18/19;2019;0.5;1;0;1;0;,0.5
 Spiess, Oliver;Rhy 2;SGM;21/22;2022;0;1;0;0;1;0
 Spoerri, Maximilian;Rhy 1;SMM;06;2006;1;2;1;0;1;0,,,,1
 Spoerri, Maximilian;Rhy 1;SGM;06/07;2007;1;4;1;0;3;0,1,0,,,0
@@ -705,10 +772,15 @@ Vuksic, Antun;Rhy 1;SGM;12/13;2013;1;4;1;0;3;0,,0,0,1
 Vuksic, Antun;Rhf 1;BMM;12/13;2013;1.5;4;1;1;2;,0,0,1,0.5
 Vuksic, Antun;Rhy 1;SGM;13/14;2014;1;1;1;0;0;,,,,,1
 Vuksic, Antun;Rhf 1;BMM;13/14;2014;0.5;2;0;1;1;,,0.5,,0
+Vuksic, Antun;Rhy 1;NMM;13/14;2014;0.5;1;0;1;0;0.5
+Vuksic, Antun;Rhy 2;NMM;13/14;2014;2;2;2;0;0;,1,1
 Vuksic, Antun;Rhy 1;SGM;14/15;2015;0;2;0;0;2;,,0,,,0
 Vuksic, Antun;Rhf 1;BMM;14/15;2015;2;3;2;0;1;1,1,0
+Vuksic, Antun;Rhy 1;NMM;14/15;2015;0;1;0;0;1;,0
+Vuksic, Antun;Rhy 2;NMM;14/15;2015;1;2;1;0;1;1,,,0
 Vuksic, Antun;Rhy 2;SGM;15/16;2016;0;1;0;0;1;0
 Vuksic, Antun;Rhf 1;BMM;15/16;2016;1;2;1;0;1;,,,1,0
+Vuksic, Antun;Rhy 1;NMM;16/17;2017;1;2;1;0;1;,0,1
 Vuksic, Antun;Rhf 1;BMM;24/25;2025;1;3;1;0;2;1,0,,0
 Vuksic, Antun;Rhf 1;BMM;25/26;2026;0;1;0;0;1;0
 Walker, Hans-Rudolf;Rhy 1;SGM;05/06;2006;2;7;1;2;4;1,0,0.5,0,0,0.5,0
@@ -729,6 +801,7 @@ Weber, Dominik;Rhy 1;SGM;09/10;2010;3.5;5;3;1;1;,1,,0,1,1,0.5
 Weber, Dominik;Rhy 1;SMM;10;2010;3.5;5;3;1;1;,1,,0,1,1,0.5
 Weber, Dominik;Rhy 1;SGM;10/11;2011;2;2;2;0;0;1,,,1
 Weber, Dominik;Rhy 1;SGM;13/14;2014;3.5;4;3;1;0;,,,1,1,1,0.5
+Weber, Dominik;Rhy 1;NMM;13/14;2014;1;1;1;0;0;,,,1
 Weber, Dominik;Rhy 1;SGM;14/15;2015;1.5;3;1;1;1;,0.5,,0,,,1
 Weber, Dominik;Rhf 1;BMM;15/16;2016;2.5;3;2;1;0;,0.5,,,1,1
 Weber, Dominik;Rhf 1;BMM;16/17;2017;0;1;0;0;1;,,0
@@ -767,9 +840,11 @@ Yelkin, Valery;Rhf 1;BMM;16/17;2017;0.5;3;0;1;2;0,0,,0.5
 Yelkin, Valery;Rhf 1;BMM;17/18;2018;1;1;1;0;0;,,,,,,,1
 Zaugg, Stephan;Rhy 1;SGM;13/14;2014;1;1;1;0;0;,,,1
 Zaugg, Stephan;Rhf 1;BMM;13/14;2014;2;2;2;0;0;,1,,,1
+Zaugg, Stephan;Rhy 1;NMM;13/14;2014;2;3;2;0;1;1,1,0
 Zaugg, Stephan;Rhy 1;SGM;14/15;2015;0.5;1;0;1;0;,,,,,,0.5
 Zaugg, Stephan;Rhy 1;SGM;15/16;2016;2.5;7;1;3;3;0.5,0.5,0,0.5,0,0,1
 Zaugg, Stephan;Rhf 1;BMM;15/16;2016;5.5;8;4;3;1;1,0.5,0.5,1,1,0.5,1,0
+Zaugg, Stephan;Rhy 1;NMM;15/16;2016;3;4;2;2;0;0.5,1,0.5,1
 Zaugg, Stephan;Rhy 1;SGM;16/17;2017;2;5;1;2;2;0.5,,0,0,1,0.5
 Zaugg, Stephan;Rhy 1;SGM;17/18;2018;2.5;3;2;1;0;0.5,1,,,1
 Zielinski, Bruno;Rhy 2;SGM;05/06;2006;3;6;3;0;3;0,0,0,,1,1,1
@@ -780,7 +855,9 @@ Zielinski, Bruno;Rhy 2;SGM;08/09;2009;3;5;3;0;2;1,,1,1,0,0
 Zielinski, Bruno;Rhy 1;SMM;09;2009;1;2;1;0;1;,1,0
 Zielinski, Bruno;Rhy 1;SMM;11;2011;0.5;1;0;1;0;,,,0.5
 Zielinski, Bruno;Rhy 2;SGM;11/12;2012;1;2;0;2;0;,,,,,0.5,0.5
+Zielinski, Bruno;Rhy 2;NMM;13/14;2014;1;1;1;0;0;,,,1
 Zielinski, Bruno;Rhy 2;SGM;14/15;2015;0;3;0;0;3;0,0,,0
+Zielinski, Bruno;Rhy 2;NMM;14/15;2015;0;1;0;0;1;0
 Zielinski, Bruno;Rhy 2;SGM;15/16;2016;0.5;1;0;1;0;0.5
 Zielinski, Bruno;Rhy 1;SGM;16/17;2017;0;1;0;0;1;,0
 Zimmermann, Matthias;Rhy 2;SGM;21/22;2022;0;2;0;0;2;,,0,,0

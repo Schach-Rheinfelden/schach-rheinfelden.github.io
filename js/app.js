@@ -199,20 +199,9 @@ window.getInitials = function (name) {
     return name.split(' ').filter(n => n.length > 0).map(n => n[0] + '.').join(' ');
 };
 
-window.shareContent = function (title, text, customUrl) {
-    const url = customUrl || window.location.href;
-    if (navigator.share) {
-        navigator.share({ title: title, text: text, url: url }).catch(console.error);
-    } else {
-        navigator.clipboard.writeText(`${title}\n${url}`).then(() => alert('Link kopiert!'));
-    }
-};
-
-window.buildShareUrl = function (type, id) {
-    const url = new URL(window.location.href);
-    url.searchParams.set(type + 'Id', id);
-    return url.origin + url.pathname + url.search; // Returns URL without hash
-};
+/* window.shareContent und window.buildShareUrl stehen jetzt in js/shared.js.
+   shared.js laedt auf jeder Seite vor app.js, also sind beide hier bereits
+   vorhanden - und jede Seite (auch die Bestenliste) nutzt dieselbe Fassung. */
 
 
 function parseCSV(text) {

@@ -3539,6 +3539,54 @@ document.addEventListener('keydown', function (e) {
     el.click();
 });
 
+/* ─────────────────────────────────────────────────────────────────────
+   TEILEN
+
+   Lag frueher dreimal fast gleich in app.js, news-archive.js und
+   events-archive.js. Hier steht es einmal - shared.js laedt auf JEDER
+   Seite vor den Seitenskripten, also steht es allen zur Verfuegung.
+
+   Zwei Wege, je nach Geraet:
+   - Handy/Tablet: das Teilen-Blatt des Systems (WhatsApp, Mail, ...).
+   - Rechner ohne dieses Blatt: der Verweis wandert in die Zwischenablage.
+   ───────────────────────────────────────────────────────────────────── */
+
+window.shareContent = function (title, text, customUrl) {
+    const url = customUrl || window.location.href;
+
+    if (navigator.share) {
+        navigator.share({ title: title, text: text, url: url }).catch(function (fehler) {
+            // Wer das Teilen-Blatt wieder zumacht, loest ein "AbortError" aus.
+            // Das ist kein Fehler, sondern eine Entscheidung - hier passiert
+            // dann bewusst gar nichts.
+            if (fehler && fehler.name === 'AbortError') return;
+            inZwischenablage_(title, url);
+        });
+        return;
+    }
+
+    inZwischenablage_(title, url);
+};
+
+function inZwischenablage_(title, url) {
+    // navigator.clipboard gibt es nur auf https (und localhost). Auf einer
+    // unverschluesselten Seite ist es schlicht nicht da - dann bekommt der
+    // Besucher den Verweis wenigstens zum Herauskopieren angezeigt.
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        window.prompt('Verweis kopieren:', url);
+        return;
+    }
+    navigator.clipboard.writeText(title + '\n' + url)
+        .then(function () { alert('Link kopiert!'); })
+        .catch(function () { window.prompt('Verweis kopieren:', url); });
+}
+
+window.buildShareUrl = function (type, id) {
+    const url = new URL(window.location.href);
+    url.searchParams.set(type + 'Id', id);
+    return url.origin + url.pathname + url.search; // ohne #-Anker
+};
+
 /* Neu gerenderte Elemente automatisch nachruesten.
    Die Kacheln entstehen erst nach dem Laden der CSV-Dateien, teils spaeter
    durch Filter oder Nachladen - ein einmaliger Durchlauf beim Seitenstart

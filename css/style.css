@@ -5453,3 +5453,175 @@ body.light-theme .bl-sparklinie {
 
     .bl-knopfreihe .filter-btn { padding: 0.35rem 0.9rem; font-size: 0.82rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Verweise zwischen Teams und Bestenliste
+   ═══════════════════════════════════════════════════════════════════ */
+
+.bl-profil-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px dotted currentColor;
+}
+
+.bl-profil-link:hover,
+.bl-profil-link:focus-visible {
+    color: var(--accent-color);
+}
+
+/* Unten im Spielerfenster der Teams-Seite: die Laufbahn in einer Zeile. */
+.spieler-bl-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.spieler-bl-link b {
+    color: var(--accent-color);
+}
+
+.spieler-bl-link:hover,
+.spieler-bl-link:focus-visible {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Kontaktformular
+   ═══════════════════════════════════════════════════════════════════ */
+
+.kontakt-footer-btn {
+    margin-top: 0.25rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.9rem;
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.kontakt-fenster {
+    max-width: 620px;
+    text-align: left;
+}
+
+.kontakt-titel {
+    margin: 0 0 1.25rem;
+    color: var(--accent-color);
+    font-size: 1.5rem;
+}
+
+.kontakt-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.kontakt-reihe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+}
+
+.kontakt-reihe .kontakt-feld {
+    flex: 1 1 200px;
+}
+
+.kontakt-feld {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.kontakt-feld small {
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+/* .search-bar bringt Abstand nach unten mit - im Formular regelt das gap. */
+.kontakt-form .search-bar {
+    margin-bottom: 0;
+    width: 100%;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.kontakt-form textarea.search-bar {
+    resize: vertical;
+    min-height: 8rem;
+}
+
+.kontakt-an {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.kontakt-honig {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.kontakt-hinweis {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.kontakt-hinweis a {
+    color: var(--accent-color);
+}
+
+.kontakt-aktionen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.kontakt-aktionen .btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.kontakt-status {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.kontakt-status a {
+    color: var(--accent-color);
+}
+
+.kontakt-danke {
+    text-align: center;
+    padding: 1rem 0 0.5rem;
+}
+
+.kontakt-danke-symbol {
+    font-size: 3rem;
+    color: var(--accent-color);
+    line-height: 1;
+    margin-bottom: 0.75rem;
+}
+
+.kontakt-danke p {
+    margin: 0 0 1.5rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}

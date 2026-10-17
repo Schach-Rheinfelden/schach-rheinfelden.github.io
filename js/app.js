@@ -1255,6 +1255,37 @@ async function renderTeams() {
                 ${teamPinsHTML}
                 ${gridHTML}
             `;
+
+            /* Verweis auf die Bestenliste - mit der Laufbahn-Summe als Vorschau.
+               Erscheint nur, wenn die Person dort wirklich steht; ein Verweis
+               ins Leere waere schlimmer als keiner.
+               Und nur, wenn die Seite volle Namen zeigt: Steht der Name auf
+               Initialen, gehoert er auch nicht in eine Adresse. */
+            const schluessel = window.namensSchluessel ? window.namensSchluessel(p.name) : '';
+            modalBody.dataset.spieler = schluessel;
+            if (useFullName && schluessel && window.bestenlisteBilanzen) {
+                window.bestenlisteBilanzen().then(summen => {
+                    // Inzwischen jemand anderes geoeffnet? Dann nichts anfuegen.
+                    if (modalBody.dataset.spieler !== schluessel) return;
+                    const s = summen.get(schluessel);
+                    if (!s || !s.partien) return;
+
+                    /* Kam man von der Bestenliste genau zu dieser Person, fuehrt
+                       der Verweis ZURUECK (history.back) statt vorwaerts. Nur so
+                       steht die Bestenliste wieder so da, wie man sie verlassen
+                       hat - Filter, Sortierung, Bildlauf. Ein neuer Aufruf wuerde
+                       sie frisch aufbauen. href bleibt fuer "in neuem Tab". */
+                    const zurueck = window.kamVonBestenliste === schluessel;
+                    modalBody.insertAdjacentHTML('beforeend', `
+                        <a class="spieler-bl-link" href="bestenliste.html?spieler=${encodeURIComponent(p.name)}&von=teams"
+                           ${zurueck ? 'onclick="history.back(); return false;"' : ''}>
+                            ${zurueck ? '<span aria-hidden="true">←</span>' : ''}
+                            <span>${zurueck ? 'Zurück zur Bestenliste' : 'Bestenliste'}: <b>${window.punkteMitHalb(s.punkte)}</b> Punkte aus <b>${s.partien}</b> Partien</span>
+                            ${zurueck ? '' : '<span aria-hidden="true">→</span>'}
+                        </a>`);
+                });
+            }
+
             modal.classList.remove('hidden');
             if (!window.closePlayerModal) {
                 window.closePlayerModal = () => {
@@ -1672,6 +1703,8 @@ async function renderTeams() {
 
         initPhysicsEngine(cardsData, container, canvas, welt);
 
+        teamsEinstieg_(allPlayers, switchView);
+
     } catch (e) {
         console.error("Could not load teams", e);
         container.innerHTML = '<p>Keine Teamdaten gefunden.</p>';
@@ -1744,6 +1777,135 @@ function avatarMitte(card) {
 }
 
 // Physik-Engine für fliegende Karten mit Zoom & Pan
+/* ═══════════════════════════════════════════════════════════════════════
+   HIN UND ZURUECK ZWISCHEN TEAMS UND BESTENLISTE
+
+   Wer aus dem Spielerfenster kurz in die Bestenliste schaut und zurueckkommt,
+   soll die Teams so vorfinden, wie er sie verlassen hat: Listenansicht,
+   Suche, Sortierung, Wertungsfilter, verbundene Mannschaften, Bildlauf -
+   und das Spielerfenster wieder offen.
+
+   Beim Verlassen der Seite (pagehide) wird das in der Sitzung gemerkt.
+   Angewendet wird es NUR bei einer Rueckkehr ueber Zurueck/Vor; wer die
+   Startseite neu aufruft oder neu laedt, bekommt sie frisch.
+
+   Oft hebt der Browser die Seite ohnehin ganz auf (Back-Forward-Cache) -
+   dann laeuft dieser Code gar nicht, und alles ist schon da.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const TEAMS_ZUSTAND_SCHLUESSEL = 'teams-zustand';
+
+function navigationsArt_() {
+    try {
+        const e = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+        return (e && e.type) || '';
+    } catch (err) { return ''; }
+}
+
+function teamsZustandSichern_() {
+    try {
+        const modal = document.getElementById('player-modal');
+        const body = document.getElementById('player-modal-body');
+        const wert = id => { const el = document.getElementById(id); return el ? el.value : null; };
+        sessionStorage.setItem(TEAMS_ZUSTAND_SCHLUESSEL, JSON.stringify({
+            ansicht: window.teamsViewMode,
+            suche: wert('teams-search-input'),
+            sort: wert('teams-list-sort'),
+            wertung: wert('teams-rating-col-select'),
+            min: wert('slider-thumb-min'),
+            max: wert('slider-thumb-max'),
+            verbunden: Object.keys(window.teamConnected || {}).filter(k => window.teamConnected[k]),
+            spieler: (modal && body && !modal.classList.contains('hidden')) ? (body.dataset.spieler || '') : '',
+            scrollY: window.scrollY
+        }));
+    } catch (e) { /* privater Modus o. ae. - dann eben ohne */ }
+}
+
+function teamsZustandLesen_() {
+    try { return JSON.parse(sessionStorage.getItem(TEAMS_ZUSTAND_SCHLUESSEL) || 'null'); }
+    catch (e) { return null; }
+}
+
+/**
+ * Bedient die vorhandenen Bedienelemente, statt ihren Zustand nachzubauen:
+ * Wert setzen, Ereignis ausloesen - dann laeuft dieselbe Logik wie beim
+ * Klicken, und nichts kann auseinanderlaufen.
+ */
+function teamsZustandAnwenden_(z, allPlayers, switchView) {
+    const setze = (id, wert, ereignis) => {
+        const el = document.getElementById(id);
+        if (!el || wert === null || wert === undefined) return;
+        // Eine Option, die es nicht mehr gibt (z. B. Spalte entfernt), nicht erzwingen.
+        if (el.tagName === 'SELECT' && !Array.from(el.options).some(o => o.value === wert)) return;
+        el.value = wert;
+        el.dispatchEvent(new Event(ereignis, { bubbles: true }));
+    };
+
+    (z.verbunden || []).forEach(id => {
+        const knopf = Array.from(document.querySelectorAll('.toggle-team')).find(b => b.dataset.team === id);
+        if (knopf && !window.teamConnected[id]) knopf.click();
+    });
+    setze('teams-search-input', z.suche, 'input');
+    setze('teams-list-sort', z.sort, 'change');
+    setze('teams-rating-col-select', z.wertung, 'change');
+    if (z.wertung && z.wertung !== 'none') {
+        setze('slider-thumb-min', z.min, 'input');
+        setze('slider-thumb-max', z.max, 'input');
+    }
+    if (z.ansicht === 'list') switchView('list');
+
+    // Bildlauf: jetzt und noch einmal kurz danach - nachladende Bilder weiter
+    // oben koennen die Seite noch verschieben. Das zweite Mal nur, wenn der
+    // Besucher inzwischen nicht selbst gescrollt hat.
+    const ziel = Number(z.scrollY) || 0;
+    window.scrollTo(0, ziel);
+    setTimeout(() => {
+        if (Math.abs(window.scrollY - ziel) < 50) window.scrollTo(0, ziel);
+    }, 400);
+
+    if (z.spieler && window.namensSchluessel) {
+        const p = allPlayers.find(x => window.namensSchluessel(x.name) === z.spieler);
+        if (p) window.showPlayerModal(p);
+    }
+}
+
+function teamsEinstieg_(allPlayers, switchView) {
+    window.addEventListener('pagehide', teamsZustandSichern_);
+
+    const params = new URLSearchParams(location.search);
+    const spielerWunsch = params.get('spieler');
+
+    /* Kam man aus der Bestenliste (Verweis "Spielerprofil ansehen")? Dann
+       fuehrt der Bestenliste-Verweis im Fenster DIESER Person zurueck statt
+       vorwaerts. Geprueft wird zusaetzlich die Herkunftsseite: Ein geteilter
+       Link mit von=bestenliste darf niemanden mit "Zurueck" von der Seite
+       werfen. */
+    let herkunft = '';
+    try { herkunft = new URL(document.referrer).origin === location.origin ? new URL(document.referrer).pathname : ''; }
+    catch (e) { herkunft = ''; }
+    window.kamVonBestenliste = (params.get('von') === 'bestenliste' && /bestenliste\.html$/.test(herkunft) && spielerWunsch && window.namensSchluessel)
+        ? window.namensSchluessel(spielerWunsch) : '';
+
+    // Rueckkehr ueber Zurueck/Vor: gemerkten Zustand wiederherstellen.
+    if (navigationsArt_() === 'back_forward') {
+        const z = teamsZustandLesen_();
+        if (z) { teamsZustandAnwenden_(z, allPlayers, switchView); return; }
+    }
+
+    /* ?spieler=Vorname Nachname oeffnet das Spielerfenster direkt - so
+       verweist die Bestenliste auf das Profil. Gesucht wird ueber den
+       Namensschluessel, Schreibweise und Wortstellung sind also egal. */
+    if (spielerWunsch && window.namensSchluessel) {
+        const k = window.namensSchluessel(spielerWunsch);
+        const treffer = allPlayers.find(pl => window.namensSchluessel(pl.name) === k);
+        if (treffer) {
+            const abschnitt = document.getElementById('teams');
+            if (abschnitt) abschnitt.scrollIntoView();
+            window.showPlayerModal(treffer);
+        }
+    }
+}
+
 function initPhysicsEngine(cardsData, container, canvas, welt) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');

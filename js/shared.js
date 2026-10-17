@@ -1230,7 +1230,7 @@ window.resolveStatusOrColor = function (statusRaw, textRaw) {
 
             let isClosed = isRedColor;
             if (!isRedColor && !isGreenColor) {
-                isClosed = /geschlossen|fällt aus|kein schach|sommerpause|ferien|abgesagt/i.test(tLower);
+                isClosed = /geschlossen|fällt aus|kein\s*\S*schach|sommerpause|ferien|abgesagt/i.test(tLower);
             }
 
             return {
@@ -1240,7 +1240,7 @@ window.resolveStatusOrColor = function (statusRaw, textRaw) {
         }
     }
 
-    const isClosedText = /geschlossen|fällt aus|kein schach|sommerpause|ferien|abgesagt/i.test(tLower);
+    const isClosedText = /geschlossen|fällt aus|kein\s*\S*schach|sommerpause|ferien|abgesagt/i.test(tLower);
     return { isClosed: isClosedText, customColor: null };
 };
 
@@ -1300,6 +1300,15 @@ window.initTodayStatusBadge = function (info, eventsData) {
         badge.classList.add('hidden');
         return;
     }
+
+    /* Text, wenn heute nichts stattfindet. Steht im Infoblatt unter
+       "todayClosedText" - fehlt die Zeile oder ist sie leer, gilt die Vorgabe.
+       Frueher stand hier fest "kein Schach"; das klang, als ruhe der ganze
+       Verein, obwohl nur das Freizeitschach gemeint war. */
+    const geschlossenText = String(
+        info.todayClosedText !== undefined ? info.todayClosedText :
+            (info.todayclosedtext !== undefined ? info.todayclosedtext : '')
+    ).trim() || 'kein Freizeitschach';
 
     const overrideRaw = (
         info.todayOverrideText !== undefined ? info.todayOverrideText :
@@ -1393,7 +1402,7 @@ window.initTodayStatusBadge = function (info, eventsData) {
                 if (closingEvent) {
                     hasOverrideForToday = true;
                     isClosedOverride = true;
-                    matchedTimes.push('kein Schach');
+                    matchedTimes.push(geschlossenText);
                 } else {
                     const timeStr = t.time || '';
                     const cleanedTime = window.stripHtml ? window.stripHtml(window.formatTextContent(timeStr)) : timeStr;
@@ -1421,7 +1430,7 @@ window.initTodayStatusBadge = function (info, eventsData) {
         }
     } else {
         badge.className = 'nav-today-badge closed';
-        badge.innerHTML = `<span class="today-label">Heute:</span> <span class="today-time closed">kein Schach</span>`;
+        badge.innerHTML = `<span class="today-label">Heute:</span> <span class="today-time closed">${geschlossenText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
     }
     badge.classList.remove('hidden');
 };

@@ -1807,6 +1807,9 @@
             + '<h2 class="bl-modal-name" id="spieler-modal-titel">' + entschaerfe(person.anzeige) + '</h2>'
             + (merkmale.length ? '<p class="bl-modal-merkmale">' + merkmale.join(' · ') + '</p>' : '')
             + '<p class="bl-modal-teams">' + teamBadges(b.teams) + '</p>'
+            /* Nur wer heute in der Spielerliste steht, hat ein Profil auf der
+               Startseite. Fuer ehemalige gaebe es dort nichts zu sehen. */
+            + (person.profil ? profilVerweis_(person) : '')
             + '</div>'
             + teilenKnopf_(person)
             + '</div>'
@@ -2289,6 +2292,70 @@
         });
     }
 
+    /* ─── Hin und zurueck zwischen Bestenliste und Teams ─────────────── */
+
+    /** Schluessel der Person, mit der man aus den Teams kam - sonst ''. */
+    let KAM_VON_TEAMS = '';
+
+    function kamVonTeams_(ausAdresse) {
+        if (!ausAdresse) return '';
+        if (new URLSearchParams(location.search).get('von') !== 'teams') return '';
+        /* Zusaetzlich die Herkunftsseite pruefen: Wer einen geteilten Link
+           mit von=teams oeffnet, darf mit "Zurueck" nicht von der Seite
+           fliegen - fuer ihn gibt es kein "zurueck zu den Teams". */
+        try {
+            const r = new URL(document.referrer);
+            if (r.origin !== location.origin) return '';
+            if (!/(\/|index\.html)$/.test(r.pathname)) return '';
+        } catch (e) { return ''; }
+        return ausAdresse.schluessel;
+    }
+
+    /**
+     * Verweis aufs Spielerprofil. Kam man genau von dieser Person aus den
+     * Teams, fuehrt er ZURUECK (history.back) - nur so stehen die Teams wieder
+     * so da, wie man sie verlassen hat. Sonst vorwaerts, mit "von", damit die
+     * Teams-Seite ihrerseits einen Rueckweg anbietet.
+     */
+    function profilVerweis_(person) {
+        const ziel = 'index.html?spieler=' + encodeURIComponent(person.anzeige) + '&von=bestenliste#teams';
+        if (KAM_VON_TEAMS && KAM_VON_TEAMS === person.schluessel) {
+            return '<a class="bl-profil-link" href="' + ziel + '" onclick="history.back(); return false;">'
+                + '← Zurück zum Spielerprofil</a>';
+        }
+        return '<a class="bl-profil-link" href="' + ziel + '">Spielerprofil ansehen →</a>';
+    }
+
+    const BILDLAUF_SCHLUESSEL = 'bestenliste-bildlauf';
+
+    function bildlaufMerken_() {
+        // Eine noch ausstehende Adressaenderung (150-ms-Buendelung) zuerst
+        // schreiben - sonst gehoert der gemerkte Bildlauf zu einer Adresse,
+        // die der Browser beim Zurueckkehren gar nicht mehr kennt.
+        if (adresseWartet) { clearTimeout(adresseWartet); adresseJetztSchreiben_(); }
+        try {
+            sessionStorage.setItem(BILDLAUF_SCHLUESSEL,
+                JSON.stringify({ y: window.scrollY, adresse: location.search }));
+        } catch (e) { /* privater Modus o. ae. */ }
+    }
+
+    function bildlaufWiederherstellen_() {
+        let art = '';
+        try { art = (performance.getEntriesByType('navigation')[0] || {}).type || ''; } catch (e) { art = ''; }
+        if (art !== 'back_forward') return;
+
+        let gemerkt = null;
+        try { gemerkt = JSON.parse(sessionStorage.getItem(BILDLAUF_SCHLUESSEL) || 'null'); } catch (e) { gemerkt = null; }
+        // Nur, wenn es dieselbe Ansicht ist - sonst passt die Hoehe nicht.
+        if (!gemerkt || gemerkt.adresse !== location.search) return;
+
+        const ziel = Number(gemerkt.y) || 0;
+        window.scrollTo(0, ziel);
+        setTimeout(function () {
+            if (Math.abs(window.scrollY - ziel) < 50) window.scrollTo(0, ziel);
+        }, 400);
+    }
+
     /** "a, b und c" - eine Aufzaehlung, wie man sie spricht. */
     function aufzaehlung_(teile) {
         if (teile.length <= 1) return teile.join('');
@@ -2356,9 +2423,22 @@
            die Seite sich zweimal auf und blitzt kurz ungefiltert. */
         const ausAdresse = adresseLesen_();
 
+        /* Kam man ueber "Bestenliste" aus dem Spielerfenster der Teams? Das
+           muss VOR dem ersten Schreiben der Adresse gelesen werden - die
+           schreibt nur den Zustand der Seite und laesst "von" fallen, damit
+           es nicht in geteilten Links landet. */
+        KAM_VON_TEAMS = kamVonTeams_(ausAdresse);
+
         zeichneAlles();
         hoereZu();
         zeichneUntertitel_();
+
+        /* Rueckkehr ueber Zurueck/Vor (etwa vom Spielerprofil): Filter und
+           Sortierung stehen schon in der Adresse. Der Bildlauf nicht - und
+           der Browser kann ihn nicht selbst wiederherstellen, weil die Liste
+           beim Laden noch leer ist. Darum hier, sobald sie steht. */
+        bildlaufWiederherstellen_();
+        window.addEventListener('pagehide', bildlaufMerken_);
 
         if (ausAdresse) window.openSpielerModal(ausAdresse.schluessel, ausAdresse.vorauswahl);
 

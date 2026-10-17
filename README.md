@@ -180,6 +180,7 @@ Das Feld `heroMedia` steuert den grossen Hintergrund oben auf der Startseite:
 * `showTodayStatus` – Hauptschalter für die Heute-Anzeige in der Navigationsleiste (`ja` / `nein`).
 * `todayOverride` (oder `todayOverrideText`) – **Globale manuelle Überschreibung** mit höchster Priorität, z. B. `geschlossen wegen Vereinsausflug` (wird automatisch rot) oder `Spezialtraining ab 18:00 Uhr` (grün).
 * `todayOverrideStatus` – Setzt Farbe/Status für den globalen Override explizit (`red`, `green`, `closed`, `open`).
+* `todayClosedText` – Text, wenn heute nichts stattfindet (Vorgabe: `kein Freizeitschach`).
 
 ### 🔝 Prioritäts-Hierarchie der Heute-Anzeige
 Das System bestimmt den Status in der Navigationsleiste nach folgender Reihenfolge:
@@ -192,6 +193,11 @@ Das System bestimmt den Status in der Navigationsleiste nach folgender Reihenfol
 * `guestbook.show` – Hauptschalter (`ja`/`nein`). Bei `nein` verschwindet die komplette Sektion samt Nav-Link „Stimmen".
 * `guestbook.formUrl` – Sende-URL für das Formular. Bleibt sie leer, läuft das Formular im Testmodus.
 * `guestbook.fieldName` / `fieldOrigin` / `fieldMessage` – Feldnamen des Zielformulars (z. B. Google Forms).
+
+### Kontaktformular
+Im Footer jeder Seite steht der Knopf **„✉️ Nachricht schreiben"**; das Formular öffnet als Fenster. Der Besucher wählt eine der Adressen aus `contact.email`. Ein Link mit `?kontakt` (z. B. `https://schach-rheinfelden.com/?kontakt`) öffnet das Formular direkt.
+* `contact.email` – Die wählbaren Empfänger, mit `;` getrennt. Nur diese Adressen können angeschrieben werden.
+* `contact.formUrl` – URL der Web-App aus `apps-script/Kontakt.gs` (Einrichtung steht oben in der Datei). Bleibt sie leer, öffnet das Formular stattdessen das E-Mail-Programm des Besuchers mit fertigem Text.
 
 ---
 

@@ -6,6 +6,7 @@ announcement_color;
 showTodayStatus;ja
 todayOverride;
 todayOverrideStatus;
+todayClosedText;kein Freizeitschach
 training.1.group;Freizeitschach (Dienstag)
 training.1.time;"Dienstags, 17:00 - 19:00 Uhr<br><small>📍 <a href='https://www.google.com/maps/search/?api=1&query=Salinenstrasse+98,+4310+Rheinfelden,+Schweiz' target='_blank' rel='noopener noreferrer' style='color: var(--accent-color); text-decoration: underline;' title='In Google Maps öffnen'>Cafeteria Reha, Salinenstrasse 98, 4310 Rheinfelden, Schweiz</a></small>"
 training.1.overrideText;

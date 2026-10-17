@@ -1091,7 +1091,18 @@ window.renderGlobalFooter = function (info) {
         contactContainer.innerHTML = `
             ${emails ? `<p>${emails}</p>` : ''}
             ${phones ? `<p>${phones}</p>` : ''}
+            ${emails ? `<p><button type="button" class="btn btn-secondary kontakt-footer-btn" onclick="openKontaktModal()">✉️ Nachricht schreiben</button></p>` : ''}
         `;
+
+        // ?kontakt in der Adresse oeffnet das Formular direkt - praktisch fuer
+        // einen Link in einer Mail oder auf einem Flyer. Nur einmal: Auf der
+        // Startseite wird der Footer zweimal gezeichnet.
+        if (!window.kontaktAusAdresseGeprueft) {
+            window.kontaktAusAdresseGeprueft = true;
+            if (new URLSearchParams(location.search).has('kontakt')) {
+                setTimeout(function () { window.openKontaktModal(); }, 0);
+            }
+        }
     }
 
     const copyrightLine = document.getElementById('footer-copyright-line');
@@ -3640,6 +3651,293 @@ window.buildShareUrl = function (type, id) {
     url.searchParams.set(type + 'Id', id);
     return url.origin + url.pathname + url.search; // ohne #-Anker
 };
+
+/* ─────────────────────────────────────────────────────────────────────
+   NAMEN VERGLEICHEN
+
+   Die Bestenliste schreibt "Bonic, Adam", die Spielerliste "Adam Bonic",
+   und irgendwo steht "Müller" einmal als "Mueller". Der Schluessel macht
+   daraus dieselbe Zeichenfolge: ohne Akzente, klein, Woerter sortiert.
+   Dieselbe Regel wie in js/bestenliste.js - sonst finden sich Personen
+   auf der einen Seite und auf der anderen nicht.
+   ───────────────────────────────────────────────────────────────────── */
+
+window.namensSchluessel = function (name) {
+    return String(name || '')
+        .replace(/,/g, ' ')
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/).filter(Boolean).sort().join(' ');
+};
+
+/**
+ * Laufbahn-Summen aus der Bestenliste, je Person: Map Schluessel -> {punkte, partien}.
+ * Wird nur einmal geladen, auch wenn zehn Spielerfenster danach fragen. Fehlt
+ * die Datei, kommt eine leere Map zurueck - dann gibt es eben keinen Verweis.
+ */
+let bestenlisteBilanzenLaden_ = null;
+window.bestenlisteBilanzen = function () {
+    if (bestenlisteBilanzenLaden_) return bestenlisteBilanzenLaden_;
+    bestenlisteBilanzenLaden_ = (async function () {
+        const antwort = await window.fetchCSVSource('data/bestenliste.csv');
+        if (!antwort || !antwort.ok) return new Map();
+        const zeilen = parseCSVShared(await window.fetchTextWithEncoding(antwort));
+        if (zeilen.length < 2) return new Map();
+
+        const kopf = zeilen[0].map(function (h) { return String(h).trim().toLowerCase(); });
+        const iName = kopf.indexOf('name');
+        const iPunkte = kopf.indexOf('punkte');
+        const iPartien = kopf.indexOf('partien');
+        if (iName < 0 || iPunkte < 0 || iPartien < 0) return new Map();
+
+        const summen = new Map();
+        zeilen.slice(1).forEach(function (z) {
+            const k = window.namensSchluessel(z[iName]);
+            if (!k) return;
+            const s = summen.get(k) || { punkte: 0, partien: 0 };
+            s.punkte += parseFloat(String(z[iPunkte] || '0').replace(',', '.')) || 0;
+            s.partien += parseInt(z[iPartien], 10) || 0;
+            summen.set(k, s);
+        });
+        return summen;
+    })().catch(function () { return new Map(); });
+    return bestenlisteBilanzenLaden_;
+};
+
+/** 7.5 -> "7½" - so schreibt es die Bestenliste auch. */
+window.punkteMitHalb = function (p) {
+    const ganz = Math.floor(p);
+    return (p - ganz >= 0.5) ? (ganz === 0 ? '½' : ganz + '½') : String(ganz);
+};
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   KONTAKTFORMULAR
+
+   Knopf "Nachricht schreiben" im Footer jeder Seite; das Formular oeffnet
+   als Fenster. Der Besucher waehlt eine der Adressen aus contact.email.
+
+   Zwei Wege, je nach Infoblatt:
+   - contact.formUrl gesetzt  -> Versand ueber das Apps-Script
+                                 (apps-script/Kontakt.gs)
+   - contact.formUrl leer     -> das E-Mail-Programm des Besuchers oeffnet
+                                 sich mit fertig ausgefuelltem Text.
+   Das Formular funktioniert also auch ohne Skript - nur weniger bequem.
+   ───────────────────────────────────────────────────────────────────── */
+
+function kontaktAdressen_() {
+    const info = window.globalInfoData || {};
+    const c = info.contact || info.Contact || {};
+    return String(c.email || '').split(';')
+        .map(function (a) { return a.trim(); })
+        .filter(function (a) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a); });
+}
+
+function kontaktSendeUrl_() {
+    const info = window.globalInfoData || {};
+    const c = info.contact || info.Contact || {};
+    return String(c.formurl || c.formUrl || '').trim();
+}
+
+function kontaktEntschaerfe_(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+let kontaktGeoeffnetUm_ = 0;
+let kontaktHerkunft_ = null;
+
+function kontaktFormularHTML_(adressen, vorwahl) {
+    const wahl = adressen.length > 1
+        ? '<label class="kontakt-feld"><span>An</span>'
+            + '<select name="an" class="search-bar" required>'
+            + adressen.map(function (a) {
+                return '<option value="' + kontaktEntschaerfe_(a) + '"'
+                    + (a === vorwahl ? ' selected' : '') + '>' + kontaktEntschaerfe_(a) + '</option>';
+            }).join('')
+            + '</select></label>'
+        : '<input type="hidden" name="an" value="' + kontaktEntschaerfe_(adressen[0]) + '">'
+            + '<p class="kontakt-an">An: <strong>' + kontaktEntschaerfe_(adressen[0]) + '</strong></p>';
+
+    return '<form id="kontakt-form" class="kontakt-form" novalidate>'
+        + wahl
+        + '<div class="kontakt-reihe">'
+        + '<label class="kontakt-feld"><span>Name</span>'
+        + '<input type="text" name="name" class="search-bar" maxlength="100" required autocomplete="name"></label>'
+        + '<label class="kontakt-feld"><span>E-Mail</span>'
+        + '<input type="email" name="email" class="search-bar" maxlength="200" required autocomplete="email"></label>'
+        + '</div>'
+        + '<label class="kontakt-feld"><span>Betreff <small>(optional)</small></span>'
+        + '<input type="text" name="betreff" class="search-bar" maxlength="150"></label>'
+        + '<label class="kontakt-feld"><span>Nachricht</span>'
+        + '<textarea name="nachricht" class="search-bar" rows="6" maxlength="3000" required></textarea></label>'
+        // Honigtopf: fuer Menschen unsichtbar, Bots fuellen ihn aus.
+        + '<input type="text" name="website" class="kontakt-honig" tabindex="-1" autocomplete="off" aria-hidden="true">'
+        + '<p class="kontakt-hinweis">Deine Angaben verwenden wir nur, um dir zu antworten. Mehr dazu im '
+        + '<a href="#" onclick="openLegalModal(\'datenschutz\'); return false;">Datenschutz</a>.</p>'
+        + '<div class="kontakt-aktionen">'
+        + '<button type="submit" class="btn btn-primary">Nachricht senden</button>'
+        + '<span id="kontakt-status" class="kontakt-status" role="status" aria-live="polite"></span>'
+        + '</div>'
+        + '</form>';
+}
+
+function kontaktFensterHolen_() {
+    let fenster = document.getElementById('kontakt-modal');
+    if (fenster) return fenster;
+
+    fenster = document.createElement('div');
+    fenster.id = 'kontakt-modal';
+    fenster.className = 'modal hidden';
+    fenster.setAttribute('role', 'dialog');
+    fenster.setAttribute('aria-modal', 'true');
+    fenster.setAttribute('aria-labelledby', 'kontakt-titel');
+    fenster.innerHTML =
+        '<div class="modal-overlay" onclick="closeKontaktModal()"></div>'
+        + '<div class="modal-content glass-card kontakt-fenster">'
+        + '<button class="close-btn" onclick="closeKontaktModal()" aria-label="Kontaktformular schliessen">&times;</button>'
+        + '<h2 id="kontakt-titel" class="kontakt-titel">✉️ Nachricht an uns</h2>'
+        + '<div id="kontakt-inhalt"></div>'
+        + '</div>';
+    document.body.appendChild(fenster);
+
+    // Escape schliesst, Tab bleibt im Fenster.
+    fenster.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') { window.closeKontaktModal(); return; }
+        if (ev.key !== 'Tab') return;
+        const fokusierbar = Array.from(fenster.querySelectorAll(
+            'button, a[href], input:not([type="hidden"]):not(.kontakt-honig), select, textarea'))
+            .filter(function (el) { return !el.disabled && el.offsetParent !== null; });
+        if (!fokusierbar.length) return;
+        const erstes = fokusierbar[0];
+        const letztes = fokusierbar[fokusierbar.length - 1];
+        if (ev.shiftKey && document.activeElement === erstes) { ev.preventDefault(); letztes.focus(); }
+        else if (!ev.shiftKey && document.activeElement === letztes) { ev.preventDefault(); erstes.focus(); }
+    });
+
+    fenster.addEventListener('submit', function (ev) {
+        if (ev.target && ev.target.id === 'kontakt-form') {
+            ev.preventDefault();
+            kontaktSenden_(ev.target);
+        }
+    });
+    return fenster;
+}
+
+/** @param vorwahl Optional eine der Adressen, die vorausgewaehlt sein soll. */
+window.openKontaktModal = function (vorwahl) {
+    const adressen = kontaktAdressen_();
+    if (!adressen.length) return;
+
+    const fenster = kontaktFensterHolen_();
+    document.getElementById('kontakt-inhalt').innerHTML = kontaktFormularHTML_(adressen, vorwahl);
+
+    kontaktHerkunft_ = document.activeElement;
+    kontaktGeoeffnetUm_ = Date.now();
+    fenster.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    const erstes = fenster.querySelector('[name="name"]');
+    if (erstes) erstes.focus();
+};
+
+window.closeKontaktModal = function () {
+    const fenster = document.getElementById('kontakt-modal');
+    if (!fenster) return;
+    fenster.classList.add('hidden');
+    document.body.style.overflow = '';
+    if (kontaktHerkunft_ && typeof kontaktHerkunft_.focus === 'function') kontaktHerkunft_.focus();
+    kontaktHerkunft_ = null;
+};
+
+function kontaktDanke_(text) {
+    document.getElementById('kontakt-inhalt').innerHTML =
+        '<div class="kontakt-danke">'
+        + '<div class="kontakt-danke-symbol" aria-hidden="true">♞</div>'
+        + '<p>' + text + '</p>'
+        + '<button type="button" class="btn btn-secondary" onclick="closeKontaktModal()">Schliessen</button>'
+        + '</div>';
+    const zu = document.querySelector('#kontakt-inhalt .btn');
+    if (zu) zu.focus();
+}
+
+async function kontaktSenden_(form) {
+    const status = document.getElementById('kontakt-status');
+    const feld = function (n) {
+        const el = form.querySelector('[name="' + n + '"]');
+        return el ? String(el.value || '').trim() : '';
+    };
+
+    // Bot-Schutz: ausgefuellter Honigtopf oder Absenden in unter 3 Sekunden.
+    // Bots bekommen ein "Danke" zu sehen - ein Fehler wuerde ihnen verraten,
+    // woran sie gescheitert sind.
+    if (feld('website') || Date.now() - kontaktGeoeffnetUm_ < 3000) {
+        kontaktDanke_('Vielen Dank für deine Nachricht!');
+        return;
+    }
+
+    if (!form.reportValidity()) return;
+
+    const daten = {
+        typ: 'kontakt',   // Erkennungszeichen, falls das Skript-Projekt mehrere Formulare annimmt
+        an: feld('an'),
+        name: feld('name'),
+        email: feld('email'),
+        betreff: feld('betreff'),
+        nachricht: feld('nachricht'),
+        website: '',
+        seite: location.origin + location.pathname,
+        dauer: Date.now() - kontaktGeoeffnetUm_
+    };
+
+    // Nur Adressen aus dem Infoblatt - auch wenn jemand das Auswahlfeld
+    // im Browser umschreibt. Das Skript prueft dasselbe noch einmal.
+    if (kontaktAdressen_().indexOf(daten.an) === -1) return;
+
+    const url = kontaktSendeUrl_();
+
+    // ── Ohne Skript: E-Mail-Programm oeffnen ─────────────────────────
+    if (!url) {
+        const betreff = daten.betreff || 'Nachricht über die Website';
+        const text = daten.nachricht + '\n\n— ' + daten.name + ' (' + daten.email + ')';
+        location.href = 'mailto:' + daten.an
+            + '?subject=' + encodeURIComponent(betreff)
+            + '&body=' + encodeURIComponent(text);
+        kontaktDanke_('Dein E-Mail-Programm sollte sich jetzt mit der fertigen Nachricht geöffnet haben – '
+            + 'du musst sie dort nur noch absenden.');
+        return;
+    }
+
+    // ── Mit Skript ───────────────────────────────────────────────────
+    const knopf = form.querySelector('button[type="submit"]');
+    if (knopf) knopf.disabled = true;
+    if (status) status.textContent = 'Wird gesendet …';
+
+    try {
+        // Ohne eigenen Content-Type geht der Text als text/plain hinaus. Das
+        // ist eine "einfache" Anfrage ohne Vorabpruefung, die Apps Script
+        // annimmt - und deren Antwort wir lesen duerfen.
+        const antwort = await fetch(url, { method: 'POST', body: JSON.stringify(daten) });
+        const ergebnis = await antwort.json();
+        if (ergebnis && ergebnis.ok) {
+            kontaktDanke_('Vielen Dank, ' + kontaktEntschaerfe_(daten.name.split(' ')[0])
+                + '! Deine Nachricht ist angekommen. Wir antworten dir an <strong>'
+                + kontaktEntschaerfe_(daten.email) + '</strong>.');
+            return;
+        }
+        throw new Error((ergebnis && ergebnis.fehler) || 'Unbekannter Fehler');
+    } catch (e) {
+        if (status) {
+            status.innerHTML = 'Senden hat nicht geklappt'
+                + (e && e.message && e.message !== 'Failed to fetch' ? ' (' + kontaktEntschaerfe_(e.message) + ')' : '')
+                + '. Schreib uns gern direkt an <a href="mailto:' + kontaktEntschaerfe_(daten.an) + '">'
+                + kontaktEntschaerfe_(daten.an) + '</a>.';
+        }
+        if (knopf) knopf.disabled = false;
+    }
+}
 
 /* Neu gerenderte Elemente automatisch nachruesten.
    Die Kacheln entstehen erst nach dem Laden der CSV-Dateien, teils spaeter

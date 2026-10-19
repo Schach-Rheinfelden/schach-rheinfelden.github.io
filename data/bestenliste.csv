@@ -18,6 +18,7 @@ Acton, Fynn Jona;Rhf 1;BMM;24/25;2025;1.5;4;1;1;2;0.5,,0,1,,,0
 Acton, Fynn Jona;Rhy 1;SGM;24/25;2025;1;1;1;0;0;,,,,,1
 Acton, Fynn Jona;Rhy 1;SMM;25;2025;1;1;1;0;0;1
 Acton, Fynn Jona;Rhf 1;BMM;25/26;2026;0.5;2;0;1;1;0,,,0.5
+Acton, Fynn Jona;Rhf 1;BMM;26/27;2027;1;1;1;0;0;1
 Adamek, Gerd-Dieter;Rhf 1;BMM;11/12;2012;3.5;5;2;3;0;1,,0.5,0.5,0.5,1
 Adamek, Gerd-Dieter;Rhf 1;BMM;12/13;2013;0.5;3;0;1;2;0,,,0,0.5
 Adamek, Gerd-Dieter;Rhf 1;BMM;13/14;2014;2;3;2;0;1;1,1,,0
@@ -153,6 +154,7 @@ Brugger, Jan;Rhy 2;SGM;23/24;2024;0;1;0;0;1;,,,0
 Brugger, Jan;Rhf 1;BMM;24/25;2025;0;3;0;0;3;0,,,0,0
 Brugger, Jan;Rhf 2;BMM;24/25;2025;0;1;0;0;1;,,0
 Brugger, Jan;Rhy 2;SGM;24/25;2025;0;1;0;0;1;0
+Brugger, Jan;Rhf 2;BMM;26/27;2027;1;1;1;0;0;1
 Damdinsuren, Az;Rhy 1;SGM;21/22;2022;0;1;0;0;1;,,,0
 Damdinsuren, Az;Rhy 2;SGM;21/22;2022;1;1;1;0;0;,,,1
 Damdinsuren, Az;Rhy 1;SMM;22;2022;3.5;4;3;1;0;0.5,1,,1,,,1
@@ -294,6 +296,7 @@ Haag, Rolf;Rhy 1;SMM;25;2025;2.5;7;1;3;3;1,0,0,0.5,0,0.5,0.5
 Haag, Rolf;Rhf 1;BMM;25/26;2026;3;7;1;4;2;0.5,0.5,,0.5,1,,0.5,0,0
 Haag, Rolf;Rhy 1;SGM;25/26;2026;1.5;6;1;1;4;0,0,1,0,0.5,0
 Haag, Rolf;Rhy 1;SMM;26;2026;2.5;4;2;1;1;1,,0,0.5,1
+Haag, Rolf;Rhf 1;BMM;26/27;2027;0;1;0;0;1;0
 Habibi, Ali;Rhy 1;NMM;12/13;2013;1;1;1;0;0;,1
 Harsch, Martin;Rhy 1;SGM;11/12;2012;1;2;0;2;0;0.5,0.5
 Harsch, Martin;Rhy 1;SGM;19/20;2020;4;5;3;2;0;1,1,1,0.5,0.5
@@ -421,6 +424,7 @@ Kaiser, Robert;Rhf 1;BMM;25/26;2026;3;6;2;2;2;1,,,0,0.5,0,,0.5,1
 Kaiser, Robert;Rhf 2;BMM;25/26;2026;1;1;1;0;0;,,1
 Kaiser, Robert;Rhy 1;SGM;25/26;2026;0;1;0;0;1;,,,0
 Kaiser, Robert;Rhy 1;SMM;26;2026;1.5;5;1;1;3;0,0,0.5,0,1
+Kaiser, Robert;Rhf 2;BMM;26/27;2027;0;1;0;0;1;0
 Kämpfe, Werner;Rhy 2;NMM;13/14;2014;0;1;0;0;1;,,,0
 Kämpfe, Werner;Rhf 1;BMM;15/16;2016;4;4;4;0;0;,,,,1,1,1,1
 Kämpfe, Werner;Rhy 1;NMM;15/16;2016;0;1;0;0;1;,,,0
@@ -460,6 +464,7 @@ Konysbekov, Darmen;Rhy 1;SGM;25/26;2026;0.5;2;0;1;1;,,,,,0.5,0
 Konysbekov, Darmen;Rhy 2;SGM;25/26;2026;2;3;2;0;1;0,1,,1
 Konysbekov, Darmen;Rhy 1;SMM;26;2026;3.5;6;3;1;2;1,0,1,0.5,1,0
 Konysbekov, Darmen;Rhy 2;SMM;26;2026;1;1;1;0;0;1
+Konysbekov, Darmen;Rhf 1;BMM;26/27;2027;1;1;1;0;0;1
 Kortschak, Hugo;Rhy 1;SGM;05/06;2006;4;7;2;4;1;0.5,0.5,1,0.5,0,0.5,1
 Kortschak, Hugo;Rhy 1;SMM;06;2006;2.5;4;2;1;1;0,1,,1,0.5
 Kortschak, Hugo;Rhy 1;SGM;06/07;2007;2;6;1;2;3;0,1,,0,0,0.5,0.5
@@ -504,6 +509,7 @@ Lücke, Liam;Rhf 1;BMM;24/25;2025;0;1;0;0;1;,,,,,,,0
 Lücke, Liam;Rhf 2;BMM;24/25;2025;2;6;2;0;4;0,1,,0,0,0,1
 Lücke, Liam;Rhf 1;BMM;25/26;2026;0.5;2;0;1;1;,0,,,,,,0.5
 Lücke, Liam;Rhf 2;BMM;25/26;2026;1.5;4;1;1;2;0,,,0.5,,0,1
+Lücke, Liam;Rhf 2;BMM;26/27;2027;0;1;0;0;1;0
 Lutz, Hans;Rhy 1;NMM;15/16;2016;1;1;1;0;0;,,,1
 Manis, Özgür;Rhy 1;NMM;15/16;2016;0;1;0;0;1;0
 Manis, Özgür;Rhf 1;BMM;16/17;2017;1;3;1;0;2;,0,,0,1
@@ -659,6 +665,7 @@ Nyffeler, Ulrich;Rhy 1;SGM;21/22;2022;0;1;0;0;1;,0
 Ödül, Ismail Irfan;Rhy 2;SGM;25/26;2026;1.5;5;1;1;3;0,0,0.5,,1,0
 Ödül, Ismail Irfan;Rhy 1;SMM;26;2026;1.5;3;0;3;0;0.5,,0.5,,,0.5
 Ödül, Ismail Irfan;Rhy 2;SMM;26;2026;0;1;0;0;1;0
+Ödül, Ismail Irfan;Rhf 1;BMM;26/27;2027;1;1;1;0;0;1
 Okincic, Artur;Rhy 2;SMM;21;2021;1;1;1;0;0;,1
 Palaia, Aleandro;Rhy 2;SMM;21;2021;0;1;0;0;1;,,,,0
 Palaia, Aleandro;Rhy 2;SMM;22;2022;0;1;0;0;1;,,,0
@@ -681,6 +688,7 @@ Pollermann, Werner;Rhf 1;BMM;21/22;2022;1;1;1;0;0;1
 Pollermann, Werner;Rhy 1;SGM;21/22;2022;0;1;0;0;1;,0
 Pradeep, Riya;Rhf 2;BMM;24/25;2025;0;2;0;0;2;0,0
 Pradeep, Riya;Rhy 2;SMM;26;2026;1;1;1;0;0;,,1
+Pradeep, Riya;Rhf 2;BMM;26/27;2027;0;1;0;0;1;0
 Rabbi, Mario David;Rhy 2;SMM;25;2025;0;1;0;0;1;0
 Rauber, Jylien;Rhy 2;SGM;18/19;2019;0;5;0;0;5;0,0,0,0,0
 Rauber, Jylien;Rhy 1;SMM;19;2019;0;5;0;0;5;0,0,0,,0,0

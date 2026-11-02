@@ -498,6 +498,8 @@ function updateGesamtAnsicht() {
 
     const ligaDaten = berechneLigaStand(limit);
     const aktivesTeam = elTeamSelect.value;
+    // Alle unsere Teams hervorheben, nicht nur das gewaehlte (siehe fokusPruefer_).
+    const imFokus = fokusPruefer_(aktivesTeam);
     tbody.innerHTML = "";
     
     const labels = [];
@@ -511,7 +513,7 @@ function updateGesamtAnsicht() {
         dataMP.push(team.mp);
         dataEP.push(team.bp);
         
-        const isAktiv = team.mannschaft === aktivesTeam;
+        const isAktiv = imFokus(team.mannschaft);
         
         bgColorsMP.push(isAktiv ? '#d4af37' : 'rgba(212, 175, 55, 0.35)'); 
         bgColorsEP.push(isAktiv ? '#10b981' : 'rgba(16, 185, 129, 0.35)'); 
@@ -741,6 +743,51 @@ function initBegegnungenFilter() {
     renderBegegnungen();
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   UNSERE MANNSCHAFTEN
+
+   Spielen zwei unserer Mannschaften in derselben Liga (SK Rheinfelden 1 und
+   2 in der Bezirksklasse), gehoeren beide hervorgehoben - und beide in den
+   Filter "Nur unsere Teams". Bisher galt nur das EINE Team aus dem
+   Auswahlfeld "Team-Fokus"; das andere stand da wie ein fremder Verein.
+
+   Erkannt werden unsere Teams an Namensbestandteilen. Sie stehen im
+   Infoblatt unter "ligacenter.eigeneTeams" (mit Komma getrennt - ein
+   Semikolon wuerde die CSV in weitere Spalten aufteilen), weil die
+   Verbaende uns verschieden schreiben: "SK Rheinfelden 1", "Rhy 1",
+   "Rhy-Rheinfelden 1", "Rhy Rheinfelden 2". Fehlt die Zeile, gilt die
+   Vorgabe unten. Verglichen wird wortweise - "Rhy" trifft "Rhy 1", aber
+   keinen Verein, in dessen Namen zufaellig die Buchstaben r-h-y stehen.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const EIGENE_TEAMS_VORGABE = ['Rheinfelden', 'Rhy', 'Rhf'];
+
+function eigeneTeamWoerter_() {
+    const info = window.globalInfoData || {};
+    const lc = info.ligacenter || info.ligaCenter || {};
+    const roh = String(lc.eigeneteams || lc.eigeneTeams || '').trim();
+    return (roh ? roh.split(/[;,]/) : EIGENE_TEAMS_VORGABE)
+        .map(w => w.trim().toLowerCase())
+        .filter(Boolean);
+}
+
+function istEigenesTeam(name) {
+    // In Woerter zerlegen (Leerzeichen, Bindestrich, Punkt …) und vergleichen.
+    const woerter = String(name || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+    return eigeneTeamWoerter_().some(w => woerter.includes(w));
+}
+
+/**
+ * Wer zum Fokus gehoert.
+ * Ist im Auswahlfeld eines UNSERER Teams gewaehlt, sind es alle unsere Teams.
+ * Hat jemand bewusst einen fremden Verein gewaehlt (um ihn anzuschauen), ist
+ * es genau dieser - sonst liesse sich ein Gegner gar nicht mehr fokussieren.
+ */
+function fokusPruefer_(fokusTeam) {
+    if (fokusTeam && istEigenesTeam(fokusTeam)) return t => istEigenesTeam(t);
+    return t => !!fokusTeam && t === fokusTeam;
+}
+
 function renderBegegnungen() {
     const container = document.getElementById("begegnungenContainer");
     const elRundeSelect = document.getElementById("begegnungRundeSelect");
@@ -751,13 +798,20 @@ function renderBegegnungen() {
     const selectedRunde = elRundeSelect ? elRundeSelect.value : "alle";
     const nurFokusTeam = elTeamFilter ? elTeamFilter.checked : false;
     const fokusTeam = elTeamSelect ? elTeamSelect.value : "";
+    const imFokus = fokusPruefer_(fokusTeam);
+
+    // Die Beschriftung sagt, was der Haken tut.
+    const elFilterLabel = document.getElementById("begegnungTeamFilterLabel");
+    if (elFilterLabel) {
+        elFilterLabel.textContent = istEigenesTeam(fokusTeam) ? "Nur unsere Teams" : "Nur Fokus-Team";
+    }
 
     let matches = aktuelleSpiele.filter(r => {
         const heim = getRowVal(r, 'Heimteam', 'Heim', 'Team_Heim').toString().trim();
         const gast = getRowVal(r, 'Gastteam', 'Gast', 'Team_Gast').toString().trim();
         if (!heim || !gast || heim === 'Freilos' || gast === 'Freilos') return false;
         if (selectedRunde !== "alle" && String(r.Runde).trim() !== String(selectedRunde).trim()) return false;
-        if (nurFokusTeam && fokusTeam && heim !== fokusTeam && gast !== fokusTeam) return false;
+        if (nurFokusTeam && fokusTeam && !imFokus(heim) && !imFokus(gast)) return false;
         return true;
     });
 
@@ -819,8 +873,8 @@ function renderBegegnungen() {
         const epHeimRaw = getRowVal(match, 'EP Heim', 'EP_Heim').toString().replace(/[="]/g, '').trim();
         const epGastRaw = getRowVal(match, 'EP Gast', 'EP_Gast').toString().replace(/[="]/g, '').trim();
 
-        const isHeimAktiv = heim === fokusTeam;
-        const isGastAktiv = gast === fokusTeam;
+        const isHeimAktiv = imFokus(heim);
+        const isGastAktiv = imFokus(gast);
 
         const epDisplay = (epHeimRaw !== '' && epGastRaw !== '' && epHeimRaw !== '-') ? `${epHeimRaw} : ${epGastRaw}` : '- : -';
         

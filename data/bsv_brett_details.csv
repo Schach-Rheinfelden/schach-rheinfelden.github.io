@@ -1,4 +1,4 @@
-﻿Turnier;Saison;Liga;Runde;Brett;Team_Weiss;Weiss;Elo_Weiss;Team_Schwarz;Schwarz;Elo_Schwarz;Ergebnis
+Turnier;Saison;Liga;Runde;Brett;Team_Weiss;Weiss;Elo_Weiss;Team_Schwarz;Schwarz;Elo_Schwarz;Ergebnis
 BMM;2025/26;Bereichsliga Süd 3;1;1;SC Heitersheim 2;Prof. Wiedemann, Harald;1860;SG Schopfheim 1;Schleith, Stefan;1894;0 - 2
 BMM;2025/26;Bereichsliga Süd 3;1;2;SG Schopfheim 1;Steen, Matthias;1855;SC Heitersheim 2;Gkegkas, Viktor;1815;2 - 0
 BMM;2025/26;Bereichsliga Süd 3;1;3;SC Heitersheim 2;Dr. Spitzer, Martin;1796;SG Schopfheim 1;Bauer, Stefan;1753;2 - 0
@@ -539,3 +539,23 @@ BMM;2025/26;Bezirksklasse Hochrhein;9;1;SC Brombach 5;;;SGEM Waldshut-Tiengen 3;
 BMM;2025/26;Bezirksklasse Hochrhein;9;2;SGEM Waldshut-Tiengen 3;;;SC Brombach 5;;;0 - 0
 BMM;2025/26;Bezirksklasse Hochrhein;9;3;SC Brombach 5;;;SGEM Waldshut-Tiengen 3;;;0 - 0
 BMM;2025/26;Bezirksklasse Hochrhein;9;4;SGEM Waldshut-Tiengen 3;;;SC Brombach 5;;;0 - 0
+BMM;2026/27;Bezirksklasse Hochrhein;1;1;SGEM Waldshut-Tiengen 2;Huber, Martin;1857;SC Dreiländereck 3;Sacher, Justus;1724;2 - 0
+BMM;2026/27;Bezirksklasse Hochrhein;1;2;SC Dreiländereck 3;Lischka, Joachim;1619;SGEM Waldshut-Tiengen 2;Feidel, Christian;1765;1 - 1
+BMM;2026/27;Bezirksklasse Hochrhein;1;3;SGEM Waldshut-Tiengen 2;Kaiser, Niklas;1732;SC Dreiländereck 3;Rogg, Raphael;1454;2 - 0
+BMM;2026/27;Bezirksklasse Hochrhein;1;4;SC Dreiländereck 3;Krause, Elias;1317;SGEM Waldshut-Tiengen 2;Dewéth, Attyla;;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;1;SK Rheinfelden 1;Acton, Fynn Jona;1746;SK Rheinfelden 2;Kaiser, Robert;1369;2 - 0
+BMM;2026/27;Bezirksklasse Hochrhein;1;2;SK Rheinfelden 2;Lücke, Liam;1320;SK Rheinfelden 1;Konysbekov, Darmen;1426;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;3;SK Rheinfelden 1;Haag, Rolf;1690;SK Rheinfelden 2;Brugger, Jan;1233;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;4;SK Rheinfelden 2;Pradeep, Riya;;SK Rheinfelden 1;Ödül, Ismail Irfan;;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;1;TV Kadelburg 1;Schönherr, Konrad;1912;TV Kadelburg 2;Nagel, Magnus;1147;2 - 0
+BMM;2026/27;Bezirksklasse Hochrhein;1;2;TV Kadelburg 2;Peter, Bastian;;TV Kadelburg 1;Franz, Elias;1481;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;3;TV Kadelburg 1;Mielke, Bernd;;TV Kadelburg 2;Schmidt García, Joaquín;;2 - 0
+BMM;2026/27;Bezirksklasse Hochrhein;1;4;TV Kadelburg 2;Smilenko, Dmytro;;TV Kadelburg 1;Franz, Claudius;1271;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;1;SC Brombach 7;;;SG Schopfheim 2;Hoch, Franz;1820;4 - 6
+BMM;2026/27;Bezirksklasse Hochrhein;1;2;SG Schopfheim 2;Kraus, Werner;1605;SC Brombach 7;;;6 - 4
+BMM;2026/27;Bezirksklasse Hochrhein;1;3;SC Brombach 7;;;SG Schopfheim 2;Pfefferle, Helmut;1550;4 - 6
+BMM;2026/27;Bezirksklasse Hochrhein;1;4;SG Schopfheim 2;Karakas, Mirac;;SC Brombach 7;;;6 - 4
+BMM;2026/27;Bezirksklasse Hochrhein;1;1;SC Brombach 6;Hecht, Isabel;1435;SC Brombach 5;Schröder, Jann;1683;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;2;SC Brombach 5;Parsa, Ahmad Komail;1563;SC Brombach 6;Gultyaev, Alisa;1289;2 - 0
+BMM;2026/27;Bezirksklasse Hochrhein;1;3;SC Brombach 6;Casanova, Gian Luigi;1250;SC Brombach 5;Zinchenko, Danylo;1535;0 - 2
+BMM;2026/27;Bezirksklasse Hochrhein;1;4;SC Brombach 5;Betta, Alexander;;SC Brombach 6;Gultyaev, Maxim;1160;2 - 0

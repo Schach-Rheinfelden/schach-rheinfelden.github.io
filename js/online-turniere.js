@@ -15,11 +15,18 @@
  *
  * Neues Turnier? Einfach den Lichess-Link in den Block einfuegen - mehr nicht.
  * Ein Link in <!-- … --> zaehlt nicht (voruebergehend aus der Wertung nehmen).
- * Ein Turnier, das gespielt und gezeigt, aber NICHT gewertet werden soll
- * (Freundschafts-, Test- oder Sonderturnier): "(ohne Wertung)" dahinter.
- *     https://lichess.org/swiss/AbCd1234 (ohne Wertung)
- * Es ist dann ueberall als "Ohne Wertung" gekennzeichnet - im Countdown,
- * auf der Karte, im Turnier selbst und in der Gesamtwertung.
+ *
+ * Zwei Bereiche im Block - Turniere MIT und OHNE Gesamtwertung:
+ *     MIT GESAMTWERTUNG:
+ *     https://lichess.org/swiss/AbCd1234
+ *     https://lichess.org/tournament/XyZ98765
+ *     OHNE GESAMTWERTUNG:
+ *     https://lichess.org/swiss/QwEr5678
+ * Jeder Link gehoert zur letzten Ueberschrift davor (Gross/klein egal,
+ * Doppelpunkt egal). Ohne Ueberschrift zaehlt ein Link zur Gesamtwertung.
+ * Turniere "ohne" stehen unter "Weitere Turniere", bekommen keine Nummer und
+ * zaehlen nicht in Gesamtwertung, Serien-Zahlen und Spielerliste. Gibt es NUR
+ * Turniere ohne Gesamtwertung, zeigt die Seite einfach eine Turnier-Uebersicht.
  *
  *   data-serie      Ueberschrift der Gesamtwertung (optional)
  *   data-punkte     Punkte fuer Platz 1, 2, 3 … (Vorgabe 10,8,6,5,4,3,2,1)
@@ -336,15 +343,16 @@
         const gesehen = new Set(), liste = [], treffer = [];
         let m;
         while ((m = muster.exec(quelle)) !== null) treffer.push({ m, ende: m.index + m[0].length });
-        treffer.forEach((t, i) => {
+        /* Ueberschriften "MIT GESAMTWERTUNG" / "OHNE GESAMTWERTUNG" teilen den Block
+           in zwei Bereiche. Jeder Link gehoert zur letzten Ueberschrift davor. */
+        const kopf = [], km = /\b(mit|ohne)\s+(?:gesamt\s*)?wertung/gi;
+        while ((m = km.exec(quelle)) !== null) kopf.push({ pos: m.index, ohne: m[1].toLowerCase() === 'ohne' });
+        treffer.forEach(t => {
             const typ = t.m[1] === 'swiss' ? 'swiss' : 'arena', uid = typ + ':' + t.m[2];
             if (gesehen.has(uid)) return;
             gesehen.add(uid);
-            /* Was zwischen diesem Link und dem naechsten steht, gehoert zu ihm:
-               "(ohne Wertung)" oder "nicht gewertet" nimmt das Turnier aus der
-               Gesamtwertung. Gross-/Kleinschreibung und Klammern sind egal. */
-            const danach = quelle.slice(t.ende, treffer[i + 1] ? treffer[i + 1].m.index : quelle.length).replace(/<[^>]*>/g, ' ');
-            liste.push({ typ, id: t.m[2], uid, ohneWertung: /ohne\s*wertung|nicht\s*gewertet|keine\s*wertung/i.test(danach) });
+            const k = kopf.filter(x => x.pos < t.m.index).pop();
+            liste.push({ typ, id: t.m[2], uid, weitere: !!(k && k.ohne) });
         });
         return liste;
     }
@@ -374,7 +382,7 @@
             spieler: null, spielerGeladen: 0,     // Rangliste (laeuft nach)
             partien: null, partienGeladen: 0, partienGekappt: false, partienLaeuft: null,
             fehler: null,
-            ohneWertung: !!link.ohneWertung
+            weitere: !!link.weitere
         };
     }
 
@@ -522,7 +530,7 @@
      * Wer sich anmeldet und keine Partie spielt, bekommt nichts.
      */
     function gesamtwertung(turniere, cfg, modus, streich) {
-        const liste = turniere.filter(t => t.status === 'fertig' && t.spieler && !t.ohneWertung);
+        const liste = turniere.filter(t => t.status === 'fertig' && t.spieler && !t.weitere);
         const behalten = Math.max(1, liste.length - Math.min(streich, Math.max(0, liste.length - 1)));
         const map = new Map();
         liste.forEach((t, ti) => {
@@ -888,8 +896,8 @@
        ═══════════════════════════════════════════════════════════════════ */
 
     function zeichneVorschau(ziel, turniere, zeigeOhne) {
-        // Wer sich anmeldet, soll vorher wissen, dass es um keine Serienpunkte geht.
-        const ohne = t => zeigeOhne && t.ohneWertung ? ' <span class="ot-abzeichen ohne">Ohne Wertung</span>' : '';
+        // Wer sich anmeldet, soll vorher wissen, ob es um Punkte fuer die Gesamtwertung geht.
+        const ohne = t => zeigeOhne && t.weitere ? ' <small class="ot-leise">· ohne Gesamtwertung</small>' : '';
         const laufend = turniere.filter(t => t.status === 'laeuft');
         const geplant = turniere.filter(t => t.status === 'geplant' && t.start).sort((a, b) => new Date(a.start) - new Date(b.start));
         let html = laufend.map(t => '<div class="glass-card ot-live"><span class="ot-live-punkt" aria-hidden="true"></span>'
@@ -899,9 +907,8 @@
         if (n) {
             html += '<div class="glass-card ot-countdown" data-ot-start="' + esc(n.start) + '">'
                 + '<div class="ot-countdown-kopf">Nächstes Turnier</div><h3 class="ot-countdown-name">' + esc(n.name) + '</h3>'
-                + (zeigeOhne && n.ohneWertung ? '<div class="ot-ohne-hinweis"><span class="ot-abzeichen ohne">Ohne Wertung</span> Dieses Turnier zählt nicht zur Gesamtwertung – einfach mitspielen und Spass haben.</div>' : '')
                 + '<div class="ot-countdown-meta">' + esc(datumText(n.start)) + ' · ' + (n.typ === 'swiss' ? 'Swiss' : 'Arena') + ' · ' + esc(n.dauer) + ' · ' + esc(n.bedenkzeit)
-                + (n.spielerZahl ? ' · ' + n.spielerZahl + ' angemeldet' : '') + '</div>'
+                + (n.spielerZahl ? ' · ' + n.spielerZahl + ' angemeldet' : '') + (zeigeOhne && n.weitere ? ' · ohne Gesamtwertung' : '') + '</div>'
                 + '<div class="ot-uhr" role="timer" aria-live="off">' + ['tage', 'std', 'min', 'sek'].map(e => '<div class="ot-uhr-feld"><b data-ot-uhr="' + e + '">–</b><span>'
                     + { tage: 'Tage', std: 'Std', min: 'Min', sek: 'Sek' }[e] + '</span></div>').join('') + '</div>'
                 + '<a class="btn btn-primary ot-countdown-knopf" href="' + esc(n.url) + '" target="_blank" rel="noopener">Zum Turnier auf Lichess ↗</a></div>';
@@ -955,6 +962,9 @@
             gpModus: 'platz', gpStreich: cfg.streich
         };
         const links = linksLesen(block);
+        block.classList.add('ot-bereit');   // ab jetzt keine rohen Links/Ueberschriften mehr zeigen
+        // Nur Turniere ohne Gesamtwertung eingetragen? Dann sind das einfach "die Turniere".
+        if (links.length && links.every(l => l.weitere)) { links.forEach(l => { l.weitere = false; }); cfg.wertung = false; }
         /* Ein einzelnes Turnier braucht keine Serie drumherum: kein Kopf, keine
            Bereiche, keine Gesamtwertung - nur das Turnier selbst. */
         const einzel = cfg.modus === 'einzel' || (cfg.modus !== 'serie' && links.length === 1);
@@ -975,18 +985,19 @@
 
         if (!links.length) {
             el.ansicht.innerHTML = '<div class="glass-card ot-bald"><div class="ot-bald-symbol" aria-hidden="true">♞</div>'
-                + '<h3>Das erste Online-Turnier steht vor der Tür</h3><p>Sobald gespielt wird, findest du hier Ranglisten, alle Partien und die Gesamtwertung. Schau bald wieder vorbei!</p></div>';
+                + '<h3>Das erste Online-Turnier steht vor der Tür</h3><p>Sobald gespielt wird, findest du hier Ranglisten und alle Partien. Schau bald wieder vorbei!</p></div>';
             if (window.console) console.info('Online-Turniere: Noch keine Lichess-Links im Block eingetragen (pages.csv).');
             return;
         }
 
         const aktivesTurnier = () => z.bereich === 'turnier' ? (z.turniere.find(t => t.uid === z.aktiv) || null) : null;
         const sichtbar = () => z.turniere.filter(t => t.status !== 'geplant');
-        const fertige = () => z.turniere.filter(t => t.status === 'fertig');
-        // Nur in einer Serie MIT Gesamtwertung ist "ohne Wertung" eine Aussage.
-        const ohneW = t => cfg.wertung && !einzel && t.ohneWertung;
-        const gewertete = () => fertige().filter(t => !t.ohneWertung);
-        const ohneAbzeichen = '<span class="ot-abzeichen ohne" title="Dieses Turnier zählt nicht zur Gesamtwertung">Ohne Wertung</span>';
+        // Turniere ohne Gesamtwertung: eigener Abschnitt "Weitere Turniere", keine Nummer,
+        // keine Serien-Zahlen, keine Gesamtwertung. (Bei einem einzelnen Turnier egal.)
+        const istWeitere = t => !einzel && t.weitere;
+        const serie = () => z.turniere.filter(t => !istWeitere(t));
+        const fertige = () => serie().filter(t => t.status === 'fertig');
+        const gewertete = fertige;
 
         /* ── Fortschritt ohne alles neu zu zeichnen ──────────────────── */
         /* Waehrend etwas eintrifft, die sichtbare Ansicht alle 0,7 s neu zeichnen
@@ -1047,15 +1058,15 @@
         }
 
         /* ── Kopf der Serie ──────────────────────────────────────────── */
-        const turnierTitel = t => '#' + t.nr + ' · ' + esc(t.name);
+        const turnierTitel = t => (t.nr ? '#' + t.nr + ' · ' : '') + esc(t.name);
         // Nur wer wirklich gespielt hat - Angemeldete ohne Partie zaehlen nicht als Teilnehmer.
-        function alleSpielerKeys() { const n = new Set(); z.turniere.filter(t => t.status !== 'geplant').forEach(t => (t.spieler || t.spielerTeil || []).forEach(p => { if (p.leistung || p.punkte > 0) n.add(p.key); })); return n; }
+        function alleSpielerKeys() { const n = new Set(); serie().filter(t => t.status !== 'geplant').forEach(t => (t.spieler || t.spielerTeil || []).forEach(p => { if (p.leistung || p.punkte > 0) n.add(p.key); })); return n; }
 
         function zeichneHeld() {
-            if (einzel) { el.held.innerHTML = ''; return; }
-            const fertig = fertige(), offen = z.turniere.filter(t => t.status !== 'fertig');
+            if (einzel || !serie().length) { el.held.innerHTML = ''; return; }
+            const fertig = fertige(), offen = serie().filter(t => t.status !== 'fertig');
             const namen = alleSpielerKeys();
-            const partien = z.turniere.filter(t => t.status !== 'geplant').reduce((s, t) => s + (t.partien ? t.partien.length : (t.partienZahl || 0)), 0);
+            const partien = serie().filter(t => t.status !== 'geplant').reduce((s, t) => s + (t.partien ? t.partien.length : (t.partienZahl || 0)), 0);
             const gw = gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich).zeilen;
             const zahl = (w, l) => '<div class="ot-held-zahl"><b>' + w + '</b><span>' + l + '</span></div>';
             el.held.innerHTML = '<div class="glass-card ot-held-karte">'
@@ -1075,7 +1086,7 @@
             const chip = x => '<span class="ot-zahl-chip">' + x + '</span>';
             el.navi.hidden = einzel;
             el.navi.innerHTML = einzel ? '' : [['gesamt', '🏆 Gesamtwertung', gewertete().length], ['turniere', '📅 Turniere', z.turniere.length], ['spieler', '👥 Spieler', alleSpielerKeys().size || '…']]
-                .filter(([k]) => k !== 'gesamt' || cfg.wertung)
+                .filter(([k]) => k !== 'gesamt' || (cfg.wertung && serie().length))
                 .map(([k, l, n]) => '<button type="button" class="ot-reiter' + (haupt === k ? ' aktiv' : '') + '" data-ot-bereich="' + k + '">' + l + ' ' + chip(n) + '</button>').join('');
 
             const t = aktivesTurnier();
@@ -1084,9 +1095,9 @@
             if (einzel && t.status === 'geplant') { el.unter.innerHTML = ''; return; }
             // Einzelturnier: keine Pfadzeile - Name und Datum stehen gleich darunter in der Zusammenfassung.
             el.unter.innerHTML = (einzel ? '' : '<div class="ot-pfad"><button type="button" class="ot-knopf" data-ot-bereich="turniere">← Alle Turniere</button>'
-                + '<span class="ot-pfad-titel"><b>' + turnierTitel(t) + '</b><small>' + esc(datumText(t.start)) + '</small></span>'
-                + (t.status === 'laeuft' ? '<span class="ot-abzeichen live">Läuft</span>' : '') + (ohneW(t) ? ohneAbzeichen : '') + '</div>'
-                + (ohneW(t) ? '<div class="ot-ohne-hinweis">ℹ️ <b>Ohne Wertung:</b> Dieses Turnier zählt nicht zur Gesamtwertung. Rangliste und Partien gelten nur für dieses Turnier.</div>' : ''))
+                + '<span class="ot-pfad-titel"><b>' + turnierTitel(t) + '</b><small>' + esc(datumText(t.start))
+                + (istWeitere(t) && cfg.wertung ? ' · ohne Gesamtwertung' : '') + '</small></span>'
+                + (t.status === 'laeuft' ? '<span class="ot-abzeichen live">Läuft</span>' : '') + '</div>')
                 + (t.status === 'geplant' ? '' : '<div class="ot-reiter-leiste ot-unterreiter">' + [['rangliste', 'Rangliste', t.spieler ? t.spieler.length : t.spielerZahl],
                     ['kreuz', 'Kreuztabelle', t.spieler ? t.spieler.length : t.spielerZahl],
                     ['partien', 'Partien & Paarungen', t.partien ? t.partien.length : (t.partienZahl || '…')]]
@@ -1121,29 +1132,35 @@
         function zeichneTurnierListe() {
             // Live und Kommendes zuerst, dann Beendete - das neueste oben.
             const rang = x => x.status === 'laeuft' ? 0 : x.status === 'geplant' ? 1 : 2;
-            const reihe = z.turniere.slice().sort((a, b) => (rang(a) - rang(b))
+            const sortiert = liste => liste.slice().sort((a, b) => (rang(a) - rang(b))
                 || (rang(a) === 1 ? new Date(a.start) - new Date(b.start) : new Date(b.start) - new Date(a.start)));
-            el.ansicht.innerHTML = '<div class="ot-turnier-karten">' + reihe.map(t => {
+            const karte = t => {
                 const sieger = t.status === 'fertig' && t.spieler && t.spieler[0];
                 const statusText = t.status === 'fertig' ? 'Beendet' : t.status === 'laeuft' ? 'Läuft gerade' : 'Geplant';
                 const fuss = sieger ? '<span>🥇 <b>' + titelTag(sieger.titel) + esc(sieger.name) + '</b> · ' + pkt(sieger.punkte) + ' Pkt.</span>'
                     : t.status === 'geplant' ? '<span class="ot-gold">⏳ ' + bisStart(t) + '</span>'
                     : t.status === 'laeuft' ? '<span class="ot-gruen">● Live – Rangliste ansehen</span>'
                     : '<span class="ot-leise">Rangliste wird geladen …</span>';
-                return '<article class="glass-card ot-tkarte ' + t.status + (ohneW(t) ? ' ohne-wertung' : '') + '">'
-                    + '<button type="button" class="ot-tkarte-flaeche" data-ot-wahl="' + esc(t.uid) + '" aria-label="' + esc('Turnier #' + t.nr + ' öffnen') + '">'
-                    + '<span class="ot-tkarte-kopf"><span class="ot-tkarte-nr">#' + t.nr + '</span><span class="ot-tkarte-abzeichen">' + (ohneW(t) ? ohneAbzeichen : '')
-                    + '<span class="ot-abzeichen ' + (t.status === 'laeuft' ? 'live' : t.status === 'geplant' ? 'gold' : '') + '">' + statusText + '</span></span></span>'
+                return '<article class="glass-card ot-tkarte ' + t.status + '">'
+                    + '<button type="button" class="ot-tkarte-flaeche" data-ot-wahl="' + esc(t.uid) + '" aria-label="' + esc((t.nr ? 'Turnier #' + t.nr : t.name) + ' öffnen') + '">'
+                    + '<span class="ot-tkarte-kopf"><span class="ot-tkarte-nr">' + (t.nr ? '#' + t.nr : '') + '</span>'
+                    + '<span class="ot-abzeichen ' + (t.status === 'laeuft' ? 'live' : t.status === 'geplant' ? 'gold' : '') + '">' + statusText + '</span></span>'
                     + '<span class="ot-tkarte-name">' + esc(t.name) + '</span>'
                     + '<span class="ot-tkarte-datum">' + esc(datumText(t.start)) + '</span>'
                     + '<span class="ot-tkarte-meta"><span>' + (t.typ === 'swiss' ? 'Swiss' : 'Arena') + ' · ' + esc(t.dauer) + '</span><span>' + esc(t.bedenkzeit) + '</span><span>'
                     + (t.spielerZahl || 0) + ' ' + (t.status === 'geplant' ? 'angemeldet' : 'Spieler') + '</span></span>'
-                    + (ohneW(t) ? '<span class="ot-tkarte-hinweis">Zählt nicht zur Gesamtwertung</span>' : '')
                     + '<span class="ot-tkarte-fuss">' + fuss + '<span aria-hidden="true">→</span></span>'
                     + '</button>'
                     + (t.status !== 'fertig' ? '<a class="ot-tkarte-lichess" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + (t.status === 'geplant' ? 'Auf Lichess beitreten ↗' : 'Live auf Lichess ↗') + '</a>' : '')
                     + '</article>';
-            }).join('') + '</div>';
+            };
+            const weitere = z.turniere.filter(istWeitere), haupt = serie();
+            const abschnitt = (titel, text) => '<div class="ot-abschnitt"><h3>' + titel + '</h3>' + (text ? '<span>' + text + '</span>' : '') + '</div>';
+            const gruppe = l => '<div class="ot-turnier-karten">' + sortiert(l).map(karte).join('') + '</div>';
+            // Nur wenn es beide Arten gibt, braucht es Ueberschriften.
+            el.ansicht.innerHTML = !weitere.length ? gruppe(haupt)
+                : (haupt.length ? abschnitt(cfg.wertung ? '🏆 Mit Gesamtwertung' : '🏆 ' + esc(cfg.serie), cfg.wertung ? 'Turniere der Serie «' + esc(cfg.serie) + '»' : '') + gruppe(haupt) : '')
+                + abschnitt('♟️ Weitere Turniere', cfg.wertung ? 'Ohne Gesamtwertung' : '') + gruppe(weitere);
         }
 
         function zeichneGeplant(t) {
@@ -1157,7 +1174,7 @@
         function serienSpieler() {
             const gw = new Map(gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich).zeilen.map(r => [r.key, r]));
             const map = new Map();
-            z.turniere.filter(t => t.spieler && t.status !== 'geplant').forEach(t => t.spieler.forEach(p => {
+            serie().filter(t => t.spieler && t.status !== 'geplant').forEach(t => t.spieler.forEach(p => {
                 if (!(p.leistung || p.punkte > 0)) return;
                 if (!map.has(p.key)) map.set(p.key, { key: p.key, name: p.name, titel: p.titel, rating: p.rating, teil: 0, bester: Infinity, siege: 0, podest: 0, punkte: 0, liste: [] });
                 const e = map.get(p.key);
@@ -1208,10 +1225,10 @@
             if (!e) return;
             const kpi = (l, w) => '<div class="ot-kpi"><small>' + l + '</small><b>' + w + '</b></div>';
             const zeilen = e.liste.slice().sort((a, b) => new Date(b.t.start) - new Date(a.t.start)).map(({ t, p }) => {
-                const wert = cfg.wertung && t.status === 'fertig' && !t.ohneWertung ? (z.gpModus === 'punkte' ? p.punkte : (cfg.punkte[p.rang - 1] || 0) + cfg.teilnahme) : null;
+                const wert = cfg.wertung && t.status === 'fertig' ? (z.gpModus === 'punkte' ? p.punkte : (cfg.punkte[p.rang - 1] || 0) + cfg.teilnahme) : null;
                 return '<tr><td><b>#' + t.nr + '</b> ' + esc(t.name) + '<br><small>' + esc(datumText(t.start)) + '</small></td>'
                     + '<td class="r">' + (t.status === 'fertig' ? medaille(p.rang) : p.rang) + ' <small>von ' + (t.spieler ? t.spieler.length : '?') + '</small></td>'
-                    + '<td class="r">' + pkt(p.punkte) + '</td>' + (cfg.wertung ? '<td class="r gold">' + (t.ohneWertung ? '<small class="ot-ohne-text">ohne Wertung</small>' : wert == null ? '<small>läuft</small>' : '+' + pkt(wert)) + '</td>' : '')
+                    + '<td class="r">' + pkt(p.punkte) + '</td>' + (cfg.wertung ? '<td class="r gold">' + (wert == null ? '<small>läuft</small>' : '+' + pkt(wert)) + '</td>' : '')
                     + '<td><button type="button" class="ot-knopf" data-ot-zu-turnier="' + esc(t.uid) + '|' + esc(key) + '">Partien →</button></td></tr>';
             }).join('');
             Fenster.inhaltOeffnen(
@@ -1439,12 +1456,11 @@
         /* ── Gesamtwertung ───────────────────────────────────────────── */
         function zeichneGesamt() {
             if (!gewertete().length) {
-                el.ansicht.innerHTML = '<div class="ot-karte ot-mittig-karte"><div class="ot-bald-symbol" aria-hidden="true">🏆</div><h3 class="ot-mittel">Noch kein gewertetes Turnier beendet</h3>'
-                    + '<p>Die Gesamtwertung beginnt mit dem ersten abgeschlossenen Turnier, das gewertet wird.</p><button type="button" class="ot-knopf" data-ot-bereich="turniere">Zu den Turnieren →</button></div>';
+                el.ansicht.innerHTML = '<div class="ot-karte ot-mittig-karte"><div class="ot-bald-symbol" aria-hidden="true">🏆</div><h3 class="ot-mittel">Noch kein Turnier beendet</h3>'
+                    + '<p>Die Gesamtwertung beginnt mit dem ersten abgeschlossenen Turnier der Serie.</p><button type="button" class="ot-knopf" data-ot-bereich="turniere">Zu den Turnieren →</button></div>';
                 return;
             }
             const fehlt = gewertete().filter(t => !t.spieler);
-            const ausgenommen = fertige().filter(t => t.ohneWertung);
             const { zeilen, turniere, gestrichenZahl } = gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich);
             const q = z.gpSuche.trim().toLowerCase();
             const gefiltert = zeilen.filter(r => !q || r.name.toLowerCase().includes(q));
@@ -1468,8 +1484,6 @@
                 + '<div class="ot-infoleiste"><span class="ot-info"><b>' + turniere.length + '</b> ' + (turniere.length === 1 ? 'Turnier' : 'Turniere') + ' gewertet</span>'
                 + schluessel
                 + (gestrichenZahl ? '<span class="ot-info"><b>' + gestrichenZahl + '</b> Streichresultat' + (gestrichenZahl > 1 ? 'e' : '') + '</span>' : '')
-                // Ausgenommene Turniere ausdruecklich nennen - sonst fragt man sich, wo sie geblieben sind.
-                + ausgenommen.map(t => '<span class="ot-info ot-info-ohne">#' + t.nr + ' ' + esc(t.name) + ': <b>ohne Wertung</b></span>').join('')
                 + '</div>';
             if (fehlt.length) h += '<div class="ot-polster">' + fehlt.map(t => fortschrittHTML(t, 'spieler')).join('') + '</div>';
             h += '<div class="ot-tabelle-wrap"><table class="ot-daten"><thead><tr><th>Rang</th><th>Spieler</th><th class="r">Teiln.</th>'
@@ -1587,8 +1601,8 @@
             /* Nummern in zeitlicher Reihenfolge: #1 ist das erste Turnier der Serie.
                So lassen sich auch gleich heissende Turniere auseinanderhalten -
                etwa zwei "Stuendliche Bullet-Arenen". */
-            z.turniere.slice().sort((a, b) => new Date(a.start) - new Date(b.start)).forEach((t, i) => { t.nr = i + 1; });
-            zeichneVorschau(el.vorschau, z.turniere, cfg.wertung && !einzel);
+            serie().slice().sort((a, b) => new Date(a.start) - new Date(b.start)).forEach((t, i) => { t.nr = i + 1; });
+            zeichneVorschau(el.vorschau, z.turniere, !einzel && cfg.wertung);
             const ts = sichtbar();
             // Mit einem beendeten Turnier gibt es schon eine Gesamtwertung.
             if (einzel) { z.bereich = 'turnier'; z.aktiv = z.turniere[0] ? z.turniere[0].uid : null; }

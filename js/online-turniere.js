@@ -28,7 +28,22 @@
  * zaehlen nicht in Gesamtwertung, Serien-Zahlen und Spielerliste. Gibt es NUR
  * Turniere ohne Gesamtwertung, zeigt die Seite einfach eine Turnier-Uebersicht.
  *
- *   data-serie      Ueberschrift der Gesamtwertung (optional)
+ * MEHRERE SERIEN: einfach mehrere Bloecke hintereinander in dieselbe Zelle,
+ * jeder mit eigenem Namen und eigenen Einstellungen:
+ *     <div class="online-turniere" data-serie="Jans Online-Turniere" …>…</div>
+ *     <div class="online-turniere" data-serie="960 Series" data-wertung="nein">…</div>
+ * Die Seite zeigt dann zuerst eine Karte pro Serie; ein Klick oeffnet die Serie.
+ *
+ * DIREKTE LINKS: Die Adresszeile zeigt immer, was gerade offen ist, und laesst
+ * sich kopieren (oder per Knopf "🔗 Link"):
+ *     ?page=online-turniere&serie=960-series                 Serie
+ *     ?page=online-turniere&serie=960-series&bereich=spieler  Bereich (gesamt|turniere|spieler)
+ *     ?page=online-turniere&turnier=AbCd1234&reiter=partien   Turnier (+ rangliste|kreuz|partien)
+ * "serie" ist der Name klein und mit Bindestrichen (oder data-id="…" am Block).
+ * Die Zurueck-Taste des Browsers funktioniert dabei wie gewohnt.
+ *
+ *   data-serie      Name der Serie (Kopf und Serienkarte)
+ *   data-id         Kurzname fuer Links (optional, sonst aus data-serie)
  *   data-punkte     Punkte fuer Platz 1, 2, 3 … (Vorgabe 10,8,6,5,4,3,2,1)
  *   data-teilnahme  Punkte fuer jede gespielte Teilnahme (Vorgabe 1)
  *   data-streich    Streichresultate in der Gesamtwertung (Vorgabe 0)
@@ -941,7 +956,7 @@
        EINE SERIE (= ein Block auf der Seite)
        ═══════════════════════════════════════════════════════════════════ */
 
-    function Serie(block) {
+    function Serie(block, hub, id) {
         const cfg = {
             // Name der Serie fuer den Kopf. Frueher hiess die Vorgabe "Gesamtwertung" -
             // als Serienname ergibt das keinen Sinn, also gilt es als nicht gesetzt.
@@ -983,11 +998,28 @@
         const el = { held: block.querySelector('.ot-held'), vorschau: block.querySelector('.ot-vorschau'), navi: block.querySelector('.ot-navi'),
             unter: block.querySelector('.ot-unternavi'), ansicht: block.querySelector('.ot-ansicht') };
 
+        /* ── Adresse und Serien-Uebersicht ───────────────────────────── */
+        let bereit = false, ersterStand = true, wunsch = null;
+        const aktiv = () => !hub || hub.aktivId === id;
+        (function () {
+            const p = Adresse.lesen();
+            if ((!hub || p.serie === id) && (p.bereich || p.turnier || p.reiter)) wunsch = p;
+        })();
+        const api = {
+            id, block,
+            get bereit() { return bereit; },
+            name: () => (block.dataset.serie || !einzel || !z.turniere[0]) ? cfg.serie : z.turniere[0].name,
+            zusammenfassung: () => zusammenfassung(),
+            anwenden: p => anwenden(p),
+            melde: m => melde(m),
+            binden: () => binden()
+        };
+
         if (!links.length) {
             el.ansicht.innerHTML = '<div class="glass-card ot-bald"><div class="ot-bald-symbol" aria-hidden="true">♞</div>'
                 + '<h3>Das erste Online-Turnier steht vor der Tür</h3><p>Sobald gespielt wird, findest du hier Ranglisten und alle Partien. Schau bald wieder vorbei!</p></div>';
             if (window.console) console.info('Online-Turniere: Noch keine Lichess-Links im Block eingetragen (pages.csv).');
-            return;
+            return api;
         }
 
         const aktivesTurnier = () => z.bereich === 'turnier' ? (z.turniere.find(t => t.uid === z.aktiv) || null) : null;
@@ -1057,6 +1089,48 @@
                 + '</div>';
         }
 
+        /** Kurzfassung fuer die Serienkarte in der Uebersicht. */
+        function zusammenfassung() {
+            if (!links.length) return { leer: true, anzahl: 0, einzel };
+            const live = z.turniere.find(t => t.status === 'laeuft') || null;
+            const naechstes = z.turniere.filter(t => t.status === 'geplant' && t.start).sort((a, b) => new Date(a.start) - new Date(b.start))[0] || null;
+            const gw = cfg.wertung && !einzel && bereit ? gesamtwertung(z.turniere, cfg, 'platz', cfg.streich).zeilen : [];
+            return { leer: false, einzel, geladen: bereit, anzahl: z.turniere.length || links.length, spieler: einzel ? 0 : alleSpielerKeys().size,
+                live, naechstes, fuehrend: gw[0] || null, wertung: cfg.wertung && !einzel };
+        }
+        function zustandJetzt() {
+            const zu = { serie: hub ? id : '', bereich: '', turnier: '', reiter: '' };
+            if (z.bereich === 'turnier') {
+                const t = aktivesTurnier();
+                if (t && !einzel) zu.turnier = t.id;
+                if (t && z.tab !== 'rangliste') zu.reiter = z.tab;
+                if (!t && !einzel) zu.bereich = 'turniere';
+            } else if (!einzel) zu.bereich = z.bereich;
+            return zu;
+        }
+        /** Aktuelle Ansicht in die Adresszeile (nur die sichtbare Serie). */
+        function melde(modus) {
+            if (!bereit || !aktiv()) return;
+            const m = modus || (ersterStand ? 'replace' : 'auto');
+            ersterStand = false;
+            Adresse.schreiben(zustandJetzt(), m);
+        }
+        const standardBereich = () => cfg.wertung && gewertete().length ? 'gesamt' : 'turniere';
+        /** Ansicht aus einem Link (oder der Zurueck-Taste) herstellen. */
+        function anwenden(p) {
+            if (!bereit) { wunsch = p; return; }
+            const reiter = ['rangliste', 'kreuz', 'partien'].includes(p.reiter) ? p.reiter : 'rangliste';
+            const t = p.turnier ? z.turniere.find(x => x.id === p.turnier) : null;
+            if (einzel) z.tab = reiter;
+            else if (t) {
+                if (z.bereich !== 'turnier' || z.aktiv !== t.uid) { z.f = { a: '', b: '', erg: 'alle', upset: 'alle', suche: '' }; z.arenaSeite = 1; }
+                z.bereich = 'turnier'; z.aktiv = t.uid; z.tab = reiter;
+            } else z.bereich = ['turniere', 'spieler'].includes(p.bereich) || (p.bereich === 'gesamt' && cfg.wertung) ? p.bereich : standardBereich();
+            zeichne();
+        }
+        // Die Fenster (Brett, Spieler) gehoeren immer zur Serie, in der zuletzt geklickt wurde.
+        function binden() { Serie._spielerOeffnen = spielerOeffnen; Serie._zuTurnier = zuTurnier; }
+
         /* ── Kopf der Serie ──────────────────────────────────────────── */
         const turnierTitel = t => (t.nr ? '#' + t.nr + ' · ' : '') + esc(t.name);
         // Nur wer wirklich gespielt hat - Angemeldete ohne Partie zaehlen nicht als Teilnehmer.
@@ -1097,7 +1171,8 @@
             el.unter.innerHTML = (einzel ? '' : '<div class="ot-pfad"><button type="button" class="ot-knopf" data-ot-bereich="turniere">← Alle Turniere</button>'
                 + '<span class="ot-pfad-titel"><b>' + turnierTitel(t) + '</b><small>' + esc(datumText(t.start))
                 + (istWeitere(t) && cfg.wertung ? ' · ohne Gesamtwertung' : '') + '</small></span>'
-                + (t.status === 'laeuft' ? '<span class="ot-abzeichen live">Läuft</span>' : '') + '</div>')
+                + (t.status === 'laeuft' ? '<span class="ot-abzeichen live">Läuft</span>' : '')
+                + '<button type="button" class="ot-knopf ot-link-knopf" data-ot-link title="Direkten Link auf dieses Turnier kopieren">🔗 Link</button></div>')
                 + (t.status === 'geplant' ? '' : '<div class="ot-reiter-leiste ot-unterreiter">' + [['rangliste', 'Rangliste', t.spieler ? t.spieler.length : t.spielerZahl],
                     ['kreuz', 'Kreuztabelle', t.spieler ? t.spieler.length : t.spielerZahl],
                     ['partien', 'Partien & Paarungen', t.partien ? t.partien.length : (t.partienZahl || '…')]]
@@ -1105,7 +1180,8 @@
         }
         const zeichneSchalter = () => { zeichneHeld(); zeichneNavi(); };
 
-        function zeichne() {
+        function zeichne() { zeichneJetzt(); melde(); }
+        function zeichneJetzt() {
             zeichneHeld();
             zeichneNavi();
             if (z.bereich === 'gesamt' && !cfg.wertung) z.bereich = 'turniere';
@@ -1525,6 +1601,9 @@
 
         block.addEventListener('click', ev => {
             const x = ev.target;
+            binden();
+            const lk = x.closest('[data-ot-link]');
+            if (lk) { linkKopieren(lk); return; }
             const ber = x.closest('[data-ot-bereich]');
             if (ber) { z.bereich = ber.dataset.otBereich; zeichne(); return; }
             const wahl = x.closest('[data-ot-wahl]');
@@ -1606,8 +1685,10 @@
             const ts = sichtbar();
             // Mit einem beendeten Turnier gibt es schon eine Gesamtwertung.
             if (einzel) { z.bereich = 'turnier'; z.aktiv = z.turniere[0] ? z.turniere[0].uid : null; }
-            else z.bereich = cfg.wertung && gewertete().length ? 'gesamt' : 'turniere';
-            zeichne();
+            else z.bereich = standardBereich();
+            bereit = true;
+            if (wunsch) { const w = wunsch; wunsch = null; anwenden(w); } else zeichne();
+            if (hub) hub.melden();
             if (fehler.length) el.vorschau.insertAdjacentHTML('beforeend', fehler.map(f => '<div class="glass-card ot-fehler">Turnier ' + esc(f.l.id) + ': ' + esc(f.fehler) + '</div>').join(''));
 
             // Ranglisten: zuerst die gerade sichtbare, dann der Rest.
@@ -1617,20 +1698,163 @@
                     await ranglisteLaden(t, n => { t.spielerGeladen = n; fortschritt(); });
                 } catch (e) { t.fehler = e.message; t.spieler = []; }
                 if (z.bereich !== 'turnier' || z.aktiv === t.uid) zeichneMitFokus(); else zeichneSchalter();
+                if (hub) hub.melden();
             }
         })();
+        return api;
     }
 
-    function start() {
-        document.querySelectorAll('.online-turniere').forEach(b => {
-            if (b.dataset.otGestartet) return;
-            b.dataset.otGestartet = '1';
-            Serie(b);
+    /* ═══════════════════════════════════════════════════════════════════
+       DIREKTE LINKS UND MEHRERE SERIEN
+       ═══════════════════════════════════════════════════════════════════ */
+
+    function slug(text) {
+        return String(text || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'serie';
+    }
+
+    function bisStartText(start) {
+        const s = Math.round((new Date(start) - Date.now()) / 1000);
+        if (s <= 0) return 'beginnt jetzt';
+        if (s < 3600) return 'startet in ' + Math.max(1, Math.round(s / 60)) + ' Min.';
+        if (s < 86400) return 'startet in ' + Math.round(s / 3600) + ' Std.';
+        const tage = Math.round(s / 86400);
+        return 'startet in ' + tage + (tage === 1 ? ' Tag' : ' Tagen');
+    }
+
+    /** Die Adresszeile spiegelt, was offen ist: serie, bereich, turnier, reiter.
+        Wechsel von Serie/Bereich/Turnier gibt einen neuen Verlaufseintrag (Zurueck-Taste),
+        ein Reiterwechsel ersetzt nur den aktuellen. "page" & Co. bleiben unberuehrt. */
+    const Adresse = {
+        still: false,
+        SCHLUESSEL: ['serie', 'bereich', 'turnier', 'reiter'],
+        lesen() {
+            const p = new URLSearchParams(location.search);
+            return { serie: p.get('serie') || '', bereich: p.get('bereich') || '', turnier: p.get('turnier') || '', reiter: p.get('reiter') || '' };
+        },
+        schreiben(zu, modus) {
+            try {
+                const jetzt = Adresse.lesen();
+                if (Adresse.SCHLUESSEL.every(k => jetzt[k] === (zu[k] || ''))) return;
+                const wichtig = ['serie', 'bereich', 'turnier'].some(k => jetzt[k] !== (zu[k] || ''));
+                const url = new URL(location.href);
+                Adresse.SCHLUESSEL.forEach(k => { if (zu[k]) url.searchParams.set(k, zu[k]); else url.searchParams.delete(k); });
+                const push = !Adresse.still && (modus === 'push' || (modus === 'auto' && wichtig));
+                history[push ? 'pushState' : 'replaceState']({ ot: 1 }, '', url.pathname + url.search + url.hash);
+            } catch (e) { /* Die Adresszeile ist eine Zugabe - nie ein Grund zum Abbrechen. */ }
+        }
+    };
+
+    function linkKopieren(knopf) {
+        const url = location.href, alt = knopf.innerHTML;
+        const zeig = text => { knopf.innerHTML = text; clearTimeout(knopf._ot); knopf._ot = setTimeout(() => { knopf.innerHTML = alt; }, 1800); };
+        const notfall = () => { try { window.prompt('Link zum Kopieren:', url); } catch (e) { /* kein Dialog */ } };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => zeig('✓ Kopiert'), notfall);
+        else notfall();
+    }
+
+    /** Mehrere Bloecke auf einer Seite: zuerst eine Karte pro Serie, ein Klick oeffnet sie. */
+    function Hub(bloecke) {
+        const kopf = document.createElement('div');
+        kopf.className = 'ot-hub';
+        bloecke[0].parentNode.insertBefore(kopf, bloecke[0]);
+        const hub = { aktivId: null, serien: [], melden };
+        const ids = new Set();
+        bloecke.forEach(b => {
+            const basis = slug(b.dataset.id || b.dataset.serie);
+            let id = basis, n = 2;
+            while (ids.has(id)) id = basis + '-' + n++;
+            ids.add(id);
+            b.hidden = true;
+            hub.serien.push(Serie(b, hub, id));
         });
+
+        let wartet = null;
+        function melden() {
+            if (wartet) return;
+            wartet = setTimeout(() => { wartet = null; if (!hub.aktivId) zeichneUebersicht(); }, 150);
+        }
+
+        function karte(s) {
+            const d = s.zusammenfassung();
+            const infos = [];
+            if (d.live) infos.push('<span class="ot-gruen">● Läuft gerade: ' + esc(d.live.name) + '</span>');
+            if (d.naechstes) infos.push('<span class="ot-gold">⏳ Nächstes: ' + esc(kurzDatum(d.naechstes.start)) + ' · ' + bisStartText(d.naechstes.start) + '</span>');
+            if (d.fuehrend) infos.push('<span>🏆 Spitzenreiter: <b>' + titelTag(d.fuehrend.titel) + esc(d.fuehrend.name) + '</b> · ' + pkt(d.fuehrend.summe) + ' Pkt.</span>');
+            const art = d.einzel ? 'Turnier' : d.wertung ? 'Serie mit Gesamtwertung' : 'Turnierserie';
+            return '<button type="button" class="glass-card ot-serienkarte' + (d.live ? ' live' : '') + '" data-ot-hub="' + esc(s.id) + '">'
+                + '<span class="ot-serienkarte-art">' + art + '</span>'
+                + '<span class="ot-serienkarte-name">' + esc(s.name()) + '</span>'
+                + '<span class="ot-serienkarte-zahlen">' + (d.leer ? '<span>Noch keine Turniere eingetragen</span>'
+                    : '<span><b>' + d.anzahl + '</b> ' + (d.anzahl === 1 ? 'Turnier' : 'Turniere') + '</span>'
+                    + (d.spieler ? '<span><b>' + d.spieler + '</b> Spieler</span>' : '')) + '</span>'
+                + (infos.length ? '<span class="ot-serienkarte-infos">' + infos.join('') + '</span>' : (d.geladen || d.leer ? '' : '<span class="ot-leise">Wird geladen …</span>'))
+                + '<span class="ot-serienkarte-fuss"><span>' + (d.einzel ? 'Zum Turnier' : 'Zur Serie') + '</span><span aria-hidden="true">→</span></span></button>';
+        }
+        function zeichneUebersicht() {
+            kopf.innerHTML = '<div class="ot-serien-karten">' + hub.serien.map(karte).join('') + '</div>';
+        }
+        function zeichneLeiste() {
+            kopf.innerHTML = '<div class="ot-hub-leiste"><button type="button" class="ot-knopf" data-ot-hub="">← Alle Serien</button>'
+                + '<div class="ot-hub-serien">' + hub.serien.map(s => '<button type="button" class="ot-pille' + (s.id === hub.aktivId ? ' aktiv' : '')
+                    + '" data-ot-hub="' + esc(s.id) + '">' + esc(s.name()) + '</button>').join('') + '</div>'
+                + '<button type="button" class="ot-knopf ot-link-knopf" data-ot-link title="Direkten Link auf diese Ansicht kopieren">🔗 Link</button></div>';
+        }
+        function uebersicht(modus) {
+            hub.aktivId = null;
+            hub.serien.forEach(s => { s.block.hidden = true; });
+            zeichneUebersicht();
+            if (modus) Adresse.schreiben({}, modus);
+        }
+        function zeigen(s, modus) {
+            hub.aktivId = s.id;
+            hub.serien.forEach(x => { x.block.hidden = x !== s; });
+            zeichneLeiste();
+            s.binden();
+            if (modus) { if (s.bereit) s.melde(modus); else Adresse.schreiben({ serie: s.id }, modus); }
+        }
+        hub.ausAdresse = function (p, modus, nachZurueck) {
+            const s = p.serie ? hub.serien.find(x => x.id === p.serie) : null;
+            if (!s) return uebersicht(modus);
+            zeigen(s, modus);
+            if (nachZurueck) s.anwenden(p);
+        };
+        kopf.addEventListener('click', ev => {
+            const lk = ev.target.closest('[data-ot-link]');
+            if (lk) { linkKopieren(lk); return; }
+            const h = ev.target.closest('[data-ot-hub]');
+            if (!h) return;
+            const s = hub.serien.find(x => x.id === h.dataset.otHub);
+            if (s) zeigen(s, 'push'); else uebersicht('push');
+            if (kopf.scrollIntoView) kopf.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+        hub.ausAdresse(Adresse.lesen(), null);
+        return hub;
+    }
+
+    let hubInstanz = null;
+    const einzelneSerien = [];
+    function start() {
+        const neu = Array.from(document.querySelectorAll('.online-turniere')).filter(b => !b.dataset.otGestartet);
+        neu.forEach(b => { b.dataset.otGestartet = '1'; });
+        if (neu.length > 1 && !hubInstanz) hubInstanz = Hub(neu);
+        else neu.forEach(b => einzelneSerien.push(Serie(b, null, slug(b.dataset.id || b.dataset.serie))));
+        if (!start._zurueck) {
+            start._zurueck = true;
+            // Zurueck-/Vor-Taste: Ansicht aus der Adresse wiederherstellen, ohne neue Eintraege.
+            window.addEventListener('popstate', () => {
+                Adresse.still = true;
+                try {
+                    const p = Adresse.lesen();
+                    if (hubInstanz) hubInstanz.ausAdresse(p, null, true);
+                    else einzelneSerien.forEach(s => s.anwenden(p));
+                } finally { Adresse.still = false; }
+            });
+        }
     }
 
     // Fuer Tests und fuer Seiten, die den Block erst spaeter einsetzen.
-    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik };
+    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik, slug };
 
     // pages.csv laedt dieses Skript erst, NACHDEM der Inhalt eingesetzt ist.
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

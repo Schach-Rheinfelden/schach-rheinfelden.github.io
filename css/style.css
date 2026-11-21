@@ -5973,3 +5973,21 @@ body.light-theme .ot-modal .ot-zu { background: rgba(255, 255, 255, 0.9); border
 .ot-abschnitt span { font-size: 0.85rem; color: var(--text-secondary); }
 /* Bevor das Skript laeuft: rohe Links und "MIT/OHNE GESAMTWERTUNG" nicht aufblitzen lassen */
 .online-turniere:not(.ot-bereit) { font-size: 0; color: transparent; min-height: 4rem; }
+
+/* Online-Turniere: mehrere Serien - Uebersicht mit einer Karte pro Serie */
+.ot-hub { margin-bottom: 1.5rem; scroll-margin-top: 90px; }
+.ot-serien-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+.ot-serienkarte { display: flex; flex-direction: column; gap: 0.7rem; width: 100%; padding: 1.6rem; text-align: left; font: inherit; color: inherit; cursor: pointer; transition: var(--transition); }
+.ot-serienkarte:hover, .ot-serienkarte:focus-visible { transform: translateY(-3px); border-color: rgba(212, 175, 55, .55); box-shadow: var(--gold-glow); }
+.ot-serienkarte.live { border-color: rgba(16, 185, 129, .5); }
+.ot-serienkarte-art { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-color); }
+.ot-serienkarte-name { font-family: var(--font-heading); font-size: 1.55rem; font-weight: 700; line-height: 1.2; color: var(--text-primary); }
+.ot-serienkarte-zahlen { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; font-size: 0.9rem; color: var(--text-secondary); }
+.ot-serienkarte-zahlen b { font-size: 1.15rem; color: var(--accent-color); }
+.ot-serienkarte-infos { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.88rem; color: var(--text-secondary); }
+.ot-serienkarte-infos b { color: var(--text-primary); }
+.ot-serienkarte-fuss { display: flex; justify-content: space-between; margin-top: auto; padding-top: 0.9rem; border-top: 1px solid var(--glass-border); font-weight: 600; color: var(--accent-color); }
+.ot-hub-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.ot-hub-serien { display: flex; flex-wrap: wrap; gap: 0.4rem; flex: 1 1 auto; }
+.ot-link-knopf { margin-left: auto; font-size: 0.82rem; }
+.ot-hub ~ .online-turniere .ot-pfad .ot-link-knopf { display: none; }   /* oben in der Serienleiste gibt es schon einen */

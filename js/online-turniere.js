@@ -396,6 +396,69 @@
         }
     }
 
+    /* ─── Countdown / Live-Hinweis ────────────────────────────────────── */
+
+    /**
+     * Ganz oben: das naechste angesetzte Turnier mit laufendem Countdown -
+     * oder, wenn gerade eines laeuft, ein Live-Hinweis. Beides fuehrt mit
+     * einem Klick zu Lichess, wo man beitritt bzw. zuschaut.
+     */
+    function zeichneVorschau(ziel, turniere) {
+        const laufend = turniere.filter(t => t.status === 'laeuft');
+        const geplant = turniere.filter(t => t.status === 'geplant' && t.start)
+            .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+        let html = laufend.map(t =>
+            '<div class="glass-card ot-live">'
+            + '<span class="ot-live-punkt" aria-hidden="true"></span>'
+            + '<span class="ot-live-text"><b>Läuft gerade:</b> ' + esc(t.name) + '</span>'
+            + '<a class="btn btn-primary ot-live-knopf" href="' + esc(t.url) + '" target="_blank" rel="noopener">Live verfolgen ↗</a>'
+            + '</div>').join('');
+
+        const n = geplant[0];
+        if (n) {
+            const modus = n.typ === 'swiss' ? 'Swiss · ' + (n.runden || '?') + ' Runden' : 'Arena · ' + (n.minuten || '?') + ' Min.';
+            html += '<div class="glass-card ot-countdown" data-ot-start="' + esc(n.start) + '">'
+                + '<div class="ot-countdown-kopf">Nächstes Turnier</div>'
+                + '<h3 class="ot-countdown-name">' + esc(n.name) + '</h3>'
+                + '<div class="ot-countdown-meta">' + esc(datumText(n.start)) + ' · ' + esc(modus) + ' · ' + esc(n.bedenkzeit)
+                + (n.spielerZahl ? ' · ' + n.spielerZahl + ' angemeldet' : '') + '</div>'
+                + '<div class="ot-uhr" role="timer" aria-live="off">'
+                + ['tage', 'std', 'min', 'sek'].map(e => '<div class="ot-uhr-feld"><b data-ot-uhr="' + e + '">–</b><span>'
+                    + { tage: 'Tage', std: 'Std', min: 'Min', sek: 'Sek' }[e] + '</span></div>').join('')
+                + '</div>'
+                + '<a class="btn btn-primary ot-countdown-knopf" href="' + esc(n.url) + '" target="_blank" rel="noopener">Zum Turnier auf Lichess ↗</a>'
+                + '</div>';
+        }
+        ziel.innerHTML = html;
+
+        const box = ziel.querySelector('.ot-countdown');
+        if (!box) return;
+        const ziele = new Date(box.dataset.otStart).getTime();
+        const feld = k => box.querySelector('[data-ot-uhr="' + k + '"]');
+        const zwei = x => String(x).padStart(2, '0');
+
+        function ticken() {
+            let rest = Math.max(0, Math.floor((ziele - Date.now()) / 1000));
+            if (rest === 0) {
+                // Start erreicht: Uhr durch einen Hinweis ersetzen. Die Rangliste
+                // kommt beim naechsten Aufruf der Seite von Lichess.
+                clearInterval(box._uhr);
+                box.querySelector('.ot-uhr').outerHTML = '<div class="ot-uhr-los">♟️ Es geht los!</div>';
+                box.querySelector('.ot-countdown-kopf').textContent = 'Läuft gerade';
+                return;
+            }
+            const tage = Math.floor(rest / 86400); rest %= 86400;
+            const std = Math.floor(rest / 3600); rest %= 3600;
+            feld('tage').textContent = tage;
+            feld('std').textContent = zwei(std);
+            feld('min').textContent = zwei(Math.floor(rest / 60));
+            feld('sek').textContent = zwei(rest % 60);
+        }
+        ticken();
+        box._uhr = setInterval(ticken, 1000);
+    }
+
     /* ─── Ein Block = eine Serie ──────────────────────────────────────── */
 
     async function serieStarten(block) {
@@ -410,14 +473,22 @@
             ? Number(block.dataset.teilnahme) || 0 : VORGABE_TEILNAHME;
 
         // Die eingetragenen Links verschwinden - an ihre Stelle tritt die Seite.
-        block.innerHTML = '<div class="ot-gesamt-ziel"></div><div class="ot-liste"><p class="ot-leer">Turniere werden geladen …</p></div>';
+        block.innerHTML = '<div class="ot-vorschau-ziel"></div><div class="ot-gesamt-ziel"></div><div class="ot-liste"><p class="ot-leer">Turniere werden geladen …</p></div>';
         block.classList.add('ot-bereit');
+        const vorschauZiel = block.querySelector('.ot-vorschau-ziel');
         const gesamtZiel = block.querySelector('.ot-gesamt-ziel');
         const listeZiel = block.querySelector('.ot-liste');
 
         if (!links.length) {
-            listeZiel.innerHTML = '<div class="glass-card ot-leer">Noch keine Turniere eingetragen. '
-                + 'Füge in pages.csv einen Lichess-Link (lichess.org/swiss/… oder lichess.org/tournament/…) in diesen Block ein.</div>';
+            /* Diese Meldung sehen BESUCHER - darum keine Anleitung, sondern eine
+               Einladung. Der Hinweis fuer die Redaktion steht in der Konsole. */
+            listeZiel.innerHTML = '<div class="glass-card ot-bald">'
+                + '<div class="ot-bald-symbol" aria-hidden="true">♞</div>'
+                + '<h3>Das erste Online-Turnier steht vor der Tür</h3>'
+                + '<p>Sobald gespielt wird, findest du hier Ranglisten, alle Partien und die Gesamtwertung. '
+                + 'Schau bald wieder vorbei!</p>'
+                + '</div>';
+            if (window.console) console.info('Online-Turniere: Noch keine Lichess-Links im Block eingetragen (pages.csv).');
             return;
         }
 
@@ -431,6 +502,7 @@
         turniere.sort((a, b) => new Date(b.start) - new Date(a.start));   // neueste zuerst
         const fertig = turniere.filter(t => t.status === 'fertig');
         const wertung = gesamtwertung(turniere, tabelle, teilnahme);
+        zeichneVorschau(vorschauZiel, turniere);
         zeichneGesamt(gesamtZiel, wertung, serie, tabelle, teilnahme, fertig.length);
 
         listeZiel.innerHTML = '<h2 class="ot-titel-h ot-abschnitt">♟️ Turniere</h2>'

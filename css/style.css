@@ -5912,3 +5912,46 @@ body.light-theme .ot-modal .ot-zu { background: rgba(255, 255, 255, 0.9); border
     .ot-uhr { gap: 0.4rem; } .ot-uhr-feld { min-width: 3.6rem; } .ot-uhr-feld b { font-size: 1.5rem; }
     .ot-live { flex-wrap: wrap; }
 }
+
+/* Online-Turniere: Kopf der Serie, Bereiche, Turnierkarten */
+.ot-held-karte { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem 2rem; padding: 1.75rem 2rem; margin-bottom: 1.25rem; }
+.ot-held-text small { font-size: 0.75rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent-color); }
+.ot-held-text h2 { font-family: var(--font-heading); font-size: 2rem; color: var(--text-primary); margin: 0.25rem 0 0; }
+.ot-held-zahlen { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.ot-held-zahl { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; min-width: 6.5rem; padding: 0.7rem 1rem; border-radius: 14px;
+    border: 1px solid var(--glass-border); background: var(--glass-bg); color: inherit; font-family: var(--font-main); text-align: left; }
+.ot-held-zahl b { font-family: var(--font-heading); font-size: 1.5rem; color: var(--accent-color); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ot-held-zahl span { font-size: 0.75rem; color: var(--text-secondary); }
+.ot-held-zahl.klickbar { cursor: pointer; transition: var(--transition); }
+.ot-held-zahl.klickbar:hover { border-color: var(--accent-color); box-shadow: 0 0 15px var(--gold-glow); }
+.ot-held-zahl.klickbar b { color: var(--text-primary); font-size: 1.15rem; }
+
+.ot-pfad { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem; margin: 0 0 1rem; }
+.ot-pfad-titel { display: flex; flex-direction: column; }
+.ot-pfad-titel b { font-family: var(--font-heading); font-size: 1.35rem; color: var(--text-primary); }
+.ot-pfad-titel small { font-size: 0.82rem; }
+.ot-unterreiter .ot-reiter { flex-basis: 140px; }
+
+.ot-turnier-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.ot-tkarte { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.ot-tkarte:hover { border-color: var(--accent-color); box-shadow: var(--glass-highlight), 0 0 20px var(--gold-glow); }
+.ot-tkarte.laeuft { border-color: rgba(16, 185, 129, 0.5); }
+.ot-tkarte.geplant { border-color: rgba(212, 175, 55, 0.4); }
+.ot-tkarte-flaeche { display: flex; flex-direction: column; gap: 0.45rem; flex: 1; padding: 1.3rem 1.4rem 1.1rem; background: none; border: 0; color: inherit; text-align: left; cursor: pointer; font-family: var(--font-main); }
+.ot-tkarte-kopf { display: flex; align-items: center; justify-content: space-between; }
+.ot-tkarte-nr { font-family: var(--font-heading); font-size: 1.1rem; font-weight: 700; color: var(--accent-color); }
+.ot-tkarte-name { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; color: var(--text-primary); line-height: 1.25; }
+.ot-tkarte-datum { font-size: 0.88rem; color: var(--text-primary); }
+.ot-tkarte-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.8rem; color: var(--text-secondary); }
+.ot-tkarte-fuss { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: auto; padding-top: 0.8rem; border-top: 1px solid var(--glass-border); font-size: 0.88rem; color: var(--text-primary); }
+.ot-tkarte-fuss > span:last-child { color: var(--accent-color); font-size: 1.1rem; }
+.ot-tkarte-lichess { display: block; padding: 0.65rem 1.4rem; border-top: 1px solid var(--glass-border); font-size: 0.85rem; font-weight: 600; color: var(--accent-color); text-decoration: none; }
+.ot-tkarte-lichess:hover { background: rgba(212, 175, 55, 0.08); }
+.ot-gold { color: var(--accent-color); } .ot-gruen { color: var(--ot-s); }
+.ot-mittig-karte { text-align: center; padding: 2.5rem 1.5rem; }
+.ot-mittig-karte p { margin: 0.5rem auto 1.25rem; max-width: 480px; }
+@media (max-width: 600px) {
+    .ot-held-karte { padding: 1.25rem; }
+    .ot-held-text h2 { font-size: 1.5rem; }
+    .ot-held-zahl { min-width: calc(50% - 0.4rem); }
+}

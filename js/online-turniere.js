@@ -77,7 +77,7 @@
         const tag = d.toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
         return mitZeit === false ? tag : tag + ' · ' + d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
     }
-    const kurzDatum = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }); };
+    const kurzDatum = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
     const uhrzeit = ms => { const d = new Date(ms); return isNaN(d) ? '–' : d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }); };
 
     function bedenkzeit(clock) {
@@ -87,6 +87,8 @@
     }
 
     function medaille(rang) { return rang === 1 ? '🥇' : rang === 2 ? '🥈' : rang === 3 ? '🥉' : String(rang); }
+    /** "🥇 1. Platz" - wo die Medaille allein zu wenig sagt. */
+    function platzText(rang) { return !isFinite(rang) ? '–' : (rang <= 3 ? medaille(rang) + ' ' : '') + rang + '. Platz'; }
     const titelTag = t => t ? '<span class="ot-titel">' + esc(t) + '</span>' : '';
 
     const ENDE = {
@@ -840,8 +842,19 @@
             auf('ot-dossier');
         }
 
-        // Klicks in H2H und Dossier: Brett oder anderer Spieler
+        /** Dossier-Fenster mit beliebigem Inhalt (Laufbahn ueber die Serie). */
+        function inhaltOeffnen(kopf, inhalt) {
+            bauen();
+            $('ot-dossier-kopf').innerHTML = kopf;
+            $('ot-dossier-inhalt').innerHTML = inhalt;
+            Fenster._turnier = null;
+            auf('ot-dossier');
+        }
+
+        // Klicks in H2H und Dossier: Sprung ins Turnier, Brett oder anderer Spieler
         function klickInFenster(ev, oeffneSpieler) {
+            const zt = ev.target.closest('[data-ot-zu-turnier]');
+            if (zt) { const teile = zt.dataset.otZuTurnier.split('|'); zu('ot-dossier'); if (Serie._zuTurnier) Serie._zuTurnier(teile[0], teile[1]); return; }
             const b = ev.target.closest('[data-ot-brett]');
             if (b && Fenster._turnier) {
                 const g = (Fenster._turnier.partien || []).find(x => x.id === b.dataset.otBrett);
@@ -852,7 +865,7 @@
             if (s && Fenster._turnier) { zu('ot-h2h-modal'); oeffneSpieler(Fenster._turnier, s.dataset.otSpieler); }
         }
 
-        return { bauen, brettOeffnen, vergleichOeffnen, dossierOeffnen, klickInFenster, vergleichKopf, _turnier: null, $ };
+        return { bauen, brettOeffnen, vergleichOeffnen, dossierOeffnen, inhaltOeffnen, klickInFenster, vergleichKopf, _turnier: null, $ };
     })();
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -905,22 +918,34 @@
 
     function Serie(block) {
         const cfg = {
-            serie: block.dataset.serie || 'Gesamtwertung',
+            // Name der Serie fuer den Kopf. Frueher hiess die Vorgabe "Gesamtwertung" -
+            // als Serienname ergibt das keinen Sinn, also gilt es als nicht gesetzt.
+            serie: (block.dataset.serie && block.dataset.serie !== 'Gesamtwertung') ? block.dataset.serie : 'Online-Turniere',
             punkte: (function () { const p = (block.dataset.punkte || '').split(/[,;\s]+/).map(Number).filter(n => !isNaN(n) && n >= 0); return p.length ? p : VORGABE_PUNKTE; })(),
             teilnahme: block.dataset.teilnahme !== undefined && block.dataset.teilnahme !== '' ? Number(block.dataset.teilnahme) || 0 : VORGABE_TEILNAHME,
             streich: Math.max(0, Number(block.dataset.streich) || 0)
         };
         const z = {
             turniere: [], aktiv: null, tab: 'rangliste',
+            bereich: 'gesamt',          // gesamt | turniere | spieler | turnier
+            gpSuche: '', gpMehr: false, svSuche: '', svSort: 'gp', svMehr: false,
             ktLimit: 12, ktSuche: '', rlSuche: '',
             f: { a: '', b: '', erg: 'alle', upset: 'alle', suche: '' }, arenaSeite: 1,
             gpModus: 'platz', gpStreich: cfg.streich
         };
         const links = linksLesen(block);
-        block.innerHTML = '<div class="ot-vorschau"></div><div class="ot-umschalter" role="tablist" aria-label="Turniere"></div>'
-            + '<div class="ot-reiter-leiste" role="tablist"></div><div class="ot-ansicht"><p class="ot-leer">Turniere werden geladen …</p></div>';
+        /* Aufbau von oben nach unten:
+             Kopf der Serie (Zahlen auf einen Blick)
+             Countdown / Live
+             Hauptbereiche: Gesamtwertung · Turniere · Spieler
+             im Turnier: "← Alle Turniere" und Rangliste · Kreuztabelle · Partien
+             die Ansicht selbst */
+        block.innerHTML = '<div class="ot-held"></div><div class="ot-vorschau"></div>'
+            + '<nav class="ot-reiter-leiste ot-navi" aria-label="Bereiche"></nav><div class="ot-unternavi"></div>'
+            + '<div class="ot-ansicht"><p class="ot-leer">Turniere werden geladen …</p></div>';
         block.classList.add('ot-bereit');
-        const el = { vorschau: block.querySelector('.ot-vorschau'), schalter: block.querySelector('.ot-umschalter'), reiter: block.querySelector('.ot-reiter-leiste'), ansicht: block.querySelector('.ot-ansicht') };
+        const el = { held: block.querySelector('.ot-held'), vorschau: block.querySelector('.ot-vorschau'), navi: block.querySelector('.ot-navi'),
+            unter: block.querySelector('.ot-unternavi'), ansicht: block.querySelector('.ot-ansicht') };
 
         if (!links.length) {
             el.ansicht.innerHTML = '<div class="glass-card ot-bald"><div class="ot-bald-symbol" aria-hidden="true">♞</div>'
@@ -929,7 +954,7 @@
             return;
         }
 
-        const aktivesTurnier = () => z.turniere.find(t => t.uid === z.aktiv) || null;
+        const aktivesTurnier = () => z.bereich === 'turnier' ? (z.turniere.find(t => t.uid === z.aktiv) || null) : null;
         const sichtbar = () => z.turniere.filter(t => t.status !== 'geplant');
         const fertige = () => z.turniere.filter(t => t.status === 'fertig');
 
@@ -991,40 +1016,176 @@
                 + '</div>';
         }
 
-        /* ── Kopf: Umschalter und Reiter ─────────────────────────────── */
-        function zeichneSchalter() {
-            const ts = sichtbar();
-            let h = '';
-            if (fertige().length >= 2) h += '<button type="button" class="ot-pille' + (z.aktiv === 'gesamt' ? ' aktiv' : '') + '" data-ot-wahl="gesamt"><span class="ot-abzeichen sieg">GP</span> 🏆 ' + esc(cfg.serie) + '</button>';
-            ts.forEach(t => {
-                h += '<button type="button" class="ot-pille' + (z.aktiv === t.uid ? ' aktiv' : '') + '" data-ot-wahl="' + esc(t.uid) + '">'
-                    + (t.status === 'laeuft' ? '<span class="ot-abzeichen live">Live</span>' : '<span class="ot-abzeichen">' + (t.typ === 'swiss' ? 'Swiss' : 'Arena') + '</span>')
-                    + ' ' + esc(t.name) + ' <small>' + kurzDatum(t.start) + '</small></button>';
-            });
-            el.schalter.innerHTML = h;
-            el.schalter.hidden = !h;
+        /* ── Kopf der Serie ──────────────────────────────────────────── */
+        const turnierTitel = t => '#' + t.nr + ' · ' + esc(t.name);
+        // Nur wer wirklich gespielt hat - Angemeldete ohne Partie zaehlen nicht als Teilnehmer.
+        function alleSpielerKeys() { const n = new Set(); z.turniere.filter(t => t.status !== 'geplant').forEach(t => (t.spieler || t.spielerTeil || []).forEach(p => { if (p.leistung || p.punkte > 0) n.add(p.key); })); return n; }
 
-            const t = aktivesTurnier();
-            if (!t) { el.reiter.innerHTML = ''; el.reiter.hidden = true; return; }
-            el.reiter.hidden = false;
-            const zahl = x => '<span class="ot-zahl-chip">' + x + '</span>';
-            el.reiter.innerHTML = [['rangliste', 'Rangliste', t.spieler ? t.spieler.length : t.spielerZahl],
-                ['kreuz', 'Kreuztabelle', t.spieler ? t.spieler.length : t.spielerZahl],
-                ['partien', 'Partien & Paarungen', t.partien ? t.partien.length : (t.partienZahl || '…')]]
-                .map(([k, l, n]) => '<button type="button" class="ot-reiter' + (z.tab === k ? ' aktiv' : '') + '" data-ot-tab="' + k + '">' + l + ' ' + zahl(n) + '</button>').join('');
+        function zeichneHeld() {
+            const fertig = fertige(), offen = z.turniere.filter(t => t.status !== 'fertig');
+            const namen = alleSpielerKeys();
+            const partien = z.turniere.filter(t => t.status !== 'geplant').reduce((s, t) => s + (t.partien ? t.partien.length : (t.partienZahl || 0)), 0);
+            const gw = gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich).zeilen;
+            const zahl = (w, l) => '<div class="ot-held-zahl"><b>' + w + '</b><span>' + l + '</span></div>';
+            el.held.innerHTML = '<div class="glass-card ot-held-karte">'
+                + '<div class="ot-held-text"><small>Online-Turnierserie auf Lichess</small><h2>' + esc(cfg.serie) + '</h2></div>'
+                + '<div class="ot-held-zahlen">'
+                + zahl(fertig.length, fertig.length === 1 ? 'Turnier gespielt' : 'Turniere gespielt')
+                + (offen.length ? zahl(offen.length, offen.some(t => t.status === 'laeuft') ? 'läuft / geplant' : 'geplant') : '')
+                + zahl(namen.size || '–', 'Teilnehmer')
+                + zahl(partien || '–', 'Partien')
+                + (gw[0] ? '<button type="button" class="ot-held-zahl klickbar" data-ot-serienspieler="' + esc(gw[0].key) + '"><b>' + titelTag(gw[0].titel) + esc(gw[0].name) + '</b><span>Spitzenreiter · ' + pkt(gw[0].summe) + ' Pkt.</span></button>' : '')
+                + '</div></div>';
         }
 
-        function zeichne() {
-            zeichneSchalter();
-            if (z.aktiv === 'gesamt') return zeichneGesamt();
+        /* ── Navigation: drei Hauptbereiche, im Turnier zusaetzlich Reiter ── */
+        function zeichneNavi() {
+            const haupt = z.bereich === 'turnier' ? 'turniere' : z.bereich;
+            const chip = x => '<span class="ot-zahl-chip">' + x + '</span>';
+            el.navi.innerHTML = [['gesamt', '🏆 Gesamtwertung', fertige().length], ['turniere', '📅 Turniere', z.turniere.length], ['spieler', '👥 Spieler', alleSpielerKeys().size || '…']]
+                .map(([k, l, n]) => '<button type="button" class="ot-reiter' + (haupt === k ? ' aktiv' : '') + '" data-ot-bereich="' + k + '">' + l + ' ' + chip(n) + '</button>').join('');
+
             const t = aktivesTurnier();
-            if (!t) {
-                el.ansicht.innerHTML = z.turniere.length ? '' : '<p class="ot-leer">Keine Turnierdaten.</p>';
-                return;
-            }
+            if (!t) { el.unter.innerHTML = ''; return; }
+            el.unter.innerHTML = '<div class="ot-pfad"><button type="button" class="ot-knopf" data-ot-bereich="turniere">← Alle Turniere</button>'
+                + '<span class="ot-pfad-titel"><b>' + turnierTitel(t) + '</b><small>' + esc(datumText(t.start)) + '</small></span>'
+                + (t.status === 'laeuft' ? '<span class="ot-abzeichen live">Läuft</span>' : '') + '</div>'
+                + (t.status === 'geplant' ? '' : '<div class="ot-reiter-leiste ot-unterreiter">' + [['rangliste', 'Rangliste', t.spieler ? t.spieler.length : t.spielerZahl],
+                    ['kreuz', 'Kreuztabelle', t.spieler ? t.spieler.length : t.spielerZahl],
+                    ['partien', 'Partien & Paarungen', t.partien ? t.partien.length : (t.partienZahl || '…')]]
+                    .map(([k, l, n]) => '<button type="button" class="ot-reiter' + (z.tab === k ? ' aktiv' : '') + '" data-ot-tab="' + k + '">' + l + ' ' + chip(n) + '</button>').join('') + '</div>');
+        }
+        const zeichneSchalter = () => { zeichneHeld(); zeichneNavi(); };
+
+        function zeichne() {
+            zeichneHeld();
+            zeichneNavi();
+            if (z.bereich === 'gesamt') return zeichneGesamt();
+            if (z.bereich === 'turniere') return zeichneTurnierListe();
+            if (z.bereich === 'spieler') return zeichneSpielerVerzeichnis();
+            const t = aktivesTurnier();
+            if (!t) { z.bereich = 'turniere'; return zeichne(); }
+            if (t.status === 'geplant') return zeichneGeplant(t);
             if (z.tab === 'kreuz') return zeichneKreuz(t);
             if (z.tab === 'partien') return zeichnePartien(t);
             return zeichneRangliste(t);
+        }
+
+        /* ── Turniere: Kartenuebersicht ──────────────────────────────── */
+        function bisStart(t) {
+            const s = Math.round((new Date(t.start) - Date.now()) / 1000);
+            if (s <= 0) return 'beginnt jetzt';
+            if (s < 3600) return 'startet in ' + Math.max(1, Math.round(s / 60)) + ' Min.';
+            if (s < 86400) return 'startet in ' + Math.round(s / 3600) + ' Std.';
+            return 'startet in ' + Math.round(s / 86400) + ' Tagen';
+        }
+
+        function zeichneTurnierListe() {
+            // Live und Kommendes zuerst, dann Beendete - das neueste oben.
+            const rang = x => x.status === 'laeuft' ? 0 : x.status === 'geplant' ? 1 : 2;
+            const reihe = z.turniere.slice().sort((a, b) => (rang(a) - rang(b))
+                || (rang(a) === 1 ? new Date(a.start) - new Date(b.start) : new Date(b.start) - new Date(a.start)));
+            el.ansicht.innerHTML = '<div class="ot-turnier-karten">' + reihe.map(t => {
+                const sieger = t.status === 'fertig' && t.spieler && t.spieler[0];
+                const statusText = t.status === 'fertig' ? 'Beendet' : t.status === 'laeuft' ? 'Läuft gerade' : 'Geplant';
+                const fuss = sieger ? '<span>🥇 <b>' + titelTag(sieger.titel) + esc(sieger.name) + '</b> · ' + pkt(sieger.punkte) + ' Pkt.</span>'
+                    : t.status === 'geplant' ? '<span class="ot-gold">⏳ ' + bisStart(t) + '</span>'
+                    : t.status === 'laeuft' ? '<span class="ot-gruen">● Live – Rangliste ansehen</span>'
+                    : '<span class="ot-leise">Rangliste wird geladen …</span>';
+                return '<article class="glass-card ot-tkarte ' + t.status + '">'
+                    + '<button type="button" class="ot-tkarte-flaeche" data-ot-wahl="' + esc(t.uid) + '" aria-label="' + esc('Turnier #' + t.nr + ' öffnen') + '">'
+                    + '<span class="ot-tkarte-kopf"><span class="ot-tkarte-nr">#' + t.nr + '</span><span class="ot-abzeichen ' + (t.status === 'laeuft' ? 'live' : t.status === 'geplant' ? 'gold' : '') + '">' + statusText + '</span></span>'
+                    + '<span class="ot-tkarte-name">' + esc(t.name) + '</span>'
+                    + '<span class="ot-tkarte-datum">' + esc(datumText(t.start)) + '</span>'
+                    + '<span class="ot-tkarte-meta"><span>' + (t.typ === 'swiss' ? 'Swiss' : 'Arena') + ' · ' + esc(t.dauer) + '</span><span>' + esc(t.bedenkzeit) + '</span><span>'
+                    + (t.spielerZahl || 0) + ' ' + (t.status === 'geplant' ? 'angemeldet' : 'Spieler') + '</span></span>'
+                    + '<span class="ot-tkarte-fuss">' + fuss + '<span aria-hidden="true">→</span></span>'
+                    + '</button>'
+                    + (t.status !== 'fertig' ? '<a class="ot-tkarte-lichess" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + (t.status === 'geplant' ? 'Auf Lichess beitreten ↗' : 'Live auf Lichess ↗') + '</a>' : '')
+                    + '</article>';
+            }).join('') + '</div>';
+        }
+
+        function zeichneGeplant(t) {
+            el.ansicht.innerHTML = '<div class="ot-karte ot-mittig-karte"><div class="ot-bald-symbol" aria-hidden="true">⏳</div>'
+                + '<h3 class="ot-mittel">Dieses Turnier hat noch nicht begonnen</h3>'
+                + '<p>' + esc(datumText(t.start)) + ' · ' + bisStart(t) + ' · ' + (t.spielerZahl || 0) + ' angemeldet</p>'
+                + '<a class="btn btn-primary" href="' + esc(t.url) + '" target="_blank" rel="noopener">Auf Lichess beitreten ↗</a></div>';
+        }
+
+        /* ── Spieler der ganzen Serie ────────────────────────────────── */
+        function serienSpieler() {
+            const gw = new Map(gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich).zeilen.map(r => [r.key, r]));
+            const map = new Map();
+            z.turniere.filter(t => t.spieler && t.status !== 'geplant').forEach(t => t.spieler.forEach(p => {
+                if (!(p.leistung || p.punkte > 0)) return;
+                if (!map.has(p.key)) map.set(p.key, { key: p.key, name: p.name, titel: p.titel, rating: p.rating, teil: 0, bester: Infinity, siege: 0, podest: 0, punkte: 0, liste: [] });
+                const e = map.get(p.key);
+                e.teil++; e.bester = Math.min(e.bester, p.rang); e.punkte += p.punkte;
+                if (t.status === 'fertig' && p.rang === 1) e.siege++;
+                if (t.status === 'fertig' && p.rang <= 3) e.podest++;
+                if (p.rating) e.rating = p.rating;
+                if (p.titel) e.titel = p.titel;
+                e.liste.push({ t, p });
+            }));
+            map.forEach(e => { const g = gw.get(e.key); e.gp = g ? g.summe : 0; e.gpRang = g ? g.rang : null; });
+            return map;
+        }
+
+        function zeichneSpielerVerzeichnis() {
+            const alle = Array.from(serienSpieler().values());
+            const q = z.svSuche.trim().toLowerCase();
+            const sortierer = {
+                gp: (a, b) => (b.gp - a.gp) || (a.bester - b.bester) || a.name.localeCompare(b.name, 'de'),
+                teil: (a, b) => (b.teil - a.teil) || (b.gp - a.gp),
+                bester: (a, b) => (a.bester - b.bester) || (b.gp - a.gp),
+                rating: (a, b) => (b.rating - a.rating),
+                name: (a, b) => a.name.localeCompare(b.name, 'de')
+            }[z.svSort];
+            const liste = alle.filter(e => !q || e.name.toLowerCase().includes(q)).sort(sortierer);
+            const zeig = z.svMehr || q ? liste : liste.slice(0, 50);
+            el.ansicht.innerHTML = '<div class="ot-karte ot-ohne-polster"><div class="ot-werkzeug"><div><h3 class="ot-mittel">👥 Spieler der Serie</h3><small>Klick auf einen Spieler zeigt seine Laufbahn über alle Turniere.</small></div>'
+                + '<div class="ot-werkzeug-rechts"><input type="search" class="search-bar ot-suche" data-ot-feld="svSuche" placeholder="Spieler suchen …" value="' + esc(z.svSuche) + '">'
+                + '<select class="search-bar ot-klein-select" data-ot-feld="svSort" aria-label="Sortierung">'
+                + [['gp', 'Nach Gesamtwertung'], ['teil', 'Nach Teilnahmen'], ['bester', 'Nach bester Platzierung'], ['rating', 'Nach Rating'], ['name', 'Nach Name']]
+                    .map(([v, l]) => '<option value="' + v + '"' + (z.svSort === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div></div>'
+                + '<div class="ot-tabelle-wrap"><table class="ot-daten"><thead><tr><th>Spieler</th><th class="r">Teilnahmen</th><th class="r">Beste Platzierung</th><th class="r">Siege</th><th class="r">Podest</th><th class="r">Turnierpunkte</th><th class="r gold">Gesamtwertung</th></tr></thead><tbody>'
+                + (zeig.map(e => '<tr class="klickbar" data-ot-serienspieler="' + esc(e.key) + '"><td><b>' + titelTag(e.titel) + esc(e.name) + '</b> <small>' + (e.rating || '') + '</small></td>'
+                    + '<td class="r">' + e.teil + '</td><td class="r">' + platzText(e.bester) + '</td><td class="r">' + (e.siege || '–') + '</td><td class="r">' + (e.podest || '–') + '</td>'
+                    + '<td class="r">' + pkt(e.punkte) + '</td><td class="r gold">' + (e.gpRang ? pkt(e.gp) + ' <small>(' + e.gpRang + '.)</small>' : '–') + '</td></tr>').join('')
+                    || '<tr><td colspan="7" class="ot-leer">' + (alle.length ? 'Kein Spieler gefunden.' : 'Ranglisten werden geladen …') + '</td></tr>')
+                + '</tbody></table></div>'
+                + (zeig.length < liste.length ? '<div class="ot-mittig"><button type="button" class="ot-knopf" data-ot-mehr="svMehr">Alle ' + liste.length + ' Spieler anzeigen</button></div>' : '')
+                + '</div>';
+        }
+
+        /** Laufbahn eines Spielers ueber alle Turniere der Serie. */
+        function serienSpielerOeffnen(key) {
+            const e = serienSpieler().get(key);
+            if (!e) return;
+            const kpi = (l, w) => '<div class="ot-kpi"><small>' + l + '</small><b>' + w + '</b></div>';
+            const zeilen = e.liste.slice().sort((a, b) => new Date(b.t.start) - new Date(a.t.start)).map(({ t, p }) => {
+                const wert = t.status === 'fertig' ? (z.gpModus === 'punkte' ? p.punkte : (cfg.punkte[p.rang - 1] || 0) + cfg.teilnahme) : null;
+                return '<tr><td><b>#' + t.nr + '</b> ' + esc(t.name) + '<br><small>' + esc(datumText(t.start)) + '</small></td>'
+                    + '<td class="r">' + (t.status === 'fertig' ? medaille(p.rang) : p.rang) + ' <small>von ' + (t.spieler ? t.spieler.length : '?') + '</small></td>'
+                    + '<td class="r">' + pkt(p.punkte) + '</td><td class="r gold">' + (wert == null ? '<small>läuft</small>' : '+' + pkt(wert)) + '</td>'
+                    + '<td><button type="button" class="ot-knopf" data-ot-zu-turnier="' + esc(t.uid) + '|' + esc(key) + '">Partien →</button></td></tr>';
+            }).join('');
+            Fenster.inhaltOeffnen(
+                '<h3 id="ot-dossier-titel">' + titelTag(e.titel) + esc(e.name) + (e.gpRang ? ' <span class="ot-abzeichen gold">' + e.gpRang + '. der Gesamtwertung</span>' : '') + '</h3>'
+                + '<small>Rating ' + (e.rating || '–') + ' · <a href="https://lichess.org/@/' + encodeURIComponent(e.name) + '" target="_blank" rel="noopener">Profil auf Lichess ↗</a></small>',
+                '<div class="ot-kpis">' + kpi('Gesamtwertung', e.gpRang ? pkt(e.gp) + ' Pkt.' : '–') + kpi('Teilnahmen', e.teil)
+                + kpi('Beste Platzierung', platzText(e.bester)) + kpi('Siege / Podest', e.siege + ' / ' + e.podest) + '</div>'
+                + '<div class="ot-zwischenkopf"><b>Alle Turniere (' + e.liste.length + ')</b></div>'
+                + '<div class="ot-tabelle-wrap"><table class="ot-daten"><thead><tr><th>Turnier</th><th class="r">Platz</th><th class="r">Punkte</th><th class="r">Wertung</th><th></th></tr></thead><tbody>' + zeilen + '</tbody></table></div>');
+        }
+
+        /** Aus der Laufbahn direkt in die Partien eines Turniers - gefiltert auf den Spieler. */
+        function zuTurnier(uid, key) {
+            z.bereich = 'turnier'; z.aktiv = uid; z.tab = 'partien';
+            z.f = { a: key || '', b: '', erg: 'alle', upset: 'alle', suche: '' }; z.arenaSeite = 1;
+            zeichne();
+            if (el.navi.scrollIntoView) el.navi.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }
 
         /** Partien sicherstellen, dann neu zeichnen - mit Fortschritt dazwischen. */
@@ -1234,29 +1395,41 @@
 
         /* ── Gesamtwertung ───────────────────────────────────────────── */
         function zeichneGesamt() {
+            if (!fertige().length) {
+                el.ansicht.innerHTML = '<div class="ot-karte ot-mittig-karte"><div class="ot-bald-symbol" aria-hidden="true">🏆</div><h3 class="ot-mittel">Noch kein Turnier beendet</h3>'
+                    + '<p>Die Gesamtwertung beginnt mit dem ersten abgeschlossenen Turnier.</p><button type="button" class="ot-knopf" data-ot-bereich="turniere">Zu den Turnieren →</button></div>';
+                return;
+            }
             const fehlt = fertige().filter(t => !t.spieler);
             const { zeilen, turniere, gestrichenZahl } = gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich);
-            let h = '<div class="ot-karte ot-ohne-polster"><div class="ot-werkzeug"><div><h3 class="ot-mittel">🏆 ' + esc(cfg.serie) + '</h3>'
+            const q = z.gpSuche.trim().toLowerCase();
+            const gefiltert = zeilen.filter(r => !q || r.name.toLowerCase().includes(q));
+            const zeig = z.gpMehr || q ? gefiltert : gefiltert.slice(0, 50);
+            let h = '<div class="ot-karte ot-ohne-polster"><div class="ot-werkzeug"><div><h3 class="ot-mittel">🏆 Gesamtwertung</h3>'
                 + '<small>' + turniere.length + ' ' + (turniere.length === 1 ? 'Turnier' : 'Turniere') + ' gewertet'
-                + (z.gpModus === 'platz' ? ' · Platz 1–' + cfg.punkte.length + ': ' + cfg.punkte.join('-') + (cfg.teilnahme ? ' · +' + cfg.teilnahme + ' je Teilnahme' : '') : ' · erzielte Turnierpunkte')
-                + (gestrichenZahl ? ' · ' + gestrichenZahl + ' Streichresultat' + (gestrichenZahl > 1 ? 'e' : '') : '') + '</small></div>'
-                + '<div class="ot-werkzeug-rechts"><div class="ot-segment"><button type="button" data-ot-gp="platz" class="' + (z.gpModus === 'platz' ? 'aktiv' : '') + '">Platzierung</button>'
+                + (z.gpModus === 'platz' ? ' · Platz 1–' + cfg.punkte.length + ': ' + cfg.punkte.join('-') + ' Punkte' + (cfg.teilnahme ? ' · +' + cfg.teilnahme + ' je Teilnahme' : '') : ' · erzielte Turnierpunkte')
+                + (gestrichenZahl ? ' · ' + gestrichenZahl + ' Streichresultat' + (gestrichenZahl > 1 ? 'e' : '') : '')
+                + ' · Klick auf einen Spieler zeigt seine Laufbahn.</small></div>'
+                + '<div class="ot-werkzeug-rechts"><input type="search" class="search-bar ot-suche" data-ot-feld="gpSuche" placeholder="Spieler suchen …" value="' + esc(z.gpSuche) + '">'
+                + '<div class="ot-segment"><button type="button" data-ot-gp="platz" class="' + (z.gpModus === 'platz' ? 'aktiv' : '') + '">Platzierungspunkte</button>'
                 + '<button type="button" data-ot-gp="punkte" class="' + (z.gpModus === 'punkte' ? 'aktiv' : '') + '">Turnierpunkte</button></div>'
-                + '<select class="search-bar ot-klein-select" data-ot-feld="gpStreich" aria-label="Streichresultate">' + [0, 1, 2, 3].map(n => '<option value="' + n + '"' + (z.gpStreich === n ? ' selected' : '') + '>'
-                    + (n === 0 ? 'Keine Streichresultate' : n + ' Streichresultat' + (n > 1 ? 'e' : '')) + '</option>').join('') + '</select>'
+                // Streichresultate ergeben erst ab zwei Turnieren Sinn.
+                + (turniere.length > 1 ? '<select class="search-bar ot-klein-select" data-ot-feld="gpStreich" aria-label="Streichresultate">' + [0, 1, 2, 3].filter(n => n < turniere.length)
+                    .map(n => '<option value="' + n + '"' + (z.gpStreich === n ? ' selected' : '') + '>' + (n === 0 ? 'Keine Streichresultate' : n + ' Streichresultat' + (n > 1 ? 'e' : '')) + '</option>').join('') + '</select>' : '')
                 + '<button type="button" class="ot-knopf" data-ot-csv="gesamt">CSV</button></div></div>';
             if (fehlt.length) h += '<div class="ot-polster">' + fehlt.map(t => fortschrittHTML(t, 'spieler')).join('') + '</div>';
             h += '<div class="ot-tabelle-wrap"><table class="ot-daten"><thead><tr><th>Rang</th><th>Spieler</th><th class="r">Teiln.</th>'
-                + turniere.map((t, i) => '<th class="r" title="' + esc(t.name + ' · ' + datumText(t.start, false)) + '">T' + (i + 1) + '<br><small>' + kurzDatum(t.start) + '</small></th>').join('')
+                + turniere.map(t => '<th class="r" title="' + esc('#' + t.nr + ' ' + t.name + ' · ' + datumText(t.start)) + '">#' + t.nr + '<br><small>' + kurzDatum(t.start) + '</small></th>').join('')
                 + '<th class="r gold">Gesamt</th></tr></thead><tbody>'
-                + (zeilen.map(r => '<tr class="' + (r.rang <= 3 ? 'podest' : '') + '"><td class="ot-rangzelle">' + medaille(r.rang) + '</td>'
+                + (zeig.map(r => '<tr class="klickbar' + (r.rang <= 3 ? ' podest' : '') + '" data-ot-serienspieler="' + esc(r.key) + '"><td class="ot-rangzelle">' + medaille(r.rang) + '</td>'
                     + '<td><b>' + titelTag(r.titel) + esc(r.name) + '</b>' + (r.siege ? ' <small>' + r.siege + '× Sieg</small>' : '') + '</td>'
                     + '<td class="r">' + r.teil + '/' + turniere.length + '</td>'
-                    + r.zellen.map(c => c ? '<td class="r' + (c.gestrichen ? ' gestrichen' : '') + '" title="Platz ' + c.rang + (c.gestrichen ? ' (gestrichen)' : '') + '">' + pkt(c.wert) + '<small> #' + c.rang + '</small></td>' : '<td class="r ot-leise">–</td>').join('')
+                    + r.zellen.map(c => c ? '<td class="r' + (c.gestrichen ? ' gestrichen' : '') + '" title="Platz ' + c.rang + (c.gestrichen ? ' (gestrichen)' : '') + '">' + pkt(c.wert) + '<small> · ' + c.rang + '.</small></td>' : '<td class="r ot-leise">–</td>').join('')
                     + '<td class="r gold gross">' + pkt(r.summe) + '</td></tr>').join('')
-                    || '<tr><td colspan="' + (turniere.length + 4) + '" class="ot-leer">Noch keine abgeschlossenen Turniere.</td></tr>')
+                    || '<tr><td colspan="' + (turniere.length + 4) + '" class="ot-leer">' + (q ? 'Kein Spieler gefunden.' : 'Ranglisten werden geladen …') + '</td></tr>')
                 + '</tbody></table></div>'
-                + '<div class="ot-fussleiste"><span>' + turniere.map((t, i) => 'T' + (i + 1) + ' = ' + esc(t.name)).join(' · ') + '</span></div></div>';
+                + (zeig.length < gefiltert.length ? '<div class="ot-mittig"><button type="button" class="ot-knopf" data-ot-mehr="gpMehr">Alle ' + gefiltert.length + ' Spieler anzeigen</button></div>' : '')
+                + '<div class="ot-fussleiste"><span>' + turniere.map(t => '#' + t.nr + ' = ' + esc(t.name) + ', ' + kurzDatum(t.start)).join(' · ') + '</span></div></div>';
             el.ansicht.innerHTML = h;
         }
 
@@ -1284,8 +1457,20 @@
 
         block.addEventListener('click', ev => {
             const x = ev.target;
+            const ber = x.closest('[data-ot-bereich]');
+            if (ber) { z.bereich = ber.dataset.otBereich; zeichne(); return; }
             const wahl = x.closest('[data-ot-wahl]');
-            if (wahl) { z.aktiv = wahl.dataset.otWahl; z.f = { a: '', b: '', erg: 'alle', upset: 'alle', suche: '' }; z.arenaSeite = 1; zeichne(); return; }
+            if (wahl) {
+                z.bereich = 'turnier'; z.aktiv = wahl.dataset.otWahl; z.tab = 'rangliste';
+                z.f = { a: '', b: '', erg: 'alle', upset: 'alle', suche: '' }; z.arenaSeite = 1;
+                zeichne();
+                if (el.navi.scrollIntoView) el.navi.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                return;
+            }
+            const mehr = x.closest('[data-ot-mehr]');
+            if (mehr) { z[mehr.dataset.otMehr] = true; zeichne(); return; }
+            const ssp = x.closest('[data-ot-serienspieler]');
+            if (ssp) { serienSpielerOeffnen(ssp.dataset.otSerienspieler); return; }
             const tab = x.closest('[data-ot-tab]');
             if (tab) { z.tab = tab.dataset.otTab; zeichne(); return; }
             const lim = x.closest('[data-ot-limit]');
@@ -1338,19 +1523,23 @@
             }
         });
         Serie._spielerOeffnen = spielerOeffnen;
+        Serie._zuTurnier = zuTurnier;
 
         /* ── Start: Eckdaten parallel, Ranglisten nacheinander ─────────── */
         (async function () {
             const ergebnisse = await Promise.all(links.map(l => infoLaden(l).then(t => ({ t }), e => ({ fehler: e.message, l }))));
             z.turniere = ergebnisse.filter(e => e.t).map(e => e.t).sort((a, b) => new Date(b.start) - new Date(a.start));
             const fehler = ergebnisse.filter(e => e.fehler);
+            /* Nummern in zeitlicher Reihenfolge: #1 ist das erste Turnier der Serie.
+               So lassen sich auch gleich heissende Turniere auseinanderhalten -
+               etwa zwei "Stuendliche Bullet-Arenen". */
+            z.turniere.slice().sort((a, b) => new Date(a.start) - new Date(b.start)).forEach((t, i) => { t.nr = i + 1; });
             zeichneVorschau(el.vorschau, z.turniere);
             const ts = sichtbar();
-            z.aktiv = fertige().length >= 2 ? 'gesamt' : (ts[0] ? ts[0].uid : null);
+            // Mit einem beendeten Turnier gibt es schon eine Gesamtwertung.
+            z.bereich = fertige().length ? 'gesamt' : 'turniere';
             zeichne();
             if (fehler.length) el.vorschau.insertAdjacentHTML('beforeend', fehler.map(f => '<div class="glass-card ot-fehler">Turnier ' + esc(f.l.id) + ': ' + esc(f.fehler) + '</div>').join(''));
-            if (!ts.length && !z.turniere.some(t => t.status === 'geplant')) el.ansicht.innerHTML = '<p class="ot-leer">Keine Turnierdaten verfügbar.</p>';
-            if (!ts.length) el.ansicht.innerHTML = '';
 
             // Ranglisten: zuerst die gerade sichtbare, dann der Rest.
             const reihenfolge = ts.slice().sort((a, b) => (b.uid === z.aktiv) - (a.uid === z.aktiv));
@@ -1358,7 +1547,7 @@
                 try {
                     await ranglisteLaden(t, n => { t.spielerGeladen = n; fortschritt(); });
                 } catch (e) { t.fehler = e.message; t.spieler = []; }
-                if (z.aktiv === t.uid || z.aktiv === 'gesamt') zeichneMitFokus(); else zeichneSchalter();
+                if (z.bereich !== 'turnier' || z.aktiv === t.uid) zeichneMitFokus(); else zeichneSchalter();
             }
         })();
     }

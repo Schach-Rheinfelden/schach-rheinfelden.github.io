@@ -5955,3 +5955,13 @@ body.light-theme .ot-modal .ot-zu { background: rgba(255, 255, 255, 0.9); border
     .ot-held-text h2 { font-size: 1.5rem; }
     .ot-held-zahl { min-width: calc(50% - 0.4rem); }
 }
+
+/* Online-Turniere: Regeln der Gesamtwertung als Kaertchen statt als Satz */
+.ot-infoleiste { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.85rem 1.4rem; border-bottom: 1px solid var(--glass-border); }
+.ot-info { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.8rem; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass-bg); font-size: 0.8rem; color: var(--text-secondary); }
+.ot-info b { color: var(--accent-color); font-weight: 700; }
+.ot-schluessel { gap: 0.3rem; padding-right: 0.4rem; }
+.ot-schluessel small { margin-right: 0.25rem; }
+.ot-schluessel span { display: inline-flex; align-items: baseline; gap: 2px; padding: 0.05rem 0.45rem; border-radius: 10px; background: rgba(212, 175, 55, 0.1); color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ot-schluessel span i { font-style: normal; font-weight: 400; font-size: 0.7rem; color: var(--text-secondary); }
+.ot-einzel .ot-pfad { margin-top: 0.25rem; }

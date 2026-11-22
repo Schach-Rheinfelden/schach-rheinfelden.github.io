@@ -298,7 +298,7 @@ Haag, Rolf;Rhf 1;BMM;25/26;2026;3;7;1;4;2;0.5,0.5,,0.5,1,,0.5,0,0
 Haag, Rolf;Rhy 1;SGM;25/26;2026;1.5;6;1;1;4;0,0,1,0,0.5,0
 Haag, Rolf;Rhy 1;SMM;26;2026;2.5;4;2;1;1;1,,0,0.5,1
 Haag, Rolf;Rhf 1;BMM;26/27;2027;1;2;1;0;1;0,1
-Haag, Rolf;Rhy 1;SGM;26/27;2027;0;1;0;0;1;0
+Haag, Rolf;Rhy 1;SGM;26/27;2027;1;2;1;0;1;0,1
 Habibi, Ali;Rhy 1;NMM;12/13;2013;1;1;1;0;0;,1
 Harsch, Martin;Rhy 1;SGM;11/12;2012;1;2;0;2;0;0.5,0.5
 Harsch, Martin;Rhy 1;SGM;19/20;2020;4;5;3;2;0;1,1,1,0.5,0.5
@@ -469,7 +469,7 @@ Konysbekov, Darmen;Rhy 2;SGM;25/26;2026;2;3;2;0;1;0,1,,1
 Konysbekov, Darmen;Rhy 1;SMM;26;2026;3.5;6;3;1;2;1,0,1,0.5,1,0
 Konysbekov, Darmen;Rhy 2;SMM;26;2026;1;1;1;0;0;1
 Konysbekov, Darmen;Rhf 1;BMM;26/27;2027;1;1;1;0;0;1
-Konysbekov, Darmen;Rhy 1;SGM;26/27;2027;1;1;1;0;0;1
+Konysbekov, Darmen;Rhy 1;SGM;26/27;2027;2;2;2;0;0;1,1
 Kortschak, Hugo;Rhy 1;SGM;05/06;2006;4;7;2;4;1;0.5,0.5,1,0.5,0,0.5,1
 Kortschak, Hugo;Rhy 1;SMM;06;2006;2.5;4;2;1;1;0,1,,1,0.5
 Kortschak, Hugo;Rhy 1;SGM;06/07;2007;2;6;1;2;3;0,1,,0,0,0.5,0.5
@@ -671,7 +671,7 @@ Nyffeler, Ulrich;Rhy 1;SGM;21/22;2022;0;1;0;0;1;,0
 Ödül, Ismail Irfan;Rhy 1;SMM;26;2026;1.5;3;0;3;0;0.5,,0.5,,,0.5
 Ödül, Ismail Irfan;Rhy 2;SMM;26;2026;0;1;0;0;1;0
 Ödül, Ismail Irfan;Rhf 1;BMM;26/27;2027;2;2;2;0;0;1,1
-Ödül, Ismail Irfan;Rhy 1;SGM;26/27;2027;1;1;1;0;0;1
+Ödül, Ismail Irfan;Rhy 1;SGM;26/27;2027;2;2;2;0;0;1,1
 Okincic, Artur;Rhy 2;SMM;21;2021;1;1;1;0;0;,1
 Palaia, Aleandro;Rhy 2;SMM;21;2021;0;1;0;0;1;,,,,0
 Palaia, Aleandro;Rhy 2;SMM;22;2022;0;1;0;0;1;,,,0
@@ -718,7 +718,7 @@ Schmid, Dario;Rhy 2;SGM;25/26;2026;0;1;0;0;1;,,,,,0
 Schmid, Dario;Rhy 1;SMM;26;2026;1;1;1;0;0;,1
 Schmid, Dario;Rhy 2;SMM;26;2026;0.5;3;0;1;2;,0,,,,0,0.5
 Schmid, Dario;Rhf 2;BMM;26/27;2027;1;1;1;0;0;,1
-Schmid, Dario;Rhy 1;SGM;26/27;2027;0.5;1;0;1;0;0.5
+Schmid, Dario;Rhy 1;SGM;26/27;2027;1.5;2;1;1;0;0.5,1
 Schneider, André;Rhy 2;SGM;05/06;2006;0.5;1;0;1;0;,,,,,0.5
 Schneider, André;Rhy 2;SGM;06/07;2007;0.5;1;0;1;0;,,,,,,0.5
 Schneider, André;Rhy 1;SMM;07;2007;0;1;0;0;1;,,,,,,0
@@ -780,6 +780,7 @@ Steinacher, Janis;Rhf 1;BMM;25/26;2026;2.5;3;2;1;0;,,1,,,,0.5,,1
 Steinacher, Janis;Rhy 1;SGM;25/26;2026;1;1;1;0;0;,,1
 Steinacher, Janis;Rhy 1;SMM;26;2026;1;1;1;0;0;,,1
 Steinacher, Janis;Rhf 1;BMM;26/27;2027;1;1;1;0;0;,1
+Steinacher, Janis;Rhy 1;SGM;26/27;2027;1;1;1;0;0;,1
 Su, Lang;Rhy 2;SGM;19/20;2020;0;1;0;0;1;,,,,,0
 Vuksic, Antun;Rhy 1;SMM;11;2011;5;6;5;0;1;1,1,1,,1,0,1
 Vuksic, Antun;Rhf 1;BMM;11/12;2012;3;4;3;0;1;1,,1,,0,1

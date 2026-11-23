@@ -6066,3 +6066,24 @@ body.light-theme .ot-modal .ot-zu { background: rgba(255, 255, 255, 0.9); border
    nicht mehr ausblenden und verschwand ruckartig. */
 .ot-hinweis-karte { background: var(--glass-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(212, 175, 55, .45); border-radius: var(--border-radius); }
 body.light-theme .ot-hinweis-karte { background: #ffffff; border-color: rgba(212, 175, 55, .5); box-shadow: 0 12px 40px rgba(0, 0, 0, .12); }
+
+/* Online-Turniere: Bild der Serie (Spalte "bild")
+   Kopf: rechts, weich in die Karte auslaufend - der Text bleibt auf ruhigem Grund. */
+.ot-held-karte.mit-bild { position: relative; overflow: hidden; }
+.ot-held-karte.mit-bild > :not(.ot-held-bild) { position: relative; z-index: 1; max-width: 60%; }
+.ot-held-bild { position: absolute; top: 0; right: 0; bottom: 0; width: 48%; background-size: cover; background-position: center;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, .55) 30%, #000 70%); mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, .55) 30%, #000 70%); }
+@media (max-width: 760px) {
+    .ot-held-karte.mit-bild { padding-top: 0; }
+    .ot-held-karte.mit-bild > :not(.ot-held-bild) { max-width: none; }
+    .ot-held-bild { position: static; flex: 0 0 calc(100% + 4rem); width: auto; height: 170px; margin: 0 -2rem 0.25rem;
+        -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%); mask-image: linear-gradient(to bottom, #000 55%, transparent 100%); }
+}
+/* Karte in der Uebersicht: Bild als Kopfstreifen */
+.ot-serienkarte.mit-bild { padding-top: 0; overflow: hidden; }
+.ot-serienkarte-bild { display: block; height: 150px; margin: 0 -1.6rem 0.3rem; background-size: cover; background-position: center; border-bottom: 1px solid var(--glass-border); transition: transform .5s; }
+.ot-serienkarte:hover .ot-serienkarte-bild { transform: scale(1.04); }
+/* Countdown-Reiter: schmaler Bildstreifen oben in der Karte */
+.ot-hinweis-karte.mit-bild { padding-top: 0; overflow: hidden; }
+.ot-hinweis-bild { height: 96px; margin: 0 -1.2rem 0.35rem; background-size: cover; background-position: center; }
+.ot-hinweis-karte.mit-bild .ot-hinweis-zu { background: rgba(0, 0, 0, .45); color: #fff; z-index: 1; }

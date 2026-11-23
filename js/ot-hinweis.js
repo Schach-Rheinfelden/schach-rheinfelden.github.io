@@ -78,12 +78,13 @@
             if (!name || (!link && !String(o.serie || '').trim())) { if (name) letzte = name; return; }
             letzte = name;
             const k = name.toLowerCase();
-            if (!serien.has(k)) serien.set(k, { name, kurzname: '', werbung: null, anzeigen: true, team: '' });
+            if (!serien.has(k)) serien.set(k, { name, kurzname: '', werbung: null, anzeigen: true, team: '', bild: '' });
             const s = serien.get(k);
             if (!link) {
                 if (jaNein(o.anzeigen) === false) s.anzeigen = false;
                 if (o.kurzname) s.kurzname = o.kurzname;
                 if (o.team) s.team = o.team;
+                if (o.bild || o.image) s.bild = o.bild || o.image;
                 if (jaNein(o.werbung) !== null) s.werbung = jaNein(o.werbung);
                 return;
             }
@@ -98,6 +99,13 @@
             gesehen.add(uid);
             return (t.werbung !== null ? t.werbung : t.serie.werbung) !== false;
         });
+    }
+
+    function bildStil(url) {
+        let u = String(url || '').trim();
+        if (!u) return '';
+        u = window.formatImageUrl ? window.formatImageUrl(u) : u;
+        return 'background-image:url(&quot;' + esc(u.replace(/["'()\\\s]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'))) + '&quot;)';
     }
 
     function teamUrl(wert) {
@@ -180,7 +188,8 @@
             + '<span class="ot-hinweis-symbol" aria-hidden="true">♞</span>'
             + '<span class="ot-hinweis-etikett">' + (live ? '<i class="ot-hinweis-punkt"></i>Live' : 'Turnier') + '</span>'
             + '<span class="ot-hinweis-kurz" data-ot-kurz>' + (live ? 'jetzt' : '…') + '</span></button>'
-            + '<div class="ot-hinweis-karte" id="ot-hinweis-karte">'
+            + '<div class="ot-hinweis-karte' + (t.serie.bild ? ' mit-bild' : '') + '" id="ot-hinweis-karte">'
+            + (t.serie.bild ? '<div class="ot-hinweis-bild" style="' + bildStil(t.serie.bild) + '" aria-hidden="true"></div>' : '')
             + '<button type="button" class="ot-hinweis-zu" aria-label="Details schliessen" title="Schliessen">×</button>'
             + '<small class="ot-hinweis-kopf">' + (live ? 'Läuft gerade' : 'Nächstes Online-Turnier') + ' · ' + esc(t.serie.name) + '</small>'
             + '<b class="ot-hinweis-name">' + esc(t.name) + '</b>'

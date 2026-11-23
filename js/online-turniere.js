@@ -40,6 +40,9 @@
  *                  mit "ja" - und nur dann gibt es eine Gesamtwertung.
  *   punkte, teilnahme, streich, kurzname, beschreibung   nur Einstellungszeile
  *   werbung        nein = nie im Countdown-Hinweis auf den anderen Seiten
+ *   team           Lichess-Team, dem man vorher beitreten muss (Link oder Kurzname,
+ *                  z. B. https://lichess.org/team/schach-rheinfelden). In der
+ *                  Einstellungszeile fuer alle Turniere der Serie, sonst je Turnier.
  *   anzeigen       nein = Zeile (Turnier oder ganze Serie) ausblenden
  *   notiz          frei, wird nicht angezeigt
  *
@@ -932,6 +935,7 @@
         const geplant = turniere.filter(t => t.status === 'geplant' && t.start).sort((a, b) => new Date(a.start) - new Date(b.start));
         let html = laufend.map(t => '<div class="glass-card ot-live"><span class="ot-live-punkt" aria-hidden="true"></span>'
             + '<span class="ot-live-text"><b>Läuft gerade:</b> ' + esc(t.name) + ohne(t) + '</span>'
+            + (t.team ? '<a class="ot-live-team" href="' + esc(t.team) + '" target="_blank" rel="noopener" title="Mitspielen können nur Mitglieder des Lichess-Teams">👥 Team beitreten ↗</a>' : '')
             + '<a class="btn btn-primary ot-live-knopf" href="' + esc(t.url) + '" target="_blank" rel="noopener">Live verfolgen ↗</a></div>').join('');
         const n = geplant[0];
         if (n) {
@@ -941,6 +945,7 @@
                 + (n.spielerZahl ? ' · ' + n.spielerZahl + ' angemeldet' : '') + (zeigeOhne && n.weitere ? ' · ohne Gesamtwertung' : '') + '</div>'
                 + '<div class="ot-uhr" role="timer" aria-live="off">' + ['tage', 'std', 'min', 'sek'].map(e => '<div class="ot-uhr-feld"><b data-ot-uhr="' + e + '">–</b><span>'
                     + { tage: 'Tage', std: 'Std', min: 'Min', sek: 'Sek' }[e] + '</span></div>').join('') + '</div>'
+                + teamHinweis(n, 'mittig')
                 + '<a class="btn btn-primary ot-countdown-knopf" href="' + esc(n.url) + '" target="_blank" rel="noopener">Zum Turnier auf Lichess ↗</a></div>';
         }
         ziel.innerHTML = html;
@@ -983,7 +988,8 @@
             wertung: !/^(nein|no|0|false|aus)$/i.test(String(block.dataset.wertung || '').trim()),
             modus: String(block.dataset.modus || '').trim().toLowerCase(),
             // Kurzer Text unter dem Seriennamen (aus dem Blatt, darf Formatierung enthalten).
-            beschreibung: String(block.dataset.beschreibung || '').trim()
+            beschreibung: String(block.dataset.beschreibung || '').trim(),
+            team: String(block.dataset.team || '').trim()
         };
         const z = {
             turniere: [], aktiv: null, tab: 'rangliste',
@@ -1246,7 +1252,8 @@
                     + (t.spielerZahl || 0) + ' ' + (t.status === 'geplant' ? 'angemeldet' : 'Spieler') + '</span></span>'
                     + '<span class="ot-tkarte-fuss">' + fuss + '<span aria-hidden="true">→</span></span>'
                     + '</button>'
-                    + (t.status !== 'fertig' ? '<a class="ot-tkarte-lichess" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + (t.status === 'geplant' ? 'Auf Lichess beitreten ↗' : 'Live auf Lichess ↗') + '</a>' : '')
+                    + (t.status !== 'fertig' ? '<div class="ot-tkarte-links"><a class="ot-tkarte-lichess" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + (t.status === 'geplant' ? 'Auf Lichess beitreten ↗' : 'Live auf Lichess ↗') + '</a>'
+                        + (t.team ? '<a class="ot-tkarte-lichess ot-tkarte-team" href="' + esc(t.team) + '" target="_blank" rel="noopener" title="Mitspielen können nur Mitglieder des Lichess-Teams">👥 Zuerst Team beitreten ↗</a>' : '') + '</div>' : '')
                     + '</article>';
             };
             const weitere = z.turniere.filter(istWeitere), haupt = serie();
@@ -1262,6 +1269,7 @@
             el.ansicht.innerHTML = '<div class="ot-karte ot-mittig-karte"><div class="ot-bald-symbol" aria-hidden="true">⏳</div>'
                 + '<h3 class="ot-mittel">Dieses Turnier hat noch nicht begonnen</h3>'
                 + '<p>' + esc(datumText(t.start)) + ' · ' + bisStart(t) + ' · ' + (t.spielerZahl || 0) + ' angemeldet</p>'
+                + teamHinweis(t, 'mittig')
                 + '<a class="btn btn-primary" href="' + esc(t.url) + '" target="_blank" rel="noopener">Auf Lichess beitreten ↗</a></div>';
         }
 
@@ -1695,6 +1703,7 @@
         (async function () {
             const ergebnisse = await Promise.all(links.map(l => infoLaden(l).then(t => ({ t }), e => ({ fehler: e.message, l }))));
             z.turniere = ergebnisse.filter(e => e.t).map(e => e.t).sort((a, b) => new Date(b.start) - new Date(a.start));
+            z.turniere.forEach(t => { t.team = teamUrl((block._otTeams && block._otTeams.get(t.id)) || cfg.team); });
             const fehler = ergebnisse.filter(e => e.fehler);
             /* Nummern in zeitlicher Reihenfolge: #1 ist das erste Turnier der Serie.
                So lassen sich auch gleich heissende Turniere auseinanderhalten -
@@ -1768,6 +1777,20 @@
         return null;
     }
 
+    /** Lichess-Team aus Link oder Kurzname -> Team-Adresse (oder ''). */
+    function teamUrl(wert) {
+        const v = String(wert || '').trim();
+        const m = v.match(/lichess\.org\/team\/([A-Za-z0-9_-]+)/);
+        if (m) return 'https://lichess.org/team/' + m[1];
+        return /^[A-Za-z0-9_-]{2,}$/.test(v) ? 'https://lichess.org/team/' + v.toLowerCase() : '';
+    }
+    /** Hinweis "erst dem Team beitreten" - ueberall gleich formuliert. */
+    function teamHinweis(t, klasse) {
+        if (!t || !t.team || t.status === 'fertig') return '';
+        return '<div class="ot-team-hinweis' + (klasse ? ' ' + klasse : '') + '"><span aria-hidden="true">👥</span> <span>Mitspielen können nur Mitglieder des Lichess-Teams.</span> '
+            + '<a href="' + esc(t.team) + '" target="_blank" rel="noopener">Zuerst dem Team beitreten ↗</a></div>';
+    }
+
     /** Die Matrix des Blatts -> Serien mit ihren Turnieren und Einstellungen. */
     function serienAusMatrix(objekte) {
         const serien = [], nachName = new Map();
@@ -1779,7 +1802,7 @@
             letzte = name;
             let s = nachName.get(name.toLowerCase());
             if (!s) {
-                s = { name, kurzname: '', wertung: null, punkte: '', teilnahme: '', streich: '', beschreibung: '', werbung: null, anzeigen: true, turniere: [] };
+                s = { name, kurzname: '', wertung: null, punkte: '', teilnahme: '', streich: '', beschreibung: '', team: '', werbung: null, anzeigen: true, turniere: [] };
                 nachName.set(name.toLowerCase(), s);
                 serien.push(s);
             }
@@ -1788,11 +1811,11 @@
                 if (!zeigen) s.anzeigen = false;
                 if (o.kurzname) s.kurzname = o.kurzname;
                 if (jaNein(o.gesamtwertung) !== null) s.wertung = jaNein(o.gesamtwertung);
-                ['punkte', 'teilnahme', 'streich', 'beschreibung'].forEach(k => { if (o[k]) s[k] = o[k]; });
+                ['punkte', 'teilnahme', 'streich', 'beschreibung', 'team'].forEach(k => { if (o[k]) s[k] = o[k]; });
                 if (jaNein(o.werbung) !== null) s.werbung = jaNein(o.werbung);
                 return;
             }
-            if (zeigen) s.turniere.push({ link, wertung: jaNein(o.gesamtwertung), werbung: jaNein(o.werbung) });
+            if (zeigen) s.turniere.push({ link, wertung: jaNein(o.gesamtwertung), werbung: jaNein(o.werbung), team: o.team || '' });
         });
         return serien.filter(s => s.anzeigen).map(s => {
             const mitWertung = s.wertung === true || (s.wertung === null && s.turniere.some(t => t.wertung === true));
@@ -1816,6 +1839,9 @@
             if (s.teilnahme) b.dataset.teilnahme = s.teilnahme;
             if (s.streich) b.dataset.streich = s.streich;
             if (s.beschreibung) b.dataset.beschreibung = s.beschreibung;
+            if (s.team) b.dataset.team = s.team;
+            // Team je Turnier (ueberschreibt das der Serie) - als Eigenschaft, nicht im Text.
+            b._otTeams = new Map(s.turniere.filter(t => t.team).map(t => [(t.link.match(/\/([A-Za-z0-9]{8})(?![A-Za-z0-9])/) || [])[1], t.team]));
             b.textContent = s.mitWertung ? 'MIT GESAMTWERTUNG: ' + s.mit.join(' ') + ' OHNE GESAMTWERTUNG: ' + s.ohne.join(' ')
                 : s.turniere.map(t => t.link).join(' ');
             return b;
@@ -1993,7 +2019,7 @@
     }
 
     // Fuer Tests und fuer Seiten, die den Block erst spaeter einsetzen.
-    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik, slug, csvObjekte, serienAusMatrix };
+    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik, slug, csvObjekte, serienAusMatrix, teamUrl };
 
     // pages.csv laedt dieses Skript erst, NACHDEM der Inhalt eingesetzt ist.
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

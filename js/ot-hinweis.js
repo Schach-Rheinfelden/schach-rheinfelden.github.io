@@ -11,6 +11,8 @@
  *    (oder antippen) klappt eine Karte mit den Details auf.
  *  - Das x klappt die Karte wieder zu - der schmale Reiter bleibt stehen,
  *    solange ein Turnier angekuendigt ist oder laeuft.
+ *  - Spalte "team": Muss man vorher einem Lichess-Team beitreten, steht das in
+ *    der Karte, mit Link zum Team.
  *  - Spalte "werbung" = nein (beim Turnier oder in der Einstellungszeile der
  *    Serie) nimmt Turniere aus dem Hinweis.
  *  - Lichess wird hoechstens alle paar Minuten gefragt (Zwischenspeicher im
@@ -76,17 +78,18 @@
             if (!name || (!link && !String(o.serie || '').trim())) { if (name) letzte = name; return; }
             letzte = name;
             const k = name.toLowerCase();
-            if (!serien.has(k)) serien.set(k, { name, kurzname: '', werbung: null, anzeigen: true });
+            if (!serien.has(k)) serien.set(k, { name, kurzname: '', werbung: null, anzeigen: true, team: '' });
             const s = serien.get(k);
             if (!link) {
                 if (jaNein(o.anzeigen) === false) s.anzeigen = false;
                 if (o.kurzname) s.kurzname = o.kurzname;
+                if (o.team) s.team = o.team;
                 if (jaNein(o.werbung) !== null) s.werbung = jaNein(o.werbung);
                 return;
             }
             const m = link.match(/lichess\.org\/(tournament|swiss)\/([A-Za-z0-9]{8})/);
             if (!m || jaNein(o.anzeigen) === false) return;
-            turniere.push({ serie: s, typ: m[1] === 'swiss' ? 'swiss' : 'arena', id: m[2], werbung: jaNein(o.werbung) });
+            turniere.push({ serie: s, typ: m[1] === 'swiss' ? 'swiss' : 'arena', id: m[2], werbung: jaNein(o.werbung), team: o.team || '' });
         });
         const gesehen = new Set();
         return turniere.filter(t => {
@@ -95,6 +98,13 @@
             gesehen.add(uid);
             return (t.werbung !== null ? t.werbung : t.serie.werbung) !== false;
         });
+    }
+
+    function teamUrl(wert) {
+        const v = String(wert || '').trim();
+        const m = v.match(/lichess\.org\/team\/([A-Za-z0-9_-]+)/);
+        if (m) return 'https://lichess.org/team/' + m[1];
+        return /^[A-Za-z0-9_-]{2,}$/.test(v) ? 'https://lichess.org/team/' + v.toLowerCase() : '';
     }
 
     /* ── Lichess (mit Zwischenspeicher) ──────────────────────────────── */
@@ -141,7 +151,7 @@
     /** Genau EIN Turnier: ein laufendes, sonst das naechste geplante. */
     function naechstes(liste, speicher) {
         const jetzt = Date.now();
-        const mit = liste.map(t => Object.assign({ uid: t.typ + ':' + t.id, typ: t.typ, id: t.id, serie: t.serie }, speicher[t.typ + ':' + t.id] || {}))
+        const mit = liste.map(t => Object.assign({ uid: t.typ + ':' + t.id, typ: t.typ, id: t.id, serie: t.serie, team: teamUrl(t.team || t.serie.team) }, speicher[t.typ + ':' + t.id] || {}))
             .filter(t => t.start && t.status);
         const live = mit.filter(t => t.status === 'laeuft').sort((a, b) => new Date(a.start) - new Date(b.start));
         if (live.length) return live[0];
@@ -176,6 +186,7 @@
             + '<b class="ot-hinweis-name">' + esc(t.name) + '</b>'
             + '<span class="ot-hinweis-meta">' + esc(datum(t.start)) + (meta ? '<br>' + esc(meta) : '') + (t.spieler ? ' · ' + t.spieler + (live ? ' Spieler' : ' angemeldet') : '') + '</span>'
             + (live ? '' : '<div class="ot-hinweis-uhr" role="timer" aria-live="off">' + ['T', 'Std', 'Min', 'Sek'].map(e => '<span><b data-ot-uhr="' + e + '">–</b><small>' + (e === 'T' ? 'Tage' : e) + '</small></span>').join('') + '</div>')
+            + (t.team ? '<span class="ot-hinweis-team">👥 Nur für Mitglieder des Lichess-Teams – <a href="' + esc(t.team) + '" target="_blank" rel="noopener">zuerst beitreten ↗</a></span>' : '')
             + '<div class="ot-hinweis-knoepfe"><a class="btn btn-primary" href="' + esc(lichess) + '" target="_blank" rel="noopener">' + (live ? 'Live verfolgen ↗' : 'Auf Lichess beitreten ↗') + '</a>'
             + '<a class="ot-hinweis-mehr" href="' + esc(mehr) + '">Mehr erfahren →</a></div></div>';
         document.body.appendChild(el);

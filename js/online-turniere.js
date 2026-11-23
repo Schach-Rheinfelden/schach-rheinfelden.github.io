@@ -1005,7 +1005,9 @@
         if (links.length && links.every(l => l.weitere)) { links.forEach(l => { l.weitere = false; }); cfg.wertung = false; }
         /* Ein einzelnes Turnier braucht keine Serie drumherum: kein Kopf, keine
            Bereiche, keine Gesamtwertung - nur das Turnier selbst. */
-        const einzel = cfg.modus === 'einzel' || (cfg.modus !== 'serie' && links.length === 1);
+        // Ausdruecklich "Gesamtwertung ja" = eine Serie, auch wenn erst ein Turnier gespielt ist.
+        const wertungAusdruecklich = /^(ja|j|yes|1|true|x)$/i.test(String(block.dataset.wertung || '').trim());
+        const einzel = cfg.modus === 'einzel' || (cfg.modus !== 'serie' && links.length === 1 && !wertungAusdruecklich);
         if (einzel) block.classList.add('ot-einzel');
         if (!cfg.wertung) z.svSort = 'teil';
         /* Aufbau von oben nach unten:
@@ -1161,7 +1163,13 @@
         function alleSpielerKeys() { const n = new Set(); serie().filter(t => t.status !== 'geplant').forEach(t => (t.spieler || t.spielerTeil || []).forEach(p => { if (p.leistung || p.punkte > 0) n.add(p.key); })); return n; }
 
         function zeichneHeld() {
-            if (einzel || !serie().length) { el.held.innerHTML = ''; return; }
+            // Einzelnes Turnier: kein Zahlenkopf - aber Name und Beschreibung der Serie, wenn es welche gibt.
+            if (einzel) {
+                el.held.innerHTML = block.dataset.serie || cfg.beschreibung ? '<div class="glass-card ot-held-karte ot-held-schlank"><div class="ot-held-text"><small>Online-Turniere auf Lichess</small>'
+                    + '<h2>' + esc(cfg.serie) + '</h2>' + (cfg.beschreibung ? '<div class="ot-held-beschreibung">' + cfg.beschreibung + '</div>' : '') + '</div></div>' : '';
+                return;
+            }
+            if (!serie().length) { el.held.innerHTML = ''; return; }
             const fertig = fertige(), offen = serie().filter(t => t.status !== 'fertig');
             const namen = alleSpielerKeys();
             const partien = serie().filter(t => t.status !== 'geplant').reduce((s, t) => s + (t.partien ? t.partien.length : (t.partienZahl || 0)), 0);

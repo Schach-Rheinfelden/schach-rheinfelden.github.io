@@ -28,6 +28,21 @@
  * zaehlen nicht in Gesamtwertung, Serien-Zahlen und Spielerliste. Gibt es NUR
  * Turniere ohne Gesamtwertung, zeigt die Seite einfach eine Turnier-Uebersicht.
  *
+ * ══ AM EINFACHSTEN: ALLES IM BLATT "online-turniere" (data/online-turniere.csv) ══
+ * In der pages-Zelle steht dann nur noch der Platzhalter
+ *     <div class="online-turniere" data-quelle="data/online-turniere.csv"></div>
+ * und das Blatt ist eine Matrix - eine Zeile pro Turnier, dazu wahlweise eine
+ * Einstellungszeile pro Serie (Zeile OHNE Link):
+ *   serie          Name der Serie. Leer = wie die Zeile darueber.
+ *   link           Lichess-Link (swiss/… oder tournament/…). Leer = Einstellungszeile.
+ *   gesamtwertung  Einstellungszeile: ja = Serie hat eine Gesamtwertung (alle zaehlen,
+ *                  ausser Turniere mit "nein"). Ohne Einstellung zaehlen nur Turniere
+ *                  mit "ja" - und nur dann gibt es eine Gesamtwertung.
+ *   punkte, teilnahme, streich, kurzname, beschreibung   nur Einstellungszeile
+ *   werbung        nein = nie im Countdown-Hinweis auf den anderen Seiten
+ *   anzeigen       nein = Zeile (Turnier oder ganze Serie) ausblenden
+ *   notiz          frei, wird nicht angezeigt
+ *
  * MEHRERE SERIEN: einfach mehrere Bloecke hintereinander in dieselbe Zelle,
  * jeder mit eigenem Namen und eigenen Einstellungen:
  *     <div class="online-turniere" data-serie="Jans Online-Turniere" …>…</div>
@@ -961,12 +976,14 @@
             // Name der Serie fuer den Kopf. Frueher hiess die Vorgabe "Gesamtwertung" -
             // als Serienname ergibt das keinen Sinn, also gilt es als nicht gesetzt.
             serie: (block.dataset.serie && block.dataset.serie !== 'Gesamtwertung') ? block.dataset.serie : 'Online-Turniere',
-            punkte: (function () { const p = (block.dataset.punkte || '').split(/[,;\s]+/).map(Number).filter(n => !isNaN(n) && n >= 0); return p.length ? p : VORGABE_PUNKTE; })(),
+            punkte: (function () { const p = (block.dataset.punkte || '').split(/[,;\s\-–]+/).filter(x => x !== '').map(Number).filter(n => !isNaN(n) && n >= 0); return p.length ? p : VORGABE_PUNKTE; })(),
             teilnahme: block.dataset.teilnahme !== undefined && block.dataset.teilnahme !== '' ? Number(block.dataset.teilnahme) || 0 : VORGABE_TEILNAHME,
             streich: Math.max(0, Number(block.dataset.streich) || 0),
             // Gesamtpunkte ueberhaupt? "nein" = Serie ohne Wertung.
             wertung: !/^(nein|no|0|false|aus)$/i.test(String(block.dataset.wertung || '').trim()),
-            modus: String(block.dataset.modus || '').trim().toLowerCase()
+            modus: String(block.dataset.modus || '').trim().toLowerCase(),
+            // Kurzer Text unter dem Seriennamen (aus dem Blatt, darf Formatierung enthalten).
+            beschreibung: String(block.dataset.beschreibung || '').trim()
         };
         const z = {
             turniere: [], aktiv: null, tab: 'rangliste',
@@ -1009,6 +1026,7 @@
             id, block,
             get bereit() { return bereit; },
             name: () => (block.dataset.serie || !einzel || !z.turniere[0]) ? cfg.serie : z.turniere[0].name,
+            beschreibung: () => cfg.beschreibung,
             zusammenfassung: () => zusammenfassung(),
             anwenden: p => anwenden(p),
             melde: m => melde(m),
@@ -1144,7 +1162,8 @@
             const gw = gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich).zeilen;
             const zahl = (w, l) => '<div class="ot-held-zahl"><b>' + w + '</b><span>' + l + '</span></div>';
             el.held.innerHTML = '<div class="glass-card ot-held-karte">'
-                + '<div class="ot-held-text"><small>Online-Turnierserie auf Lichess</small><h2>' + esc(cfg.serie) + '</h2></div>'
+                + '<div class="ot-held-text"><small>Online-Turnierserie auf Lichess</small><h2>' + esc(cfg.serie) + '</h2>'
+                + (cfg.beschreibung ? '<div class="ot-held-beschreibung">' + cfg.beschreibung + '</div>' : '') + '</div>'
                 + '<div class="ot-held-zahlen">'
                 + zahl(fertig.length, fertig.length === 1 ? 'Turnier gespielt' : 'Turniere gespielt')
                 + (offen.length ? zahl(offen.length, offen.some(t => t.status === 'laeuft') ? 'läuft / geplant' : 'geplant') : '')
@@ -1705,8 +1724,109 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════════
+       QUELLE: BLATT "online-turniere" (data/online-turniere.csv)
+       ═══════════════════════════════════════════════════════════════════ */
+
+    async function csvTextLaden(url) {
+        const r = window.fetchCSVSource ? await window.fetchCSVSource(url)
+            : await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return window.fetchTextWithEncoding ? window.fetchTextWithEncoding(r) : r.text();
+    }
+
+    /** Semikolon-CSV (wie der GitHub-Upload sie schreibt) -> Zeilen als Objekte, Spaltennamen klein. */
+    function csvObjekte(text) {
+        text = String(text || '').replace(/^\uFEFF/, '');
+        const zeilen = [];
+        let zeile = [], feld = '', inQ = false;
+        for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (inQ) {
+                if (c === '"') { if (text[i + 1] === '"') { feld += '"'; i++; } else inQ = false; }
+                else feld += c;
+            } else if (c === '"') inQ = true;
+            else if (c === ';') { zeile.push(feld); feld = ''; }
+            else if (c === '\n' || c === '\r') {
+                if (c === '\r' && text[i + 1] === '\n') i++;
+                zeile.push(feld); feld = '';
+                if (zeile.some(f => f.trim())) zeilen.push(zeile);
+                zeile = [];
+            } else feld += c;
+        }
+        zeile.push(feld);
+        if (zeile.some(f => f.trim())) zeilen.push(zeile);
+        if (zeilen.length < 2) return [];
+        const kopf = zeilen[0].map(h => String(h || '').trim().toLowerCase());
+        return zeilen.slice(1).map(r => { const o = {}; kopf.forEach((k, i) => { o[k] = String(r[i] == null ? '' : r[i]).trim(); }); return o; });
+    }
+
+    /** ja / nein / leer (null) - grosszuegig gelesen. */
+    function jaNein(v) {
+        v = String(v == null ? '' : v).trim().toLowerCase();
+        if (/^(ja|j|yes|y|x|1|true|wahr|✓|✔)$/.test(v)) return true;
+        if (/^(nein|n|no|0|false|falsch|-)$/.test(v)) return false;
+        return null;
+    }
+
+    /** Die Matrix des Blatts -> Serien mit ihren Turnieren und Einstellungen. */
+    function serienAusMatrix(objekte) {
+        const serien = [], nachName = new Map();
+        let letzte = '';
+        objekte.forEach(o => {
+            const name = String(o.serie || o.serienname || '').trim() || letzte;
+            const link = String(o.link || o['lichess-link'] || o.lichess || o.turnier || '').trim();
+            if (!name || (!link && !String(o.serie || '').trim())) { if (name) letzte = name; return; }
+            letzte = name;
+            let s = nachName.get(name.toLowerCase());
+            if (!s) {
+                s = { name, kurzname: '', wertung: null, punkte: '', teilnahme: '', streich: '', beschreibung: '', werbung: null, anzeigen: true, turniere: [] };
+                nachName.set(name.toLowerCase(), s);
+                serien.push(s);
+            }
+            const zeigen = jaNein(o.anzeigen) !== false;
+            if (!link) {                                   // Einstellungszeile der Serie
+                if (!zeigen) s.anzeigen = false;
+                if (o.kurzname) s.kurzname = o.kurzname;
+                if (jaNein(o.gesamtwertung) !== null) s.wertung = jaNein(o.gesamtwertung);
+                ['punkte', 'teilnahme', 'streich', 'beschreibung'].forEach(k => { if (o[k]) s[k] = o[k]; });
+                if (jaNein(o.werbung) !== null) s.werbung = jaNein(o.werbung);
+                return;
+            }
+            if (zeigen) s.turniere.push({ link, wertung: jaNein(o.gesamtwertung), werbung: jaNein(o.werbung) });
+        });
+        return serien.filter(s => s.anzeigen).map(s => {
+            const mitWertung = s.wertung === true || (s.wertung === null && s.turniere.some(t => t.wertung === true));
+            const zaehlt = t => mitWertung && (s.wertung === true ? t.wertung !== false : t.wertung === true);
+            s.mitWertung = mitWertung;
+            s.mit = s.turniere.filter(zaehlt).map(t => t.link);
+            s.ohne = s.turniere.filter(t => !zaehlt(t)).map(t => t.link);
+            return s;
+        });
+    }
+
+    /** Aus jeder Serie einen gewoehnlichen Block machen - der Rest laeuft wie gehabt. */
+    function bloeckeAusSerien(serien) {
+        return serien.map(s => {
+            const b = document.createElement('div');
+            b.className = 'online-turniere';
+            b.dataset.serie = s.name;
+            if (s.kurzname) b.dataset.id = s.kurzname;
+            b.dataset.wertung = s.mitWertung ? 'ja' : 'nein';
+            if (s.punkte) b.dataset.punkte = s.punkte;
+            if (s.teilnahme) b.dataset.teilnahme = s.teilnahme;
+            if (s.streich) b.dataset.streich = s.streich;
+            if (s.beschreibung) b.dataset.beschreibung = s.beschreibung;
+            b.textContent = s.mitWertung ? 'MIT GESAMTWERTUNG: ' + s.mit.join(' ') + ' OHNE GESAMTWERTUNG: ' + s.ohne.join(' ')
+                : s.turniere.map(t => t.link).join(' ');
+            return b;
+        });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
        DIREKTE LINKS UND MEHRERE SERIEN
        ═══════════════════════════════════════════════════════════════════ */
+
+    function nurText(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent.replace(/\s+/g, ' ').trim(); }
 
     function slug(text) {
         return String(text || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
@@ -1785,6 +1905,7 @@
             return '<button type="button" class="glass-card ot-serienkarte' + (d.live ? ' live' : '') + '" data-ot-hub="' + esc(s.id) + '">'
                 + '<span class="ot-serienkarte-art">' + art + '</span>'
                 + '<span class="ot-serienkarte-name">' + esc(s.name()) + '</span>'
+                + (s.beschreibung() ? '<span class="ot-serienkarte-text">' + esc(nurText(s.beschreibung())) + '</span>' : '')
                 + '<span class="ot-serienkarte-zahlen">' + (d.leer ? '<span>Noch keine Turniere eingetragen</span>'
                     : '<span><b>' + d.anzahl + '</b> ' + (d.anzahl === 1 ? 'Turnier' : 'Turniere') + '</span>'
                     + (d.spieler ? '<span><b>' + d.spieler + '</b> Spieler</span>' : '')) + '</span>'
@@ -1835,6 +1956,24 @@
     let hubInstanz = null;
     const einzelneSerien = [];
     function start() {
+        // Platzhalter <div class="online-turniere" data-quelle="data/online-turniere.csv">:
+        // erst das Blatt laden, daraus die Serien-Bloecke bauen, dann normal starten.
+        const quellen = Array.from(document.querySelectorAll('.online-turniere[data-quelle]')).filter(q => !q.dataset.otGestartet);
+        if (quellen.length) {
+            quellen.forEach(q => { q.dataset.otGestartet = '1'; q.classList.add('ot-bereit'); q.innerHTML = '<p class="ot-leer">Turniere werden geladen …</p>'; });
+            Promise.all(quellen.map(q => csvTextLaden(q.dataset.quelle).then(csvObjekte).then(serienAusMatrix).then(serien => {
+                if (!serien.length) {
+                    q.innerHTML = '<div class="glass-card ot-bald"><div class="ot-bald-symbol" aria-hidden="true">♞</div>'
+                        + '<h3>Das erste Online-Turnier steht vor der Tür</h3><p>Sobald gespielt wird, findest du hier Ranglisten und alle Partien. Schau bald wieder vorbei!</p></div>';
+                    return;
+                }
+                bloeckeAusSerien(serien).forEach(b => q.parentNode.insertBefore(b, q));
+                q.remove();
+            }).catch(e => {
+                q.innerHTML = '<div class="glass-card ot-fehler">Die Liste der Online-Turniere konnte nicht geladen werden (' + esc(e.message) + ').</div>';
+            }))).then(start);
+            return;
+        }
         const neu = Array.from(document.querySelectorAll('.online-turniere')).filter(b => !b.dataset.otGestartet);
         neu.forEach(b => { b.dataset.otGestartet = '1'; });
         if (neu.length > 1 && !hubInstanz) hubInstanz = Hub(neu);
@@ -1854,7 +1993,7 @@
     }
 
     // Fuer Tests und fuer Seiten, die den Block erst spaeter einsetzen.
-    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik, slug };
+    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik, slug, csvObjekte, serienAusMatrix };
 
     // pages.csv laedt dieses Skript erst, NACHDEM der Inhalt eingesetzt ist.
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

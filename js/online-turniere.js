@@ -40,6 +40,9 @@
  *                  mit "ja" - und nur dann gibt es eine Gesamtwertung.
  *   punkte, teilnahme, streich, kurzname, beschreibung   nur Einstellungszeile
  *   werbung        nein = nie im Countdown-Hinweis auf den anderen Seiten
+ *   bild           Bild der Serie (Link oder assets/…-Pfad, wie bei News/Terminen):
+ *                  im Kopf der Serie, auf ihrer Karte in der Uebersicht und im
+ *                  Countdown-Reiter. Nur Einstellungszeile.
  *   team           Lichess-Team, dem man vorher beitreten muss (Link oder Kurzname,
  *                  z. B. https://lichess.org/team/schach-rheinfelden). In der
  *                  Einstellungszeile fuer alle Turniere der Serie, sonst je Turnier.
@@ -989,7 +992,8 @@
             modus: String(block.dataset.modus || '').trim().toLowerCase(),
             // Kurzer Text unter dem Seriennamen (aus dem Blatt, darf Formatierung enthalten).
             beschreibung: String(block.dataset.beschreibung || '').trim(),
-            team: String(block.dataset.team || '').trim()
+            team: String(block.dataset.team || '').trim(),
+            bild: String(block.dataset.bild || '').trim()
         };
         const z = {
             turniere: [], aktiv: null, tab: 'rangliste',
@@ -1035,6 +1039,7 @@
             get bereit() { return bereit; },
             name: () => (block.dataset.serie || !einzel || !z.turniere[0]) ? cfg.serie : z.turniere[0].name,
             beschreibung: () => cfg.beschreibung,
+            bild: () => cfg.bild,
             zusammenfassung: () => zusammenfassung(),
             anwenden: p => anwenden(p),
             melde: m => melde(m),
@@ -1165,7 +1170,9 @@
         function zeichneHeld() {
             // Einzelnes Turnier: kein Zahlenkopf - aber Name und Beschreibung der Serie, wenn es welche gibt.
             if (einzel) {
-                el.held.innerHTML = block.dataset.serie || cfg.beschreibung ? '<div class="glass-card ot-held-karte ot-held-schlank"><div class="ot-held-text"><small>Online-Turniere auf Lichess</small>'
+                el.held.innerHTML = block.dataset.serie || cfg.beschreibung || cfg.bild ? '<div class="glass-card ot-held-karte ot-held-schlank' + (cfg.bild ? ' mit-bild' : '') + '">'
+                    + (cfg.bild ? '<div class="ot-held-bild" style="' + bildStil(cfg.bild) + '" aria-hidden="true"></div>' : '')
+                    + '<div class="ot-held-text"><small>Online-Turniere auf Lichess</small>'
                     + '<h2>' + esc(cfg.serie) + '</h2>' + (cfg.beschreibung ? '<div class="ot-held-beschreibung">' + cfg.beschreibung + '</div>' : '') + '</div></div>' : '';
                 return;
             }
@@ -1175,7 +1182,8 @@
             const partien = serie().filter(t => t.status !== 'geplant').reduce((s, t) => s + (t.partien ? t.partien.length : (t.partienZahl || 0)), 0);
             const gw = gesamtwertung(z.turniere, cfg, z.gpModus, z.gpStreich).zeilen;
             const zahl = (w, l) => '<div class="ot-held-zahl"><b>' + w + '</b><span>' + l + '</span></div>';
-            el.held.innerHTML = '<div class="glass-card ot-held-karte">'
+            el.held.innerHTML = '<div class="glass-card ot-held-karte' + (cfg.bild ? ' mit-bild' : '') + '">'
+                + (cfg.bild ? '<div class="ot-held-bild" style="' + bildStil(cfg.bild) + '" aria-hidden="true"></div>' : '')
                 + '<div class="ot-held-text"><small>Online-Turnierserie auf Lichess</small><h2>' + esc(cfg.serie) + '</h2>'
                 + (cfg.beschreibung ? '<div class="ot-held-beschreibung">' + cfg.beschreibung + '</div>' : '') + '</div>'
                 + '<div class="ot-held-zahlen">'
@@ -1785,6 +1793,14 @@
         return null;
     }
 
+    /** Bild-Adresse -> sicheres style-Attribut (Pfade wie bei News: assets/…, Links). */
+    function bildStil(url) {
+        let u = String(url || '').trim();
+        if (!u) return '';
+        u = window.formatImageUrl ? window.formatImageUrl(u) : u;
+        return 'background-image:url(&quot;' + esc(u.replace(/["'()\\\s]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'))) + '&quot;)';
+    }
+
     /** Lichess-Team aus Link oder Kurzname -> Team-Adresse (oder ''). */
     function teamUrl(wert) {
         const v = String(wert || '').trim();
@@ -1810,7 +1826,7 @@
             letzte = name;
             let s = nachName.get(name.toLowerCase());
             if (!s) {
-                s = { name, kurzname: '', wertung: null, punkte: '', teilnahme: '', streich: '', beschreibung: '', team: '', werbung: null, anzeigen: true, turniere: [] };
+                s = { name, kurzname: '', wertung: null, punkte: '', teilnahme: '', streich: '', beschreibung: '', bild: '', team: '', werbung: null, anzeigen: true, turniere: [] };
                 nachName.set(name.toLowerCase(), s);
                 serien.push(s);
             }
@@ -1819,7 +1835,8 @@
                 if (!zeigen) s.anzeigen = false;
                 if (o.kurzname) s.kurzname = o.kurzname;
                 if (jaNein(o.gesamtwertung) !== null) s.wertung = jaNein(o.gesamtwertung);
-                ['punkte', 'teilnahme', 'streich', 'beschreibung', 'team'].forEach(k => { if (o[k]) s[k] = o[k]; });
+                ['punkte', 'teilnahme', 'streich', 'beschreibung', 'team', 'bild'].forEach(k => { if (o[k]) s[k] = o[k]; });
+                if (!s.bild && (o.image || o.bildlink)) s.bild = o.image || o.bildlink;
                 if (jaNein(o.werbung) !== null) s.werbung = jaNein(o.werbung);
                 return;
             }
@@ -1848,6 +1865,7 @@
             if (s.streich) b.dataset.streich = s.streich;
             if (s.beschreibung) b.dataset.beschreibung = s.beschreibung;
             if (s.team) b.dataset.team = s.team;
+            if (s.bild) b.dataset.bild = s.bild;
             // Team je Turnier (ueberschreibt das der Serie) - als Eigenschaft, nicht im Text.
             b._otTeams = new Map(s.turniere.filter(t => t.team).map(t => [(t.link.match(/\/([A-Za-z0-9]{8})(?![A-Za-z0-9])/) || [])[1], t.team]));
             b.textContent = s.mitWertung ? 'MIT GESAMTWERTUNG: ' + s.mit.join(' ') + ' OHNE GESAMTWERTUNG: ' + s.ohne.join(' ')
@@ -1936,7 +1954,8 @@
             if (d.naechstes) infos.push('<span class="ot-gold">⏳ Nächstes: ' + esc(kurzDatum(d.naechstes.start)) + ' · ' + bisStartText(d.naechstes.start) + '</span>');
             if (d.fuehrend) infos.push('<span>🏆 Spitzenreiter: <b>' + titelTag(d.fuehrend.titel) + esc(d.fuehrend.name) + '</b> · ' + pkt(d.fuehrend.summe) + ' Pkt.</span>');
             const art = d.einzel ? 'Turnier' : d.wertung ? 'Serie mit Gesamtwertung' : 'Turnierserie';
-            return '<button type="button" class="glass-card ot-serienkarte' + (d.live ? ' live' : '') + '" data-ot-hub="' + esc(s.id) + '">'
+            return '<button type="button" class="glass-card ot-serienkarte' + (d.live ? ' live' : '') + (s.bild() ? ' mit-bild' : '') + '" data-ot-hub="' + esc(s.id) + '">'
+                + (s.bild() ? '<span class="ot-serienkarte-bild" style="' + bildStil(s.bild()) + '" aria-hidden="true"></span>' : '')
                 + '<span class="ot-serienkarte-art">' + art + '</span>'
                 + '<span class="ot-serienkarte-name">' + esc(s.name()) + '</span>'
                 + (s.beschreibung() ? '<span class="ot-serienkarte-text">' + esc(nurText(s.beschreibung())) + '</span>' : '')
@@ -2027,7 +2046,7 @@
     }
 
     // Fuer Tests und fuer Seiten, die den Block erst spaeter einsetzen.
-    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik, slug, csvObjekte, serienAusMatrix, teamUrl };
+    window.OnlineTurniere = { start, gesamtwertung, linksLesen, Schach, kreuzMatrix, spielerStatistik, slug, csvObjekte, serienAusMatrix, teamUrl, bildStil };
 
     // pages.csv laedt dieses Skript erst, NACHDEM der Inhalt eingesetzt ist.
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

@@ -6054,3 +6054,15 @@ body.light-theme .ot-modal .ot-zu { background: rgba(255, 255, 255, 0.9); border
    sonst geht die Karte beim Hinueberfahren kurz zu und wieder auf. */
 .ot-hinweis-karte::after { content: ''; position: absolute; top: 0; bottom: 0; left: 100%; width: 12px; }
 @media (max-width: 600px) { .ot-hinweis-karte::after { top: 100%; bottom: auto; left: 0; right: 0; width: auto; height: 12px; } }
+
+/* Countdown-Reiter: Knoepfe und Links in der Karte duerfen ihre Sichtbarkeit NICHT
+   selbst animieren (.btn hat "transition: all 0.4s") - sonst bleiben sie nach dem
+   Schliessen noch kurz allein stehen, waehrend die Karte schon weg ist. */
+.ot-hinweis-karte *, .ot-hinweis-karte *::before, .ot-hinweis-karte *::after { transition-property: color, background-color, border-color, box-shadow, transform, left; }
+.ot-held-beschreibung { margin-top: 0.4rem; max-width: 46rem; font-size: 0.98rem; line-height: 1.55; color: var(--text-secondary); }
+.ot-held-schlank { padding: 1.4rem 2rem; }
+/* Eigene Glas-Optik statt .glass-card: Die Startseite haengt jeder .glass-card die
+   Scroll-Animation (.fade-in-up.visible = opacity 1) an - damit liess sich die Karte
+   nicht mehr ausblenden und verschwand ruckartig. */
+.ot-hinweis-karte { background: var(--glass-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(212, 175, 55, .45); border-radius: var(--border-radius); }
+body.light-theme .ot-hinweis-karte { background: #ffffff; border-color: rgba(212, 175, 55, .5); box-shadow: 0 12px 40px rgba(0, 0, 0, .12); }

@@ -543,6 +543,9 @@ Zeitstempel;E-Mail-Adresse;Wie sieht es mit deiner Teilnahme aus?;Vorname;Nachna
 * **Doppelte Anmeldungen** derselben E-Mail-Adresse werden automatisch zusammengeführt – es zählt der **neueste** Eintrag. So können Teilnehmende ihre Zusage nachträglich ändern.
 * Die Antwort auf die Teilnahmefrage steuert das Statussymbol: beginnt sie mit `ja` → 🟢 Dabei, mit `nein` → 🔴 Absage, sonst ⚪ Offen.
 * Die Liste lässt sich nach Status, Name, Team und Anmeldedatum sortieren sowie durchsuchen.
+* **Das Skript steckt in `js/anmeldeliste.js`** (in `index.html` eingebunden) und startet von selbst, sobald eine Seite die Liste enthält (`<tbody id="turnier-list-tbody">`). In der `pages`-Zelle steht nur das HTML der Liste – **kein `<script>`-Block** mehr. Früher stand das Skript in der Zelle; der visuelle Editor entfernt `<script>`-Blöcke beim Speichern, danach blieb die Liste auf „Lade Anmeldungen…" stehen und der Knopf zum Formular tat nichts.
+* Doppelte Einträge werden über **E-Mail und Name** zusammengeführt: Eltern können mehrere Kinder unter derselben Adresse anmelden, eine erneute Anmeldung mit gleichem Namen ersetzt nur den eigenen Eintrag.
+* Anderes Formular? Am Knopf `data-formular="https://docs.google.com/forms/…/viewform"` ergänzen.
 
 ---
 

@@ -180,7 +180,7 @@
             + '<span class="ot-hinweis-symbol" aria-hidden="true">♞</span>'
             + '<span class="ot-hinweis-etikett">' + (live ? '<i class="ot-hinweis-punkt"></i>Live' : 'Turnier') + '</span>'
             + '<span class="ot-hinweis-kurz" data-ot-kurz>' + (live ? 'jetzt' : '…') + '</span></button>'
-            + '<div class="ot-hinweis-karte glass-card" id="ot-hinweis-karte">'
+            + '<div class="ot-hinweis-karte" id="ot-hinweis-karte">'
             + '<button type="button" class="ot-hinweis-zu" aria-label="Details schliessen" title="Schliessen">×</button>'
             + '<small class="ot-hinweis-kopf">' + (live ? 'Läuft gerade' : 'Nächstes Online-Turnier') + ' · ' + esc(t.serie.name) + '</small>'
             + '<b class="ot-hinweis-name">' + esc(t.name) + '</b>'

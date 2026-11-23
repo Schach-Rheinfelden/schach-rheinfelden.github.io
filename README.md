@@ -860,7 +860,7 @@ Die **Reihenfolge der Serien** auf der Seite entspricht der Reihenfolge im Blatt
 In der Zelle `content` der Zeile `online-turniere` steht nur noch ein Platzhalter – sie muss danach **nie mehr angepasst** werden:
 
 ```html
-<div style="max-width:1000px;margin:0 auto;"><p style="color:var(--text-secondary);margin:0 0 1.5rem;font-size:1.05rem;">Unsere Online-Turniere auf Lichess …</p><div class="online-turniere" data-quelle="data/online-turniere.csv"></div></div><script src="js/online-turniere.js?v=10"></script>
+<div style="max-width:1000px;margin:0 auto;"><p style="color:var(--text-secondary);margin:0 0 1.5rem;font-size:1.05rem;">Unsere Online-Turniere auf Lichess …</p><div class="online-turniere" data-quelle="data/online-turniere.csv"></div></div><script src="js/online-turniere.js?v=11"></script>
 ```
 
 ### Was Besucher sehen
@@ -889,7 +889,7 @@ Auf **jeder Seite ausser der Online-Turniere-Seite** steht am rechten Rand (Hand
 * `werbung` = `nein` nimmt Turniere oder ganze Serien heraus.
 * Lichess wird höchstens alle paar Minuten gefragt (Zwischenspeicher im Browser), beendete Turniere nie wieder.
 
-Eingebunden ist er in allen HTML-Dateien direkt nach `shared.js`: `<script src="js/ot-hinweis.js?v=4"></script>`.
+Eingebunden ist er in allen HTML-Dateien direkt nach `shared.js`: `<script src="js/ot-hinweis.js?v=5"></script>`.
 
 ### Direkte Links
 

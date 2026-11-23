@@ -17,3 +17,4 @@ ssb_spiele.csv;;SSB Ligaspiele (Schweiz)
 ssb_brett_details.csv;;SSB Einzelergebnisse / Brett-Details
 guestbook.csv;;Gaestebuch-Eintraege (Gruesse & Feedback der Besucher)
 youth.csv;;Jugend und Nachwuchs Infos
+online-turniere.csv;;Online-Turniere auf Lichess (Serien und Turnier-Links)

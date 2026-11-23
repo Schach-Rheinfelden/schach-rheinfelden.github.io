@@ -35,6 +35,7 @@ Dieses Handbuch erklärt die Architektur der Website sowie alle Formatierungen, 
 18. [Turnier-Anmeldungen (`anmeldungen.csv`)](#18-turnier-anmeldungen-anmeldungencsv)
 19. [Externe CSV-Quellen verknüpfen (`sources.csv`)](#19-externe-csv-quellen-verknüpfen-sourcescsv)
 20. [Bestenliste (`bestenliste.csv`)](#20-bestenliste-bestenlistecsv)
+21. [Online-Turniere auf Lichess (`online-turniere.csv`)](#21-online-turniere-auf-lichess-online-turnierecsv)
 
 ---
 
@@ -60,7 +61,9 @@ Dieses Handbuch erklärt die Architektur der Website sowie alle Formatierungen, 
 │   ├── events-archive.js Terminarchiv
 │   ├── mediathek.js      Mediathek
 │   ├── liga-center.js    Liga-Center
-│   └── bestenliste.js    Bestenliste
+│   ├── bestenliste.js    Bestenliste
+│   ├── online-turniere.js Online-Turniere (Lichess): Serien, Gesamtwertung, Ranglisten, Partien
+│   └── ot-hinweis.js     Countdown-Reiter fürs nächste Online-Turnier (auf allen anderen Seiten)
 │
 ├── data/                 Alle Inhalte als CSV (siehe unten)
 └── assets/               Bilder, Logos, Dateien
@@ -802,3 +805,107 @@ In `bestenliste.csv` sind leere Runden am **Ende** weggeschnitten, weil sie nich
 Das Apps Script erzeugt das Blatt `saisons` im selben Durchgang – **beide Blätter** müssen hochgeladen werden.
 
 Jahre, in denen nur ein Wettbewerb stattfand, verraten sich so von selbst – etwa `2020/21 · SMM 21` (Corona).
+
+---
+
+## 21. Online-Turniere auf Lichess (`online-turniere.csv`)
+
+Die Seite **Online-Turniere** (`index.html?page=online-turniere`) zeigt unsere Turniere auf [Lichess](https://lichess.org): Übersicht, Countdown, Gesamtwertung, Rangliste, Kreuztabelle, alle Partien mit Brett zum Nachspielen und eine Laufbahn je Spieler. Alles kommt **live von Lichess** – eingetragen wird nur der Link zum Turnier.
+
+Gepflegt wird alles im Blatt **`online-turniere`** (wird über den GitHub-Upload zu `data/online-turniere.csv`).
+
+### Aufbau des Blatts
+
+```csv
+serie;link;gesamtwertung;punkte;teilnahme;streich;kurzname;beschreibung;werbung;anzeigen;notiz
+```
+
+Das Blatt ist eine **Matrix**: Jede Zeile **mit Link** ist ein Turnier. Eine Zeile **ohne Link** ist die (freiwillige) **Einstellungszeile** einer Serie.
+
+| Spalte | In der Einstellungszeile (ohne Link) | In einer Turnierzeile (mit Link) |
+| :--- | :--- | :--- |
+| `serie` | Name der Serie, z. B. `Jans Online-Turniere`. **Pflicht.** | Zu welcher Serie das Turnier gehört. **Leer = wie die Zeile darüber.** |
+| `link` | leer lassen | Lichess-Link, z. B. `https://lichess.org/swiss/AbCd1234` oder `…/tournament/XyZ98765` |
+| `gesamtwertung` | `ja` = die Serie hat eine Gesamtwertung, **alle** Turniere zählen. `nein` oder leer = keine Gesamtwertung. | `nein` = dieses Turnier zählt ausnahmsweise **nicht**. Ohne `ja` in der Einstellungszeile zählen nur Turniere mit `ja`. |
+| `punkte` | Punkte für Platz 1, 2, 3 … – z. B. `10,8,6,5,4,3,2,1` (Vorgabe). Auch `10-8-6` geht. | – |
+| `teilnahme` | Zusatzpunkte für jede gespielte Teilnahme (Vorgabe `1`, `0` = keine). | – |
+| `streich` | Anzahl **Streichresultate**: So viele schlechteste Ergebnisse je Spieler fallen aus der Gesamtwertung (Vorgabe `0`). | – |
+| `kurzname` | Kurzname für Links, z. B. `jans` → `…&serie=jans`. Leer = aus dem Namen gebildet (`jans-online-turniere`). | – |
+| `beschreibung` | Kurzer Text unter dem Seriennamen (Kopf der Serie und Karte in der Übersicht). Formatierung erlaubt. | – |
+| `werbung` | `nein` = kein Turnier dieser Serie im Countdown-Reiter. | `nein` = dieses Turnier nie im Countdown-Reiter. |
+| `anzeigen` | `nein` = ganze Serie ausblenden (ohne Zeilen zu löschen). | `nein` = dieses Turnier ausblenden. |
+| `notiz` | frei, erscheint nirgends | frei, erscheint nirgends |
+
+Nur `serie` und `link` sind nötig; alle anderen Spalten dürfen leer bleiben. Ja/Nein-Felder wie überall (`ja`, `x`, `1` … / `nein`, `0` …).
+
+**Beispiel:**
+
+| serie | link | gesamtwertung | punkte | kurzname | beschreibung | werbung |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Jans Online-Turniere | | nein | | jans | Blitz bequem von zu Hause | |
+| | https://lichess.org/swiss/AAAA1111 | | | | | |
+| | https://lichess.org/tournament/BBBB2222 | | | | | nein |
+| 960 Series | | ja | 10,8,6,5,4,3,2,1 | | | |
+| 960 Series | https://lichess.org/swiss/CCCC3333 | | | | | |
+| 960 Series | https://lichess.org/swiss/DDDD4444 | nein | | | | |
+
+* *Jans Online-Turniere*: zwei Turniere, keine Gesamtwertung; BBBB2222 wird nicht im Countdown-Reiter beworben.
+* *960 Series*: mit Gesamtwertung; DDDD4444 zählt ausnahmsweise nicht.
+
+Die **Reihenfolge der Serien** auf der Seite entspricht der Reihenfolge im Blatt. Die Reihenfolge der Turniere ist egal – sortiert wird nach Datum.
+
+### Die Seite in `pages.csv`
+
+In der Zelle `content` der Zeile `online-turniere` steht nur noch ein Platzhalter – sie muss danach **nie mehr angepasst** werden:
+
+```html
+<div style="max-width:1000px;margin:0 auto;"><p style="color:var(--text-secondary);margin:0 0 1.5rem;font-size:1.05rem;">Unsere Online-Turniere auf Lichess …</p><div class="online-turniere" data-quelle="data/online-turniere.csv"></div></div><script src="js/online-turniere.js?v=9"></script>
+```
+
+### Was Besucher sehen
+
+* **Eine Serie** → direkt die Serie. **Mehrere Serien** → zuerst eine **Übersicht mit einer Karte pro Serie** (Anzahl Turniere und Spieler, laufendes bzw. nächstes Turnier, Spitzenreiter). Ein Klick öffnet die Serie; oben führt *„← Alle Serien"* zurück.
+* **Eine Serie mit nur einem Turnier** → eine schlichte Turnierseite ohne Serien-Kopf.
+* In einer Serie: **Gesamtwertung** (nur mit Gesamtwertung), **Turniere** (Karten, neueste oben, Laufendes und Geplantes zuerst) und **Spieler** (alle Teilnehmer mit Teilnahmen, Siegen, Podesten, Laufbahn).
+* In einem Turnier: **Rangliste**, **Kreuztabelle**, **Partien & Paarungen** (Filter, Direktvergleich, Brett zum Nachspielen).
+* Turniere, die nicht zur Gesamtwertung zählen, stehen in einer Serie mit Gesamtwertung unter **„Weitere Turniere – Ohne Gesamtwertung"**, ohne Seriennummer. Im Turnier und im Countdown steht dezent *„· ohne Gesamtwertung"*.
+
+### Gesamtwertung
+
+* Jeder Spieler bekommt pro **beendetem** Turnier die Punkte seines Platzes (`punkte`) plus den Teilnahmepunkt (`teilnahme`). Wer angemeldet war, aber keine Partie gespielt hat, zählt nicht.
+* Umschaltbar: **Platzierung** (Punkte je Platz) oder **Turnierpunkte** (die echten Lichess-Punkte addiert).
+* **Streichresultate** (`streich`): die schlechtesten Ergebnisse jedes Spielers fallen weg; Besucher können die Zahl auch selbst ausprobieren. Gestrichene Werte erscheinen durchgestrichen.
+* Gleichstand teilt sich den Rang. CSV-Export per Knopf.
+
+### Countdown-Reiter auf allen anderen Seiten
+
+Auf **jeder Seite ausser der Online-Turniere-Seite** steht am rechten Rand (Handy: unten rechts) ein schmaler Reiter mit Springer und Restzeit, sobald ein Turnier **angekündigt ist oder läuft**:
+
+* Es wird immer nur **ein** Turnier gezeigt: ein laufendes, sonst das nächste geplante.
+* Maus darüber oder antippen → Karte mit Name, Datum, Modus, Angemeldeten, Countdown, *„Auf Lichess beitreten"* und *„Mehr erfahren →"* (öffnet das Turnier direkt auf der Turnierseite).
+* Das **×** schliesst nur die Karte; der Reiter bleibt.
+* `werbung` = `nein` nimmt Turniere oder ganze Serien heraus.
+* Lichess wird höchstens alle paar Minuten gefragt (Zwischenspeicher im Browser), beendete Turniere nie wieder.
+
+Eingebunden ist er in allen HTML-Dateien direkt nach `shared.js`: `<script src="js/ot-hinweis.js?v=3"></script>`.
+
+### Direkte Links
+
+Die Adresszeile zeigt immer, was gerade offen ist, und lässt sich kopieren (oder per Knopf **🔗 Link**). Die Zurück-Taste funktioniert wie gewohnt.
+
+| Ziel | Link |
+| :--- | :--- |
+| Übersicht | `index.html?page=online-turniere` |
+| Serie | `…&serie=jans` |
+| Bereich einer Serie | `…&serie=jans&bereich=spieler` (`gesamt`, `turniere`, `spieler`) |
+| Turnier | `…&serie=jans&turnier=AbCd1234` |
+| Reiter im Turnier | `…&turnier=AbCd1234&reiter=partien` (`rangliste`, `kreuz`, `partien`) |
+
+`turnier=` ist die 8-stellige Kennung aus dem Lichess-Link. Unbekannte oder veraltete Links öffnen einfach die Startansicht.
+
+### Gut zu wissen
+
+* **Ladezeit:** Lichess gibt Ranglisten und Partien gedrosselt heraus (etwa 50 Spieler bzw. 25 Partien pro Sekunde). Die Seite zeigt deshalb sofort, was schon da ist, lädt Partien erst bei Bedarf und merkt sich beendete Turniere im Browser.
+* **Namen** sind Lichess-Benutzernamen, keine Klarnamen.
+* **Alternative ohne Blatt:** Statt des Platzhalters können die Links auch direkt in der `pages`-Zelle stehen – `<div class="online-turniere" data-serie="…" data-wertung="ja">Link Link …</div>`, mehrere Blöcke für mehrere Serien, Abschnitte mit `MIT GESAMTWERTUNG:` / `OHNE GESAMTWERTUNG:`. Die Einstellungen heissen dann `data-punkte`, `data-teilnahme`, `data-streich`, `data-id`, `data-beschreibung`. Die Details stehen im Dateikopf von `js/online-turniere.js`. Der Countdown-Reiter liest allerdings nur das Blatt.
+* Die Datei ist in `sources.csv` eingetragen und kann wie die anderen auch direkt aus einem veröffentlichten Google-Sheet gelesen werden (Abschnitt 19).

@@ -188,7 +188,12 @@
             + '<small class="ot-hinweis-kopf" data-ot-l="kopf"></small>'
             + '<a class="ot-hinweis-name ot-ev-titel" data-ot-l="titel" target="_blank" rel="noopener"></a>'
             + '<div data-ot-l="inhalt"></div></div>';
-        document.body.appendChild(el);
+        (function () {
+            // Gemeinsamer Stapel fuer alle Seitenreiter (Live-Event oben, Online-Turnier darunter).
+            let s = document.getElementById('ot-reiter-stapel');
+            if (!s) { s = document.createElement('div'); s.id = 'ot-reiter-stapel'; s.className = 'ot-reiter-stapel'; document.body.appendChild(s); }
+            return s;
+        })().appendChild(el);
 
         const $ = k => el.querySelector('[data-ot-l="' + k + '"]');
         const griff = el.querySelector('.ot-hinweis-griff');

@@ -36,6 +36,7 @@ Dieses Handbuch erklärt die Architektur der Website sowie alle Formatierungen, 
 19. [Externe CSV-Quellen verknüpfen (`sources.csv`)](#19-externe-csv-quellen-verknüpfen-sourcescsv)
 20. [Bestenliste (`bestenliste.csv`)](#20-bestenliste-bestenlistecsv)
 21. [Online-Turniere auf Lichess (`online-turniere.csv`)](#21-online-turniere-auf-lichess-online-turnierecsv)
+22. [Live-Event von Lichess (`liveevent.link` in `info.csv`)](#22-live-event-von-lichess-liveeventlink-in-infocsv)
 
 ---
 
@@ -63,7 +64,9 @@ Dieses Handbuch erklärt die Architektur der Website sowie alle Formatierungen, 
 │   ├── liga-center.js    Liga-Center
 │   ├── bestenliste.js    Bestenliste
 │   ├── online-turniere.js Online-Turniere (Lichess): Serien, Gesamtwertung, Ranglisten, Partien
-│   └── ot-hinweis.js     Countdown-Reiter fürs nächste Online-Turnier (auf allen anderen Seiten)
+│   ├── ot-hinweis.js     Countdown-Reiter fürs nächste Online-Turnier (auf allen anderen Seiten)
+│   ├── ot-live.js        Reiter für ein Live-Event von Lichess (z. B. WM) mit Brett
+│   └── anmeldeliste.js   Live-Anmeldeliste (z. B. Freizeit-Arena)
 │
 ├── data/                 Alle Inhalte als CSV (siehe unten)
 └── assets/               Bilder, Logos, Dateien
@@ -915,3 +918,22 @@ Die Adresszeile zeigt immer, was gerade offen ist, und lässt sich kopieren (ode
 * **Namen** sind Lichess-Benutzernamen, keine Klarnamen.
 * **Alternative ohne Blatt:** Statt des Platzhalters können die Links auch direkt in der `pages`-Zelle stehen – `<div class="online-turniere" data-serie="…" data-wertung="ja">Link Link …</div>`, mehrere Blöcke für mehrere Serien, Abschnitte mit `MIT GESAMTWERTUNG:` / `OHNE GESAMTWERTUNG:`. Die Einstellungen heissen dann `data-punkte`, `data-teilnahme`, `data-streich`, `data-id`, `data-beschreibung`, `data-bild`, `data-team`. Die Details stehen im Dateikopf von `js/online-turniere.js`. Der Countdown-Reiter liest allerdings nur das Blatt.
 * Die Datei ist in `sources.csv` eingetragen und kann wie die anderen auch direkt aus einem veröffentlichten Google-Sheet gelesen werden (Abschnitt 19).
+
+---
+
+## 22. Live-Event von Lichess (`liveevent.link` in `info.csv`)
+
+Für grosse Übertragungen auf Lichess (z. B. eine Weltmeisterschaft) zeigt die Website auf **allen Seiten** einen zweiten schmalen Reiter am rechten Rand (Handy: Pille unten rechts, über der des Online-Turniers).
+
+```csv
+liveevent.link;https://lichess.org/broadcast/fide-world-chess-championship-2026/game-1/xLgOJ6cb/j7pdr7s2
+```
+
+* **Irgendein Link aus dem Event genügt** – von einer Runde oder einer Partie (`…/runde/RUNDENID[/PARTIEID]`) oder von der Event-Seite (`…/event/EVENTID`). Die Seite findet selbst heraus, welche Runde läuft oder als nächste kommt; der Link muss nicht nach jeder Runde getauscht werden.
+* Zeile leer oder gelöscht = kein Reiter.
+* **Reiter:** „● LIVE" während einer Runde, sonst Countdown bis zur nächsten Runde („folgt", wenn Lichess die Runde direkt nach der vorherigen startet).
+* **Karte** (Maus darüber oder antippen): Event-Name, Countdown, **Brett 1** mit Spielern (Titel, Elo, Föderation), Uhren (die des Spielers am Zug läuft mit), letztem Zug und Ergebnis. Mit **‹ ›** oder den Pfeiltasten durch alle Bretter. Unter dem Brett steht der **letzte Zug** in deutscher Notation (z. B. „38… Kg8“). Beendete Partien sind leicht abgedunkelt und tragen eine **Ergebnis-Banderole** („½–½ · Remis“, „1–0 · Sindarov gewinnt“), laufende einen grünen Live-Punkt. Wer die Schlussstellung ungetrübt sehen will, fährt mit der Maus aufs Brett oder tippt es an – die Banderole verschwindet (nochmal antippen holt sie zurück). Zwischen den Runden zeigt die Karte die Schlussstellungen der letzten Runde. Zugweise nachspielen geht bewusst nur auf Lichess (Link „Partie“) – die Karte bleibt so leicht. Links: *„Event auf Lichess"* und *„Partie"*. Das **×** schliesst nur die Karte.
+* **Sichtbar** ab 2 Tagen vor der ersten Runde bis 12 Stunden nach der letzten.
+* **Schonend:** Die Bretter werden nur bei offener Karte geholt – während einer Runde alle 10 Sekunden. Die Rundenliste merkt sich der Browser einige Minuten.
+
+Eingebunden in allen HTML-Dateien: `<script src="js/ot-live.js?v=3"></script>`.

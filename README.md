@@ -896,7 +896,7 @@ Auf **jeder Seite ausser der Online-Turniere-Seite** steht am rechten Rand (Hand
 * `werbung` = `nein` nimmt Turniere oder ganze Serien heraus.
 * Lichess wird höchstens alle paar Minuten gefragt (Zwischenspeicher im Browser), beendete Turniere nie wieder.
 
-Eingebunden ist er in allen HTML-Dateien direkt nach `shared.js`: `<script src="js/ot-hinweis.js?v=6"></script>`.
+Eingebunden ist er in allen HTML-Dateien direkt nach `shared.js`: `<script src="js/ot-hinweis.js?v=7"></script>`.
 
 ### Direkte Links
 
@@ -936,4 +936,4 @@ liveevent.link;https://lichess.org/broadcast/fide-world-chess-championship-2026/
 * **Sichtbar** ab 2 Tagen vor der ersten Runde bis 12 Stunden nach der letzten.
 * **Schonend:** Die Bretter werden nur bei offener Karte geholt – während einer Runde alle 10 Sekunden. Die Rundenliste merkt sich der Browser einige Minuten.
 
-Eingebunden in allen HTML-Dateien: `<script src="js/ot-live.js?v=4"></script>`.
+Eingebunden in allen HTML-Dateien: `<script src="js/ot-live.js?v=5"></script>`.

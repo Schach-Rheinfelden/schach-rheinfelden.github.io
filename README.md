@@ -936,4 +936,4 @@ liveevent.link;https://lichess.org/broadcast/fide-world-chess-championship-2026/
 * **Sichtbar** ab 2 Tagen vor der ersten Runde bis 12 Stunden nach der letzten.
 * **Schonend:** Die Bretter werden nur bei offener Karte geholt – während einer Runde alle 10 Sekunden. Die Rundenliste merkt sich der Browser einige Minuten.
 
-Eingebunden in allen HTML-Dateien: `<script src="js/ot-live.js?v=3"></script>`.
+Eingebunden in allen HTML-Dateien: `<script src="js/ot-live.js?v=4"></script>`.

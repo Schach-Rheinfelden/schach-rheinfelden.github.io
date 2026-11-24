@@ -6145,3 +6145,20 @@ body.light-theme .ot-hinweis-karte { background: #ffffff; border-color: rgba(212
     .ot-ev-rahmen.beendet:hover .ot-ev-banderole { opacity: 0; }
 }
 .ot-ev-rahmen:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; border-radius: 8px; }
+
+/* Seitenreiter als Stapel: Live-Event oben, Online-Turnier direkt darunter - zusammen
+   mittig am rechten Rand; auf dem Handy als Saeule unten rechts. */
+.ot-reiter-stapel { position: fixed; right: 0; top: 56%; z-index: 900; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none; }
+.ot-reiter-stapel .ot-hinweis { position: relative; top: auto; right: auto; bottom: auto; transform: translateX(110%); pointer-events: auto; order: 2; }
+.ot-reiter-stapel .ot-hinweis.ot-event { order: 1; }
+.ot-reiter-stapel .ot-hinweis.sichtbar { transform: none; }
+@media (max-width: 600px) {
+    .ot-reiter-stapel { top: auto; bottom: 14px; right: 12px; transform: none; gap: 8px; }
+    .ot-reiter-stapel .ot-hinweis, .ot-reiter-stapel .ot-hinweis.ot-event { top: auto; bottom: auto; right: auto; transform: translateY(140%); }
+    .ot-reiter-stapel .ot-hinweis.sichtbar { transform: none; }
+}
+@media print { .ot-reiter-stapel { display: none; } }
+/* Karten der Seitenreiter deckend (sonst schimmert die Karte des anderen Reiters durch)
+   und die gerade benutzte immer obenauf. */
+.ot-hinweis-karte { background: var(--surface-color); }
+.ot-reiter-stapel .ot-hinweis:hover, .ot-reiter-stapel .ot-hinweis.offen, .ot-reiter-stapel .ot-hinweis:focus-within { z-index: 2; }

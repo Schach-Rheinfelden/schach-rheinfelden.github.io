@@ -23,7 +23,7 @@
     window.__otLive = true;
 
     const API = 'https://lichess.org/api/broadcast/';
-    const SPEICHER = 'ot-live-v1';
+    const SPEICHER = 'ot-ev-v1';
     const MIN = 60000, STD = 3600000;
     const VORLAUF = 2 * 24 * STD, NACHLAUF = 12 * STD;
 
@@ -177,16 +177,16 @@
     /* ── Anzeige ─────────────────────────────────────────────────────── */
     function bauen(link, ev) {
         const el = document.createElement('aside');
-        el.className = 'ot-hinweis ot-live';
+        el.className = 'ot-hinweis ot-event';
         el.setAttribute('aria-label', 'Live-Event auf Lichess');
-        el.innerHTML = '<button type="button" class="ot-hinweis-griff" aria-expanded="false" aria-controls="ot-live-karte">'
+        el.innerHTML = '<button type="button" class="ot-hinweis-griff" aria-expanded="false" aria-controls="ot-ev-karte">'
             + '<span class="ot-hinweis-symbol" aria-hidden="true">♛</span>'
             + '<span class="ot-hinweis-etikett" data-ot-l="etikett">Event</span>'
             + '<span class="ot-hinweis-kurz" data-ot-l="kurz">…</span></button>'
-            + '<div class="ot-hinweis-karte ot-live-karte" id="ot-live-karte">'
+            + '<div class="ot-hinweis-karte ot-ev-karte" id="ot-ev-karte">'
             + '<button type="button" class="ot-hinweis-zu" aria-label="Schliessen" title="Schliessen">×</button>'
             + '<small class="ot-hinweis-kopf" data-ot-l="kopf"></small>'
-            + '<a class="ot-hinweis-name ot-live-titel" data-ot-l="titel" target="_blank" rel="noopener"></a>'
+            + '<a class="ot-hinweis-name ot-ev-titel" data-ot-l="titel" target="_blank" rel="noopener"></a>'
             + '<div data-ot-l="inhalt"></div></div>';
         document.body.appendChild(el);
 
@@ -274,22 +274,22 @@
             const lauf = amZug && spiel.status === '*' && zustand.l.live;
             const sek = p.clock != null ? p.clock / 100 - (lauf ? (spiel.thinkTime || 0) + (Date.now() - zustand.geholt) / 1000 : 0) : null;
             const erg = spiel.status && spiel.status !== '*' ? (seite === 'w' ? spiel.status.split('-')[0] : spiel.status.split('-')[1]) : '';
-            return '<div class="ot-live-spieler' + (lauf ? ' am-zug' : '') + '">'
-                + '<span class="ot-live-farbe ' + seite + '" aria-hidden="true"></span>'
+            return '<div class="ot-ev-spieler' + (lauf ? ' am-zug' : '') + '">'
+                + '<span class="ot-ev-farbe ' + seite + '" aria-hidden="true"></span>'
                 + (p.title ? '<span class="ot-titel">' + esc(p.title) + '</span>' : '')
                 + '<b>' + esc(p.name || '?') + '</b>'
                 + (p.rating ? '<small>' + p.rating + '</small>' : '')
-                + (p.fed ? '<small class="ot-live-fed">' + esc(p.fed) + '</small>' : '')
-                + (erg ? '<span class="ot-live-erg">' + esc(erg) + '</span>' : '')
-                + (sek != null ? '<span class="ot-live-uhr"' + (lauf ? ' data-ot-tick="' + (sek + Date.now() / 1000) + '"' : '') + '>' + uhrText(sek) + '</span>' : '')
+                + (p.fed ? '<small class="ot-ev-fed">' + esc(p.fed) + '</small>' : '')
+                + (erg ? '<span class="ot-ev-erg">' + esc(erg) + '</span>' : '')
+                + (sek != null ? '<span class="ot-ev-uhr"' + (lauf ? ' data-ot-tick="' + (sek + Date.now() / 1000) + '"' : '') + '>' + uhrText(sek) + '</span>' : '')
                 + '</div>';
         }
 
         function countdownHtml(r) {
             if (!r) return '';
-            if (!r.startsAt) return '<div class="ot-live-folgt">' + esc(r.name) + ' beginnt direkt nach der laufenden Runde.</div>';
+            if (!r.startsAt) return '<div class="ot-ev-folgt">' + esc(r.name) + ' beginnt direkt nach der laufenden Runde.</div>';
             const d = new Date(r.startsAt);
-            return '<div class="ot-live-naechste"><span>' + esc(r.name) + ' · ' + esc(d.toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' }))
+            return '<div class="ot-ev-naechste"><span>' + esc(r.name) + ' · ' + esc(d.toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' }))
                 + ' · ' + esc(d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })) + '</span>'
                 + '<div class="ot-hinweis-uhr" role="timer" aria-live="off">' + ['T', 'Std', 'Min', 'Sek'].map(e => '<span><b data-ot-cd="' + e + '">–</b><small>' + (e === 'T' ? 'Tage' : e) + '</small></span>').join('') + '</div></div>';
         }
@@ -302,19 +302,19 @@
                 const amZug = (String(g.fen || '').split(' ')[1] || 'w');
                 const erg = ergebnisText(g), zug = zustand.zuege && zustand.zuege.get(g.id);
                 const rundeName = zustand.runde ? zustand.runde.name : '';
-                html += '<div class="ot-live-leiste">'
-                    + (sp.length > 1 ? '<button type="button" class="ot-live-pfeil" data-ot-blatt="-1" aria-label="Vorheriges Brett">‹</button>' : '<span></span>')
+                html += '<div class="ot-ev-leiste">'
+                    + (sp.length > 1 ? '<button type="button" class="ot-ev-pfeil" data-ot-blatt="-1" aria-label="Vorheriges Brett">‹</button>' : '<span></span>')
                     + '<span>' + (l.live ? '' : esc(rundeName) + ' · ') + (l.live && g.status === '*' ? '<i class="ot-hinweis-punkt"></i> ' : '') + (sp.length > 1 ? 'Brett ' + (zustand.brett + 1) + ' von ' + sp.length : (l.live ? (g.status === '*' ? 'Live' : 'Beendet') : 'Schlussstellung')) + '</span>'
-                    + (sp.length > 1 ? '<button type="button" class="ot-live-pfeil" data-ot-blatt="1" aria-label="Nächstes Brett">›</button>' : '<span></span>')
+                    + (sp.length > 1 ? '<button type="button" class="ot-ev-pfeil" data-ot-blatt="1" aria-label="Nächstes Brett">›</button>' : '<span></span>')
                     + '</div>'
                     + spielerZeile(g.players && g.players[1], 'b', g, amZug === 'b')
-                    + '<div class="ot-live-rahmen' + (erg ? ' beendet' + (zustand.frei.has(g.id) ? ' frei' : '') : '') + '"'
+                    + '<div class="ot-ev-rahmen' + (erg ? ' beendet' + (zustand.frei.has(g.id) ? ' frei' : '') : '') + '"'
                     + (erg ? ' data-ot-frei="' + esc(g.id) + '" role="button" tabindex="0" title="Antippen: Ergebnis aus-/einblenden" aria-pressed="' + zustand.frei.has(g.id) + '"' : '')
-                    + '><div class="ot-live-brett" aria-label="' + esc(g.name || 'Brett') + '">' + brettHtml(g) + '</div>'
-                    + (erg ? '<div class="ot-live-banderole">' + esc(erg) + '</div>' : '') + '</div>'
+                    + '><div class="ot-ev-brett" aria-label="' + esc(g.name || 'Brett') + '">' + brettHtml(g) + '</div>'
+                    + (erg ? '<div class="ot-ev-banderole">' + esc(erg) + '</div>' : '') + '</div>'
                     + spielerZeile(g.players && g.players[0], 'w', g, amZug === 'w')
-                    + (zug ? '<div class="ot-live-zug">Letzter Zug <b>' + esc(zug) + (g.check === '#' && !/#$/.test(zug) ? '#' : '') + '</b></div>' : '');
-            } else if (l.brettRunde && !zustand.geholt) html += '<p class="ot-live-laden">Bretter werden geladen …</p>';
+                    + (zug ? '<div class="ot-ev-zug">Letzter Zug <b>' + esc(zug) + (g.check === '#' && !/#$/.test(zug) ? '#' : '') + '</b></div>' : '');
+            } else if (l.brettRunde && !zustand.geholt) html += '<p class="ot-ev-laden">Bretter werden geladen …</p>';
             const partie = g && zustand.runde ? zustand.runde.url + '/' + g.id : null;
             html += '<div class="ot-hinweis-knoepfe">'
                 + '<a class="btn btn-primary" href="' + esc((l.live && l.live.url) || zustand.ev.tour.url) + '" target="_blank" rel="noopener">Event auf Lichess ↗</a>'

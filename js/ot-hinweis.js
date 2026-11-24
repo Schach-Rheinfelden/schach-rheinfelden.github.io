@@ -198,7 +198,12 @@
             + (t.team ? '<span class="ot-hinweis-team">👥 Nur für Mitglieder des Lichess-Teams – <a href="' + esc(t.team) + '" target="_blank" rel="noopener">zuerst beitreten ↗</a></span>' : '')
             + '<div class="ot-hinweis-knoepfe"><a class="btn btn-primary" href="' + esc(lichess) + '" target="_blank" rel="noopener">' + (live ? 'Live verfolgen ↗' : 'Auf Lichess beitreten ↗') + '</a>'
             + '<a class="ot-hinweis-mehr" href="' + esc(mehr) + '">Mehr erfahren →</a></div></div>';
-        document.body.appendChild(el);
+        (function () {
+            // Gemeinsamer Stapel fuer alle Seitenreiter (Live-Event oben, Online-Turnier darunter).
+            let s = document.getElementById('ot-reiter-stapel');
+            if (!s) { s = document.createElement('div'); s.id = 'ot-reiter-stapel'; s.className = 'ot-reiter-stapel'; document.body.appendChild(s); }
+            return s;
+        })().appendChild(el);
 
         const griff = el.querySelector('.ot-hinweis-griff');
         const setzen = offen => { el.classList.toggle('offen', offen); griff.setAttribute('aria-expanded', offen ? 'true' : 'false'); };

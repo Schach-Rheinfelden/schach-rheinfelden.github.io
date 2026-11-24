@@ -6087,3 +6087,60 @@ body.light-theme .ot-hinweis-karte { background: #ffffff; border-color: rgba(212
 .ot-hinweis-karte.mit-bild { padding-top: 0; overflow: hidden; }
 .ot-hinweis-bild { height: 96px; margin: 0 -1.2rem 0.35rem; background-size: cover; background-position: center; }
 .ot-hinweis-karte.mit-bild .ot-hinweis-zu { background: rgba(0, 0, 0, .45); color: #fff; z-index: 1; }
+
+/* ===========================================================================
+   Live-Event von Lichess (js/ot-live.js) - zweiter Reiter, ueber dem Turnier-Reiter
+   =========================================================================== */
+.ot-hinweis.ot-live { top: 36%; }
+.ot-live-karte { width: 340px; max-height: calc(100vh - 110px); overflow-y: auto; transform: translate(12px, -35%); }
+.ot-live.offen .ot-live-karte { transform: translate(0, -35%); }
+@media (hover: hover) and (min-width: 601px) {
+    .ot-live:not(.ruhe):hover .ot-live-karte, .ot-live:not(.ruhe):focus-within .ot-live-karte { transform: translate(0, -35%); }
+}
+.ot-live-titel { text-decoration: none; }
+.ot-live-titel:hover { text-decoration: underline; }
+.ot-live-naechste { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; color: var(--text-secondary); }
+.ot-live-folgt, .ot-live-laden { font-size: 0.85rem; color: var(--text-secondary); margin: 0.3rem 0; }
+.ot-live-leiste { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.3rem; font-size: 0.78rem; color: var(--text-secondary); }
+.ot-live-pfeil { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--glass-border); background: transparent; color: var(--text-primary); font-size: 1.15rem; line-height: 1; cursor: pointer; }
+.ot-live-pfeil:hover, .ot-live-pfeil:focus-visible { border-color: var(--accent-color); color: var(--accent-color); }
+.ot-live-brett { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border); user-select: none; }
+.ot-live-spieler { display: flex; align-items: center; gap: 0.4rem; min-width: 0; padding: 0.25rem 0; font-size: 0.85rem; }
+.ot-live-spieler b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
+.ot-live-spieler small { color: var(--text-secondary); }
+.ot-live-fed { padding: 0 0.25rem; border: 1px solid var(--glass-border); border-radius: 4px; font-size: 0.66rem; letter-spacing: 0.04em; }
+.ot-live-farbe { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; border: 1px solid #8a8a8a; }
+.ot-live-farbe.w { background: #fff; } .ot-live-farbe.b { background: #222; }
+.ot-live-erg { margin-left: auto; font-weight: 800; color: var(--accent-color); }
+.ot-live-uhr { margin-left: auto; padding: 0.1rem 0.45rem; border: 1px solid var(--glass-border); border-radius: 6px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.ot-live-erg + .ot-live-uhr { margin-left: 0.4rem; }
+.ot-live-spieler.am-zug .ot-live-uhr { background: var(--accent-color); border-color: transparent; color: #000; }
+@media (max-width: 600px) {
+    .ot-hinweis.ot-live { top: auto; bottom: 64px; }
+    .ot-live-karte { transform: translateY(10px); max-height: calc(100vh - 170px); }
+    .ot-live.offen .ot-live-karte { transform: none; }
+}
+/* Die Live-Karte scrollt bei wenig Hoehe senkrecht; die Hover-Bruecke darf dort keinen
+   waagrechten Balken erzeugen - sie sitzt deshalb am Reiter statt an der Karte. */
+.ot-live-karte { overflow-x: hidden; }
+.ot-live-karte::after { display: none; }
+.ot-live .ot-hinweis-griff { position: relative; }
+.ot-live .ot-hinweis-griff::before { content: ''; position: absolute; top: 0; bottom: 0; right: 100%; width: 14px; }
+@media (max-width: 600px) { .ot-live .ot-hinweis-griff::before { display: none; } }
+/* Live-Event: beendete Partie leicht abgedunkelt, Ergebnis als Banderole; letzter Zug als Text */
+.ot-live-rahmen { position: relative; }
+.ot-live-rahmen.beendet .ot-live-brett { filter: saturate(.75) brightness(.82); }
+.ot-live-banderole { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); padding: 0.45rem 0.8rem; text-align: center; font-weight: 800; letter-spacing: 0.03em; color: #000; background: linear-gradient(90deg, rgba(212, 175, 55, .0), rgba(212, 175, 55, .95) 18%, rgba(244, 208, 111, .95) 50%, rgba(212, 175, 55, .95) 82%, rgba(212, 175, 55, 0)); box-shadow: 0 4px 18px rgba(0, 0, 0, .35); pointer-events: none; }
+.ot-live-zug { margin-top: 0.15rem; font-size: 0.8rem; color: var(--text-secondary); }
+.ot-live-zug b { margin-left: 0.25rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ot-live-leiste .ot-hinweis-punkt { display: inline-block; vertical-align: 1px; }
+/* Banderole wegtippen (oder mit der Maus aufs Brett), um die Schlussstellung ungetrübt zu sehen */
+.ot-live-rahmen.beendet { cursor: pointer; }
+.ot-live-rahmen .ot-live-brett, .ot-live-banderole { transition: filter .25s, opacity .25s; }
+.ot-live-rahmen.beendet.frei .ot-live-brett { filter: none; }
+.ot-live-rahmen.beendet.frei .ot-live-banderole { opacity: 0; }
+@media (hover: hover) {
+    .ot-live-rahmen.beendet:hover .ot-live-brett { filter: none; }
+    .ot-live-rahmen.beendet:hover .ot-live-banderole { opacity: 0; }
+}
+.ot-live-rahmen:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; border-radius: 8px; }

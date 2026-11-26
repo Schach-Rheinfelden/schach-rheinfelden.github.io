@@ -174,6 +174,26 @@
         return (h ? h + ':' + zwei(m) : m) + ':' + zwei(s);
     }
 
+
+    /* Karte immer ganz im Fenster halten: Auf niedrigen Bildschirmen ragte sie
+       unten (oder oben unter die Navigation) hinaus. Verschoben wird ueber
+       margin-top, die Animation (transform) bleibt unberuehrt. */
+    function einpassen(el, anteil) {
+        const karte = el.querySelector('.ot-hinweis-karte');
+        if (!karte) return;
+        if (window.innerWidth <= 600) { karte.style.marginTop = ''; karte.style.maxHeight = ''; return; }
+        const nav = document.querySelector('.navbar');
+        const oben = (nav ? Math.max(0, nav.getBoundingClientRect().bottom) : 0) + 10;
+        const unten = window.innerHeight - 10;
+        karte.style.maxHeight = Math.max(200, unten - oben) + 'px';
+        const r = el.getBoundingClientRect(), h = karte.offsetHeight;
+        const anfang = r.top + r.height / 2 - anteil * h;
+        let versatz = 0;
+        if (anfang + h > unten) versatz = unten - (anfang + h);
+        if (anfang + versatz < oben) versatz = oben - anfang;
+        karte.style.marginTop = Math.round(versatz) + 'px';
+    }
+
     /* ── Anzeige ─────────────────────────────────────────────────────── */
     function bauen(link, ev) {
         const el = document.createElement('aside');
@@ -201,7 +221,12 @@
         const zustand = { ev, l: lage(ev), runde: null, spiele: [], zuege: new Map(), frei: new Set(), brett: 0, geholt: 0, holen: null, uhr: null };
 
         /* Auf-/Zuklappen wie beim Online-Turnier-Reiter (x schliesst nur die Karte). */
+        const passen = () => einpassen(el, 0.35);
+        el.addEventListener('mouseenter', passen);
+        el.addEventListener('focusin', passen);
+        window.addEventListener('resize', passen);
         const setzen = offen => {
+            if (offen) passen();
             el.classList.toggle('offen', offen);
             griff.setAttribute('aria-expanded', offen ? 'true' : 'false');
             if (offen) rundeHolen();
@@ -325,6 +350,7 @@
                 + '<a class="btn btn-primary" href="' + esc((l.live && l.live.url) || zustand.ev.tour.url) + '" target="_blank" rel="noopener">Event auf Lichess ↗</a>'
                 + (partie ? '<a class="ot-hinweis-mehr" href="' + esc(partie) + '" target="_blank" rel="noopener">Partie ↗</a>' : '') + '</div>';
             $('inhalt').innerHTML = html;
+            passen();   // Inhalt (z. B. Brett) ist da - Hoehe neu, Lage pruefen
             ticken();
         }
 

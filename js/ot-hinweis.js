@@ -175,6 +175,26 @@
     };
     const zwei = n => String(n).padStart(2, '0');
 
+
+    /* Karte immer ganz im Fenster halten: Auf niedrigen Bildschirmen ragte sie
+       unten (oder oben unter die Navigation) hinaus. Verschoben wird ueber
+       margin-top, die Animation (transform) bleibt unberuehrt. */
+    function einpassen(el, anteil) {
+        const karte = el.querySelector('.ot-hinweis-karte');
+        if (!karte) return;
+        if (window.innerWidth <= 600) { karte.style.marginTop = ''; karte.style.maxHeight = ''; return; }
+        const nav = document.querySelector('.navbar');
+        const oben = (nav ? Math.max(0, nav.getBoundingClientRect().bottom) : 0) + 10;
+        const unten = window.innerHeight - 10;
+        karte.style.maxHeight = Math.max(200, unten - oben) + 'px';
+        const r = el.getBoundingClientRect(), h = karte.offsetHeight;
+        const anfang = r.top + r.height / 2 - anteil * h;
+        let versatz = 0;
+        if (anfang + h > unten) versatz = unten - (anfang + h);
+        if (anfang + versatz < oben) versatz = oben - anfang;
+        karte.style.marginTop = Math.round(versatz) + 'px';
+    }
+
     function zeigen(t) {
         const live = t.status === 'laeuft';
         const lichess = 'https://lichess.org/' + (t.typ === 'swiss' ? 'swiss/' : 'tournament/') + t.id;
@@ -206,7 +226,10 @@
         })().appendChild(el);
 
         const griff = el.querySelector('.ot-hinweis-griff');
-        const setzen = offen => { el.classList.toggle('offen', offen); griff.setAttribute('aria-expanded', offen ? 'true' : 'false'); };
+        const setzen = offen => { if (offen) einpassen(el, 0.5); el.classList.toggle('offen', offen); griff.setAttribute('aria-expanded', offen ? 'true' : 'false'); };
+        el.addEventListener('mouseenter', () => einpassen(el, 0.5));
+        el.addEventListener('focusin', () => einpassen(el, 0.5));
+        window.addEventListener('resize', () => einpassen(el, 0.5));
         griff.addEventListener('click', () => { el.classList.remove('ruhe'); setzen(!el.classList.contains('offen')); });
         /* x: nur die Karte schliessen, der Reiter bleibt. "ruhe" sperrt das Aufklappen
            per Maus/Fokus, bis man den Reiter wieder ansteuert. (Nicht schon beim
